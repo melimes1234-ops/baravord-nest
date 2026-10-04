@@ -1,0 +1,23 @@
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vitest/config'
+import { VitePWA } from 'vite-plugin-pwa'
+
+export default defineConfig({
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      manifest: {
+        name: 'برآورد قیمت WPC',
+        short_name: 'برآورد WPC',
+        lang: 'fa',
+        dir: 'rtl',
+        display: 'standalone',
+        background_color: '#f6f7f5',
+        theme_color: '#1f6f5c',
+        icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
+      },
+    }),
+  ],
+  test: { include: ['src/**/*.test.ts'] },
+})
