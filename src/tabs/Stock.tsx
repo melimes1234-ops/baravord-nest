@@ -3,7 +3,7 @@ import { formatKg, formatToman, fromJalaliDate, stockLevels, toFa, toJalaliDate,
 import type { Update } from '../store'
 import { NumInput } from '../ui'
 
-export function Stock({ catalog, movements, update }: { catalog: Catalog; movements: Movement[]; update: Update }) {
+export function Stock({ catalog, movements, update, readOnly }: { catalog: Catalog; movements: Movement[]; update: Update; readOnly?: boolean }) {
   const levels = stockLevels(movements)
   const [materialId, setMaterialId] = useState(Object.keys(catalog.materials)[0])
   const [kg, setKg] = useState<number | null>(null)
@@ -17,15 +17,13 @@ export function Stock({ catalog, movements, update }: { catalog: Catalog; moveme
     if (!kg || kg <= 0) return setError('مقدار را وارد کنید')
     update(s => {
       s.movements.push({ id: `M${Date.now().toString(36)}`, date: iso, materialId, kg, type, pricePerKg: type === 'in' ? price ?? undefined : undefined })
-      // A priced purchase also updates the material price used in costing.
-      if (type === 'in' && price != null) s.catalog.materials[materialId].pricePerKg = levelsAfter(s.movements, materialId) ?? price
     })
     setError(''); setKg(null)
   }
 
   return (
     <>
-      <div className="card">
+      {!readOnly && <div className="card">
         <h2>ثبت ورود به انبار (خرید یا ضایعات برگشتی)</h2>
         <div className="row">
           <label>ماده<select value={materialId} onChange={e => setMaterialId(e.target.value)}>{Object.values(catalog.materials).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
@@ -36,8 +34,8 @@ export function Stock({ catalog, movements, update }: { catalog: Catalog; moveme
           <button className="btn ghost" onClick={() => add('waste_in')}>ضایعات برگشتی</button>
         </div>
         {error && <div className="alert err">{error}</div>}
-        <p className="muted">با ثبت خرید، قیمت ماده با میانگین موزون موجودی به‌روز می‌شود. مصرف تولید خودکار از فرمول واقعی هر پارت کم می‌شود.</p>
-      </div>
+        <p className="muted">با ثبت خرید با قیمت، سرور قیمت ماده را با میانگین موزون موجودی به‌روز می‌کند. مصرف تولید خودکار از فرمول واقعی هر پارت کم می‌شود.</p>
+      </div>}
       <div className="card">
         <h2>باقی‌مانده مواد</h2>
         <div className="tablewrap">
@@ -79,8 +77,4 @@ export function Stock({ catalog, movements, update }: { catalog: Catalog; moveme
       </div>
     </>
   )
-}
-
-function levelsAfter(movements: Movement[], id: string): number | null {
-  return stockLevels(movements)[id]?.avgPrice ?? null
 }
