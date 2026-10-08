@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { formatKg, formatToman, parseNum, toFa } from './core'
 
 /** Number field that accepts Persian/Latin digits and commits on blur. */
@@ -8,14 +8,17 @@ export function NumInput(props: {
   money?: boolean
   decimals?: number
   placeholder?: string
+  readOnly?: boolean
 }) {
-  const { value, onChange, money, decimals = 3, placeholder } = props
+  const { value, onChange, money, decimals = 3, placeholder, readOnly } = props
   const [text, setText] = useState<string | null>(null)
   const shown = value == null ? '' : money ? formatToman(value) : formatKg(value, decimals)
   return (
     <input
       className="num"
       inputMode="decimal"
+      readOnly={readOnly}
+      tabIndex={readOnly ? -1 : undefined}
       placeholder={placeholder ?? '—'}
       value={text ?? shown}
       onFocus={e => {
@@ -82,5 +85,37 @@ export function TextInput(props: {
         setText(null)
       }}
     />
+  )
+}
+
+/** A small "!" button whose explanation opens on hover, focus or tap. */
+export function InfoTip({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const id = useId()
+  return (
+    <span className="tip" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <button
+        type="button"
+        className="tip-btn"
+        aria-label="توضیح"
+        aria-expanded={open}
+        aria-describedby={open ? id : undefined}
+        onClick={() => setOpen(o => !o)}
+        onBlur={() => setOpen(false)}
+        onKeyDown={e => e.key === 'Escape' && setOpen(false)}
+      >
+        !
+      </button>
+      {open && <span role="tooltip" id={id} className="tip-pop">{children}</span>}
+    </span>
+  )
+}
+
+export function LockIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg className="lock" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="قفل" role="img">
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
   )
 }

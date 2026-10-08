@@ -174,3 +174,19 @@ td.prodcell { white-space: normal; min-width: 150px; }
 .delta.up { background: var(--warn-bg); color: var(--warn); }
 .delta.down { background: var(--info-bg); color: var(--info); }
 .delta.over { background: var(--err-bg); color: var(--err); box-shadow: inset 0 0 0 1px var(--err); }
+
+/* ---- tooltip + lock ---- */
+.tip { position: relative; display: inline-flex; vertical-align: middle; }
+.tip-btn { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--accent); background: transparent; color: var(--accent); font-weight: 800; font-size: 13px; line-height: 1; cursor: pointer; padding: 0; }
+.tip-btn:hover, .tip-btn[aria-expanded="true"] { background: var(--accent); color: var(--on-accent); }
+.tip-pop { position: absolute; z-index: 20; top: calc(100% + 8px); inset-inline-start: -8px; width: min(340px, calc(100vw - 44px)); background: var(--card); color: var(--ink); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; line-height: 1.9; font-weight: 400; box-shadow: 0 6px 24px rgba(0, 0, 0, .25); white-space: normal; text-align: right; }
+.tip-pop p { margin: 0 0 6px; } .tip-pop p:last-child { margin: 0; }
+.lock { color: var(--warn); vertical-align: middle; }
+.locked-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; background: var(--warn-bg); color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line)); font-weight: 600; }
+.locked-banner .tip-btn { border-color: var(--warn); color: var(--warn); }
+.locked-banner .tip-btn:hover, .locked-banner .tip-btn[aria-expanded="true"] { background: var(--warn); color: var(--card); }
+.stepper { display: inline-flex; gap: 4px; margin-inline-start: 6px; }
+.stepper button { width: 30px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-weight: 800; font-size: 16px; }
+.stepper button:hover { border-color: var(--accent); color: var(--accent); }
+td input.num[readonly], td input.num:disabled { background: transparent; border-color: transparent; color: var(--ink); }
+.minibar { display: inline-block; height: 8px; border-radius: 4px; vertical-align: middle; min-width: 2px; }

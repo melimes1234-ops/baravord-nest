@@ -20,6 +20,12 @@ export interface Recipe {
   id: Id
   name: string
   items: RecipeItem[]
+  /** Created by a user for testing. Standard formulas (no flag) are read-only. */
+  custom?: boolean
+  /** The standard formula this one was copied from, used for comparisons. */
+  copiedFrom?: Id
+  /** 'semi' = intermediate (like PRP) that other formulas can use; 'base' = a product's own formula. */
+  kind?: 'semi' | 'base'
 }
 
 /** Pigment formula, added on top of the base recipe for every 100 kg batch. */
@@ -29,6 +35,9 @@ export interface Color {
   items: RecipeItem[]
   /** Swatch shown in the app, '#rrggbb'. When empty it is estimated from the pigments. */
   hex?: string
+  /** Created by a user for testing. Standard colours (no flag) are read-only. */
+  custom?: boolean
+  copiedFrom?: Id
 }
 
 export interface Product {

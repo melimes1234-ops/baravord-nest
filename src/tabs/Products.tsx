@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import type { Catalog } from '../core'
+import { recipeUsage, type Catalog } from '../core'
 import type { Update } from '../store'
 import { NumInput, Tag, TextInput } from '../ui'
 
 const emptyForm = { name: '', code: '', widthMm: null as number | null, thicknessMm: null as number | null, weightPer3mG: null as number | null, colorable: true }
 
 export function Products({ catalog, update }: { catalog: Catalog; update: Update }) {
-  const recipes = Object.values(catalog.recipes)
+  // Intermediate formulas (like PRP) are used inside other formulas, not as a product's own formula.
+  const isSemi = (id: string) => catalog.recipes[id].kind === 'semi' || (!catalog.recipes[id].kind && recipeUsage(id, catalog).recipes.length > 0)
+  const recipes = Object.values(catalog.recipes).filter(r => !isSemi(r.id))
   const [form, setForm] = useState(emptyForm)
   const [recipeId, setRecipeId] = useState(recipes[0]?.id ?? '')
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
@@ -46,7 +48,7 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
                   <td className="n"><NumInput money value={p.weightPer3mG} onChange={v => update(s => { s.catalog.products[p.id].weightPer3mG = v })} /></td>
                   <td>
                     <select value={p.baseRecipeId} onChange={e => update(s => { s.catalog.products[p.id].baseRecipeId = e.target.value })}>
-                      {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                      {Object.values(catalog.recipes).filter(r => !isSemi(r.id) || r.id === p.baseRecipeId).map(r => <option key={r.id} value={r.id}>{r.name}{r.custom ? ' (آزمایشی)' : ''}</option>)}
                     </select>
                   </td>
                   <td><input type="checkbox" checked={p.colorable} onChange={e => update(s => { s.catalog.products[p.id].colorable = e.target.checked })} aria-label="رنگ‌پذیر" style={{ minWidth: 0 }} /></td>

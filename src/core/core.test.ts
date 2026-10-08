@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
-  colorSwatch, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
+  colorSwatch, formulaCost, normalizeTo, recipeUsage, setItemPercent, withReplacement, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
   replaceBatchItem, seedCatalog, setActualQty, stockLevels, toJalaliDate, validateCatalog,
   type Catalog, type Movement,
 } from './index'
@@ -229,5 +229,50 @@ describe('colour swatches', () => {
     c.colors.n1.hex = 'blue'
     expect(colorSwatch(c.colors.n1, c)).toMatch(/^#[0-9a-f]{6}$/)
     expect(colorSwatch(c.colors.n1, c)).not.toBe('blue')
+  })
+})
+
+describe('formula tools', () => {
+  it('cost of a formula = sum of item costs, and a sub-recipe item costs its own per-kg price', () => {
+    const c = cat()
+    const f = formulaCost(c.recipes['wpc-profile'].items, c)
+    const prp = recipeMaterialPerKg('prp', c)
+    expect(f.rows.find(r => r.item.ref.id === 'prp')!.cost).toBeCloseTo(33 * prp, 6)
+    expect(f.totalCost).toBeCloseTo(60 * 20_500 + 33 * prp + 2 * 250_000 + 3 * 290_000, 4)
+    expect(f.incomplete).toBe(false)
+    expect(formulaCost(c.recipes.cabinet.items, c).incomplete).toBe(true) // polymer price missing
+  })
+
+  it('normalize scales to 100 kg and keeps the proportions', () => {
+    const c = cat()
+    const n = normalizeTo(c.recipes.prp.items, 100)
+    expect(n.reduce((s, i) => s + i.qtyKg, 0)).toBeCloseTo(100, 4)
+    expect(n[3].qtyKg / n[0].qtyKg).toBeCloseTo(60 / 38.5, 4)
+  })
+
+  it('percent edit sets the share and leaves the other items alone', () => {
+    const c = cat()
+    const items = setItemPercent(c.recipes.prp.items, 0, 50)!
+    const total = items.reduce((s, i) => s + i.qtyKg, 0)
+    expect(items[0].qtyKg / total).toBeCloseTo(0.5, 6)
+    expect(items[1].qtyKg).toBe(0.25)
+    expect(setItemPercent(c.recipes.prp.items, 0, 100)).toBeNull()
+  })
+
+  it('usage lists the products and recipes that depend on a recipe', () => {
+    const c = cat()
+    expect(recipeUsage('prp', c).recipes.map(r => r.id)).toEqual(['wpc-profile'])
+    expect(recipeUsage('wpc-profile', c).products.length).toBe(23)
+    expect(recipeUsage('cabinet', c).recipes).toHaveLength(0)
+  })
+
+  it('replacing a formula in a copy changes prices there and never in the original', () => {
+    const c = cat()
+    const before = priceProduct(c.products.flex, 'n1', c.tariffs[0], c).perStick!
+    const cheaper = c.recipes.prp.items.map(i => (i.ref.id === 'pp-white' ? { ...i, qtyKg: 50 } : i))
+    const alt = withReplacement(c, 'recipe', 'prp', cheaper)
+    expect(priceProduct(c.products.flex, 'n1', c.tariffs[0], alt).perStick!).toBeLessThan(before)
+    expect(priceProduct(c.products.flex, 'n1', c.tariffs[0], c).perStick!).toBe(before)
+    expect(c.recipes.prp.items.find(i => i.ref.id === 'pp-white')!.qtyKg).toBe(60)
   })
 })
