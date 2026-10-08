@@ -5,6 +5,7 @@ import { backend } from './backends'
 import { supabase } from './backends/supabase'
 import { Login } from './Login'
 import { DEMO, useDemoSession } from './demo'
+import { applyTheme, initialTheme, type Theme } from './theme'
 import { useSession } from './store'
 import { Batches } from './tabs/Batches'
 import { Costs } from './tabs/Costs'
@@ -33,6 +34,12 @@ export default function App() {
   const impl = useSessionImpl()
   const { session, error, clearError, login, logout, update } = impl
   const [confirmReset, setConfirmReset] = useState(false)
+  const [theme, setTheme] = useState<Theme>(initialTheme)
+  const toggleTheme = () => {
+    const next: Theme = theme === 'dark' ? 'light' : 'dark'
+    applyTheme(next)
+    setTheme(next)
+  }
   const [tab, setTab] = useState<Tab>('لیست قیمت')
 
   if (session.status === 'loading') return <main><p className="muted">در حال بارگذاری…</p>{error && <div className="alert err">{error}</div>}</main>
@@ -51,6 +58,9 @@ export default function App() {
       <header>
         <h1>برآورد قیمت و کنترل تولید WPC</h1>
         <span className="muted" style={{ color: 'inherit' }}>{user.username} ({ROLE_LABEL[user.role]})</span>
+        <button className="btn ghost" style={{ color: 'inherit', borderColor: 'currentColor' }} onClick={toggleTheme}>
+          {theme === 'dark' ? 'حالت روشن' : 'حالت تیره'}
+        </button>
         {DEMO ? (
           <button
             className="btn ghost"
