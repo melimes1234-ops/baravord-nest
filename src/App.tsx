@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { toFa, validateCatalog } from './core'
 import type { Role } from './api'
+import { backend } from './backends'
+import { supabase } from './backends/supabase'
 import { Login } from './Login'
 import { DEMO, useDemoSession } from './demo'
 import { useSession } from './store'
@@ -12,6 +14,7 @@ import { PriceList } from './tabs/PriceList'
 import { Products } from './tabs/Products'
 import { Recipes } from './tabs/Recipes'
 import { Stock } from './tabs/Stock'
+import { SupabaseUsers } from './tabs/SupabaseUsers'
 import { Users } from './tabs/Users'
 
 const ALL = ['لیست قیمت', 'مواد', 'فرمول‌ها', 'محصولات', 'هزینه‌ها', 'پارت تولید', 'انبار', 'هشدارها', 'کاربران'] as const
@@ -61,7 +64,23 @@ export default function App() {
             {confirmReset ? 'مطمئنید؟ دوباره بزنید' : 'بازنشانی داده‌ها'}
           </button>
         ) : (
-          <button className="btn ghost" style={{ color: 'inherit', borderColor: 'currentColor' }} onClick={() => void logout()}>خروج</button>
+          <>
+            {backend.kind === 'supabase' && (
+              <button
+                className="btn ghost"
+                style={{ color: 'inherit', borderColor: 'currentColor' }}
+                onClick={async () => {
+                  const p = prompt('رمز عبور جدید (حداقل ۸ نویسه):')
+                  if (!p) return
+                  const { error: e } = await supabase().auth.updateUser({ password: p })
+                  alert(e ? e.message : 'رمز عبور تغییر کرد.')
+                }}
+              >
+                تغییر رمز من
+              </button>
+            )}
+            <button className="btn ghost" style={{ color: 'inherit', borderColor: 'currentColor' }} onClick={() => void logout()}>خروج</button>
+          </>
         )}
       </header>
       <nav>
@@ -82,7 +101,7 @@ export default function App() {
         {current === 'پارت تولید' && canEdit && <Batches state={state} update={update} />}
         {current === 'انبار' && <Stock catalog={catalog} movements={state.movements} update={update} readOnly={!canEdit} />}
         {current === 'هشدارها' && <Issues catalog={catalog} />}
-        {current === 'کاربران' && <Users me={user} />}
+        {current === 'کاربران' && (backend.kind === 'supabase' ? <SupabaseUsers /> : <Users me={user} />)}
       </main>
     </>
   )

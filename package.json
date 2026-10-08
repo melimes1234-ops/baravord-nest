@@ -11,10 +11,13 @@
     "server": "tsx server/index.ts",
     "start": "npm run build && tsx server/index.ts",
     "test": "vitest run",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "test:sql": "supabase/tests/run.sh",
+    "gen:sql": "tsx scripts/gen-seed-sql.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.3",
+    "@supabase/supabase-js": "^2.117.3",
     "hono": "^4.13.13",
     "jalaali-js": "^2.0.1",
     "react": "^19.2.8",

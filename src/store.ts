@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Batch, Catalog, Movement } from './core'
-import { api, ApiError, type ServerState, type User } from './api'
+import { ApiError, type ServerState, type User } from './api'
+import { backend } from './backends'
 
 export interface AppState {
   catalog: Catalog
@@ -32,7 +33,7 @@ export function useSession() {
 
   const refresh = useCallback(async () => {
     try {
-      apply(await api<ServerState>('GET', '/api/state'))
+      apply(await backend.loadState())
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) setSession({ status: 'anonymous' })
       else setError((e as Error).message)
@@ -42,13 +43,13 @@ export function useSession() {
   useEffect(() => { void refresh() }, [refresh])
 
   const login = useCallback(async (username: string, password: string) => {
-    await api('POST', '/api/login', { username, password })
+    await backend.login(username, password)
     setError('')
     await refresh()
   }, [refresh])
 
   const logout = useCallback(async () => {
-    await api('POST', '/api/logout', {}).catch(() => {})
+    await backend.logout()
     setSession({ status: 'anonymous' })
   }, [])
 
@@ -57,8 +58,7 @@ export function useSession() {
     if (!catalog) return
     dirtyCatalog.current = null
     try {
-      const r = await api<{ version: number }>('PUT', '/api/catalog', { catalog, version: version.current })
-      version.current = r.version
+      version.current = await backend.saveCatalog(catalog, version.current)
       setError('')
     } catch (e) {
       setError((e as Error).message)
@@ -99,8 +99,8 @@ export function useSession() {
     if (newBatches.length || newMoves.length) {
       void (async () => {
         try {
-          for (const m of newMoves) await api('POST', '/api/movements', m)
-          for (const b of newBatches) await api('POST', '/api/batches', b)
+          for (const m of newMoves) await backend.addMovement(m)
+          for (const b of newBatches) await backend.addBatch(b)
           setError('')
         } catch (e) {
           setError((e as Error).message)

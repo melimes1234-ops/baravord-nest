@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { viteSingleFile } from 'vite-plugin-singlefile'
 
 export default defineConfig(({ mode }) => ({
+  base: './',
   build: mode === 'demo' ? { outDir: 'dist-demo' } : undefined,
   plugins: [
     react(),
