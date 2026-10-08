@@ -5,7 +5,7 @@ import {
   type Batch, type Catalog, type ItemRef,
 } from '../core'
 import type { AppState, Update } from '../store'
-import { NumInput, Tag } from '../ui'
+import { DeltaBadge, NumInput, Tag } from '../ui'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -63,13 +63,23 @@ export function Batches({ state, update }: { state: AppState; update: Update }) 
           <h2>{product.name} {draft.colorId ? `— ${catalog.colors[draft.colorId].name}` : ''} — {toJalaliDate(draft.date)}</h2>
           <div className="tablewrap">
             <table>
-              <thead><tr><th>جزء</th><th className="n">استاندارد (کیلو)</th><th className="n">واقعی (کیلو)</th><th /></tr></thead>
+              <thead><tr><th>جزء</th><th className="n">استاندارد (کیلو)</th><th className="n">واقعی (کیلو)</th><th className="n">تغییر (٪)</th><th>نسبت به فرمول</th><th /></tr></thead>
               <tbody>
                 {draft.items.map(it => (
                   <tr key={`${it.ref.kind}:${it.ref.id}`}>
                     <td>{nameOf(it.ref)}{it.stdQty === 0 && <> <Tag>افزوده شده</Tag></>}</td>
                     <td className="n">{formatKg(it.stdQty)}</td>
                     <td className="n"><NumInput value={it.actualQty} onChange={v => setDraft(setActualQty(draft, it.ref, v ?? 0, user))} /></td>
+                    <td className="n">
+                      {it.stdQty > 0 ? (
+                        <NumInput
+                          value={Math.round((it.actualQty / it.stdQty - 1) * 10000) / 100}
+                          decimals={2}
+                          onChange={v => setDraft(setActualQty(draft, it.ref, Math.max(0, it.stdQty * (1 + (v ?? 0) / 100)), user))}
+                        />
+                      ) : '—'}
+                    </td>
+                    <td><DeltaBadge pct={it.stdQty > 0 ? (it.actualQty / it.stdQty - 1) * 100 : null} tol={(it.ref.kind === 'material' && catalog.config.toleranceByMaterial[it.ref.id]) || catalog.config.defaultTolerancePct} /></td>
                     <td><button className="btn danger" onClick={() => setDraft(removeBatchItem(draft, it.ref, user))}>حذف</button></td>
                   </tr>
                 ))}

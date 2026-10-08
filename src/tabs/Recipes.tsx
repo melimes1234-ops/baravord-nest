@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { colorSwatch, formatKg, sumKg, toFa, type Catalog, type RecipeItem } from '../core'
+import { colorSwatch, formatKg, sumKg, type Catalog, type RecipeItem } from '../core'
 import type { Update } from '../store'
 import { NumInput, Swatch } from '../ui'
 
@@ -63,7 +63,18 @@ export function Recipes({ catalog, update }: { catalog: Catalog; update: Update 
               <tr key={`${it.ref.kind}:${it.ref.id}`}>
                 <td>{nameOf(it)}</td>
                 <td className="n"><NumInput value={it.qtyKg} onChange={v => edit(items => { items[idx].qtyKg = v ?? 0 })} /></td>
-                <td className="n">{total > 0 ? toFa((it.qtyKg / total * 100).toFixed(1)) : '—'}٪</td>
+                <td className="n">
+                  <NumInput
+                    value={total > 0 ? Math.round((it.qtyKg / total) * 10000) / 100 : 0}
+                    decimals={2}
+                    onChange={v => edit(items => {
+                      const p = v ?? 0
+                      if (p < 0 || p >= 100) return
+                      const others = items.reduce((s, x, j) => (j === idx ? s : s + x.qtyKg), 0)
+                      items[idx].qtyKg = Math.round(((p / 100) * others / (1 - p / 100)) * 1e6) / 1e6
+                    })}
+                  />٪
+                </td>
                 <td><button className="btn danger" onClick={() => edit(items => { items.splice(idx, 1) })}>حذف</button></td>
               </tr>
             ))}
@@ -90,6 +101,7 @@ export function Recipes({ catalog, update }: { catalog: Catalog; update: Update 
         </button>
       </div>
       <p className="muted">
+        درصد هر جزء را هم می‌توان مستقیم نوشت: بقیه‌ی اجزا ثابت می‌مانند و جزء مورد نظر طوری تنظیم می‌شود که همان سهم را از کل داشته باشد.
         تغییر فرمول استاندارد روی قیمت‌های بعدی اثر می‌گذارد. برای تغییر فقط یک پارت، از بخش «پارت تولید» استفاده کنید.
       </p>
     </div>

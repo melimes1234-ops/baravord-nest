@@ -4,7 +4,7 @@ import {
   type Catalog, type Product, type Tariff,
 } from '../core'
 import { DEMO } from '../demo'
-import { Swatch, Tag } from '../ui'
+import { NumInput, Swatch, Tag } from '../ui'
 
 /** 'FD142' -> 'FD'. Products of one series share a colour in the list. */
 const seriesOf = (p: Product): string => {
@@ -13,13 +13,19 @@ const seriesOf = (p: Product): string => {
 }
 const seriesTitle = (s: string) => (s === 'other' ? 'سایر محصولات' : `سری ${s}`)
 
-export function PriceList({ catalog }: { catalog: Catalog }) {
+const CUSTOM = 'custom'
+
+export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEditTariffs?: () => void }) {
   const colors = Object.values(catalog.colors)
   const [tariffId, setTariffId] = useState(catalog.tariffs[0]?.id)
+  const [customPct, setCustomPct] = useState<number | null>(20)
   const [colorId, setColorId] = useState<string>(colors[0]?.id ?? '')
   const [open, setOpen] = useState<string | null>(null)
   const [query, setQuery] = useState('')
-  const tariff = catalog.tariffs.find(t => t.id === tariffId) ?? catalog.tariffs[0]
+  const tariff: Tariff | undefined =
+    tariffId === CUSTOM
+      ? { id: CUSTOM, name: 'سود دلخواه', marginPct: Math.max(0, customPct ?? 0) }
+      : catalog.tariffs.find(t => t.id === tariffId) ?? catalog.tariffs[0]
   const color = catalog.colors[colorId]
 
   const groups = useMemo(() => {
@@ -49,8 +55,18 @@ export function PriceList({ catalog }: { catalog: Catalog }) {
                 {t.name} · {toFa(t.marginPct)}٪
               </button>
             ))}
+            <button aria-pressed={tariff.id === CUSTOM} onClick={() => setTariffId(CUSTOM)}>سود دلخواه</button>
           </div>
         </div>
+        {tariff.id === CUSTOM && (
+          <label>
+            درصد سود دلخواه
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <NumInput value={customPct} decimals={2} onChange={setCustomPct} placeholder="مثلاً ۲۰" />٪
+            </span>
+          </label>
+        )}
+        {onEditTariffs && <button className="btn ghost print-hide" onClick={onEditTariffs}>ویرایش تعرفه‌ها</button>}
         <label style={{ marginInlineStart: 'auto' }}>
           جستجوی محصول
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="نام یا کد، مثلاً Flex" />

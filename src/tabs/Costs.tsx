@@ -1,6 +1,6 @@
 import { formatToman, overheadPerKg, extrasPerKg, toFa, type Catalog, type CostLine } from '../core'
 import type { Update } from '../store'
-import { NumInput } from '../ui'
+import { NumInput, TextInput } from '../ui'
 
 function Lines({ title, lines, onChange }: { title: string; lines: CostLine[]; onChange: (l: CostLine[]) => void }) {
   return (
@@ -56,7 +56,7 @@ export function Costs({ catalog, update }: { catalog: Catalog; update: Update })
             <tbody>
               {catalog.tariffs.map((t, i) => (
                 <tr key={t.id}>
-                  <td><input value={t.name} onChange={e => update(s => { s.catalog.tariffs[i].name = e.target.value })} /></td>
+                  <td><TextInput required value={t.name} onChange={v => update(s => { s.catalog.tariffs[i].name = v })} /></td>
                   <td className="n"><NumInput value={t.marginPct} decimals={2} onChange={v => update(s => { s.catalog.tariffs[i].marginPct = v ?? 0 })} /> {toFa('٪')}</td>
                   <td><button className="btn danger" disabled={catalog.tariffs.length < 2} onClick={() => update(s => { s.catalog.tariffs.splice(i, 1) })}>حذف</button></td>
                 </tr>
