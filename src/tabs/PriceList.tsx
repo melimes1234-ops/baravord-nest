@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import { flatten, formatKg, formatToman, priceProduct, productItems, toFa, type Catalog } from '../core'
+import { DEMO } from '../demo'
 import { Tag } from '../ui'
 
 export function PriceList({ catalog }: { catalog: Catalog }) {
@@ -37,7 +38,7 @@ export function PriceList({ catalog }: { catalog: Catalog }) {
               {colors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </label>
-          <button className="btn ghost" onClick={() => window.print()}>چاپ</button>
+          {!DEMO && <button className="btn ghost" onClick={() => window.print()}>چاپ</button>}
         </div>
         <div className="tablewrap">
           <table>

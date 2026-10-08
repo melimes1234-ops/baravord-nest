@@ -1,11 +1,15 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 import { VitePWA } from 'vite-plugin-pwa'
+import { viteSingleFile } from 'vite-plugin-singlefile'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  build: mode === 'demo' ? { outDir: 'dist-demo' } : undefined,
   plugins: [
     react(),
-    VitePWA({
+    ...(mode === 'demo' ? [viteSingleFile()] : [])
+    ,
+    mode === 'demo' ? null : VitePWA({
       registerType: 'autoUpdate',
       manifest: {
         name: 'برآورد قیمت WPC',
@@ -21,4 +25,4 @@ export default defineConfig({
   ],
   server: { proxy: { '/api': 'http://localhost:3000' } },
   test: { include: ['src/**/*.test.ts', 'server/**/*.test.ts'] },
-})
+}))

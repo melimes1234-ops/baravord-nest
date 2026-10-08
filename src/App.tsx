@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { toFa, validateCatalog } from './core'
 import type { Role } from './api'
 import { Login } from './Login'
+import { DEMO, useDemoSession } from './demo'
 import { useSession } from './store'
 import { Batches } from './tabs/Batches'
 import { Costs } from './tabs/Costs'
@@ -23,8 +24,12 @@ const ALLOWED: Record<Role, readonly Tab[]> = {
 }
 const ROLE_LABEL: Record<Role, string> = { admin: 'ادمین', operator: 'اپراتور', viewer: 'مشاهده‌گر' }
 
+const useSessionImpl = DEMO ? useDemoSession : useSession
+
 export default function App() {
-  const { session, error, clearError, login, logout, update } = useSession()
+  const impl = useSessionImpl()
+  const { session, error, clearError, login, logout, update } = impl
+  const [confirmReset, setConfirmReset] = useState(false)
   const [tab, setTab] = useState<Tab>('لیست قیمت')
 
   if (session.status === 'loading') return <main><p className="muted">در حال بارگذاری…</p>{error && <div className="alert err">{error}</div>}</main>
@@ -32,7 +37,7 @@ export default function App() {
 
   const { user, state } = session
   const { catalog } = state
-  const tabs = ALLOWED[user.role]
+  const tabs = DEMO ? ALLOWED.admin.filter(t => t !== 'کاربران') : ALLOWED[user.role]
   const current = tabs.includes(tab) ? tab : tabs[0]
   const issueCount = validateCatalog(catalog).length
   // Read-only roles get the edit handler removed so a stray click cannot be sent.
@@ -43,7 +48,21 @@ export default function App() {
       <header>
         <h1>برآورد قیمت و کنترل تولید WPC</h1>
         <span className="muted" style={{ color: 'inherit' }}>{user.username} ({ROLE_LABEL[user.role]})</span>
-        <button className="btn ghost" style={{ color: 'inherit', borderColor: 'currentColor' }} onClick={() => void logout()}>خروج</button>
+        {DEMO ? (
+          <button
+            className="btn ghost"
+            style={{ color: 'inherit', borderColor: 'currentColor' }}
+            onClick={() => {
+              if (!confirmReset) return setConfirmReset(true)
+              ;(impl as ReturnType<typeof useDemoSession>).reset()
+              setConfirmReset(false)
+            }}
+          >
+            {confirmReset ? 'مطمئنید؟ دوباره بزنید' : 'بازنشانی داده‌ها'}
+          </button>
+        ) : (
+          <button className="btn ghost" style={{ color: 'inherit', borderColor: 'currentColor' }} onClick={() => void logout()}>خروج</button>
+        )}
       </header>
       <nav>
         {tabs.map(t => (
@@ -53,6 +72,7 @@ export default function App() {
         ))}
       </nav>
       <main>
+        {DEMO && <div className="alert">نسخه نمایشی: بدون سرور و بدون ورود کاربران. داده‌ها فقط در همین مرورگر می‌مانند و با کسی به اشتراک گذاشته نمی‌شوند.</div>}
         {error && <div className="alert err" onClick={clearError}>{error} (برای بستن بزنید)</div>}
         {current === 'لیست قیمت' && <PriceList catalog={catalog} />}
         {current === 'مواد' && <Materials catalog={catalog} update={update} />}
