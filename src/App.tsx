@@ -22,6 +22,11 @@ import { Users } from './tabs/Users'
 const ALL = ['شروع کار', 'لیست قیمت', 'مواد', 'فرمول‌ها', 'محصولات', 'هزینه‌ها', 'پارت تولید', 'انبار', 'هشدارها', 'کاربران'] as const
 type Tab = (typeof ALL)[number]
 
+const TAB_KEY: Record<Tab, string> = {
+  'شروع کار': 'guide', 'لیست قیمت': 'prices', 'مواد': 'materials', 'فرمول‌ها': 'recipes', 'محصولات': 'products',
+  'هزینه‌ها': 'costs', 'پارت تولید': 'batches', 'انبار': 'stock', 'هشدارها': 'issues', 'کاربران': 'users',
+}
+
 const ALLOWED: Record<Role, readonly Tab[]> = {
   admin: ALL,
   operator: ['شروع کار', 'لیست قیمت', 'پارت تولید', 'انبار', 'هشدارها'],
@@ -58,14 +63,14 @@ export default function App() {
     <>
       <header>
         <h1>برآورد قیمت و کنترل تولید WPC</h1>
-        <span className="muted" style={{ color: 'inherit' }}>{user.username} ({ROLE_LABEL[user.role]})</span>
-        <button className="btn ghost" style={{ color: 'inherit', borderColor: 'currentColor' }} onClick={toggleTheme}>
+        <span className="who">{user.username} ({ROLE_LABEL[user.role]})</span>
+        <button className="btn ghost" onClick={toggleTheme}>
           {theme === 'dark' ? 'حالت روشن' : 'حالت تیره'}
         </button>
         {DEMO ? (
           <button
             className="btn ghost"
-            style={{ color: 'inherit', borderColor: 'currentColor' }}
+           
             onClick={() => {
               if (!confirmReset) return setConfirmReset(true)
               ;(impl as ReturnType<typeof useDemoSession>).reset()
@@ -79,7 +84,7 @@ export default function App() {
             {backend.kind === 'supabase' && (
               <button
                 className="btn ghost"
-                style={{ color: 'inherit', borderColor: 'currentColor' }}
+               
                 onClick={async () => {
                   const p = prompt('رمز عبور جدید (حداقل ۸ نویسه):')
                   if (!p) return
@@ -90,18 +95,18 @@ export default function App() {
                 تغییر رمز من
               </button>
             )}
-            <button className="btn ghost" style={{ color: 'inherit', borderColor: 'currentColor' }} onClick={() => void logout()}>خروج</button>
+            <button className="btn ghost" onClick={() => void logout()}>خروج</button>
           </>
         )}
       </header>
       <nav>
         {tabs.map(t => (
-          <button key={t} className={t === current ? 'on' : ''} onClick={() => setTab(t)}>
+          <button key={t} className={t === current ? 'on' : ''} style={{ ['--tab' as string]: `var(--c-${TAB_KEY[t]})` }} onClick={() => setTab(t)}>
             {t}{t === 'هشدارها' && issueCount > 0 ? ` (${toFa(issueCount)})` : ''}
           </button>
         ))}
       </nav>
-      <main>
+      <main data-tab={TAB_KEY[current]}>
         {DEMO && <div className="alert">نسخه نمایشی: بدون سرور و بدون ورود کاربران. داده‌ها فقط در همین مرورگر می‌مانند و با کسی به اشتراک گذاشته نمی‌شوند.</div>}
         {error && <div className="alert err" onClick={clearError}>{error} (برای بستن بزنید)</div>}
         {current === 'شروع کار' && <Guide catalog={catalog} movements={state.movements} batches={state.batches} role={DEMO ? 'admin' : user.role} demo={DEMO} go={t => setTab(t as Tab)} />}

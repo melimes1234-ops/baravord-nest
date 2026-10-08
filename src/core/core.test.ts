@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
-  fromJalaliDate, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
+  colorSwatch, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
   replaceBatchItem, seedCatalog, setActualQty, stockLevels, toJalaliDate, validateCatalog,
   type Catalog, type Movement,
 } from './index'
@@ -202,5 +202,32 @@ describe('validation and formatting', () => {
     expect(toJalaliDate('2026-10-04')).toBe('۱۴۰۵/۰۷/۱۲')
     expect(fromJalaliDate('۱۴۰۵/۰۷/۱۲')).toBe('2026-10-04')
     expect(fromJalaliDate('x')).toBeNull()
+  })
+})
+
+describe('colour swatches', () => {
+  it('titan white is light, carbon black is dark, and the two are different', () => {
+    const c = cat()
+    const white = colorSwatch(c.colors.n1, c)
+    const black = colorSwatch(c.colors.n6, c)
+    expect(white).toMatch(/^#[0-9a-f]{6}$/)
+    expect(luminance(white)).toBeGreaterThan(luminance(black) + 60)
+  })
+
+  it('a yellow formula is more yellow than blue, a red one more red', () => {
+    const c = cat()
+    const y = parseInt(colorSwatch(c.colors.n3, c).slice(1), 16)
+    expect((y >> 16) + ((y >> 8) & 255)).toBeGreaterThan(2 * (y & 255))
+    const r = parseInt(colorSwatch(c.colors.n8, c).slice(1), 16)
+    expect(r >> 16).toBeGreaterThan((r & 255) + 40)
+  })
+
+  it('the user\'s own hex wins; a malformed one is ignored', () => {
+    const c = cat()
+    c.colors.n1.hex = '#AABBCC'
+    expect(colorSwatch(c.colors.n1, c)).toBe('#aabbcc')
+    c.colors.n1.hex = 'blue'
+    expect(colorSwatch(c.colors.n1, c)).toMatch(/^#[0-9a-f]{6}$/)
+    expect(colorSwatch(c.colors.n1, c)).not.toBe('blue')
   })
 })

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { formatKg, sumKg, toFa, type Catalog, type RecipeItem } from '../core'
+import { colorSwatch, formatKg, sumKg, toFa, type Catalog, type RecipeItem } from '../core'
 import type { Update } from '../store'
-import { NumInput } from '../ui'
+import { NumInput, Swatch } from '../ui'
 
 type Target = { type: 'recipe' | 'color'; id: string }
 
@@ -38,6 +38,23 @@ export function Recipes({ catalog, update }: { catalog: Catalog; update: Update 
           </select>
         </label>
       </div>
+      {cur.type === 'color' && (
+        <div className="row">
+          <Swatch hex={colorSwatch(catalog.colors[cur.id], catalog)} large />
+          <label style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            رنگ نمایشی
+            <input
+              type="color"
+              value={colorSwatch(catalog.colors[cur.id], catalog)}
+              onChange={e => update(s => { s.catalog.colors[cur.id].hex = e.target.value })}
+            />
+          </label>
+          {catalog.colors[cur.id].hex && (
+            <button className="btn ghost" onClick={() => update(s => { delete s.catalog.colors[cur.id].hex })}>برگشت به رنگ خودکار</button>
+          )}
+          <span className="muted">این رنگ فقط برای نمایش در برنامه است. به‌طور پیش‌فرض از روی رنگدانه‌های فرمول تخمین زده می‌شود و می‌توانید با رنگ واقعی جایگزینش کنید.</span>
+        </div>
+      )}
       <div className="tablewrap">
         <table>
           <thead><tr><th>جزء</th><th className="n">کیلو</th><th className="n">درصد</th><th /></tr></thead>

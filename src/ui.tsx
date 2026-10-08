@@ -39,3 +39,7 @@ export function NumInput(props: {
 export const Tag = ({ kind = 'warn', children }: { kind?: 'warn' | 'err' | 'ok'; children: React.ReactNode }) => (
   <span className={`tag ${kind === 'warn' ? '' : kind}`}>{children}</span>
 )
+
+export function Swatch({ hex, large }: { hex: string; large?: boolean }) {
+  return <span className={`swatch${large ? ' lg' : ''}`} style={{ background: hex }} aria-hidden="true" />
+}

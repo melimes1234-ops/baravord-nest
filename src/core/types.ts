@@ -27,6 +27,8 @@ export interface Color {
   id: Id
   name: string
   items: RecipeItem[]
+  /** Swatch shown in the app, '#rrggbb'. When empty it is estimated from the pigments. */
+  hex?: string
 }
 
 export interface Product {
