@@ -9,6 +9,7 @@ import { applyTheme, initialTheme, type Theme } from './theme'
 import { useSession } from './store'
 import { Batches } from './tabs/Batches'
 import { Costs } from './tabs/Costs'
+import { Guide, guideHidden } from './tabs/Guide'
 import { Issues } from './tabs/Issues'
 import { Materials } from './tabs/Materials'
 import { PriceList } from './tabs/PriceList'
@@ -18,13 +19,13 @@ import { Stock } from './tabs/Stock'
 import { SupabaseUsers } from './tabs/SupabaseUsers'
 import { Users } from './tabs/Users'
 
-const ALL = ['لیست قیمت', 'مواد', 'فرمول‌ها', 'محصولات', 'هزینه‌ها', 'پارت تولید', 'انبار', 'هشدارها', 'کاربران'] as const
+const ALL = ['شروع کار', 'لیست قیمت', 'مواد', 'فرمول‌ها', 'محصولات', 'هزینه‌ها', 'پارت تولید', 'انبار', 'هشدارها', 'کاربران'] as const
 type Tab = (typeof ALL)[number]
 
 const ALLOWED: Record<Role, readonly Tab[]> = {
   admin: ALL,
-  operator: ['لیست قیمت', 'پارت تولید', 'انبار', 'هشدارها'],
-  viewer: ['لیست قیمت', 'انبار', 'هشدارها'],
+  operator: ['شروع کار', 'لیست قیمت', 'پارت تولید', 'انبار', 'هشدارها'],
+  viewer: ['شروع کار', 'لیست قیمت', 'انبار', 'هشدارها'],
 }
 const ROLE_LABEL: Record<Role, string> = { admin: 'ادمین', operator: 'اپراتور', viewer: 'مشاهده‌گر' }
 
@@ -40,7 +41,7 @@ export default function App() {
     applyTheme(next)
     setTheme(next)
   }
-  const [tab, setTab] = useState<Tab>('لیست قیمت')
+  const [tab, setTab] = useState<Tab>(() => (guideHidden() ? 'لیست قیمت' : 'شروع کار'))
 
   if (session.status === 'loading') return <main><p className="muted">در حال بارگذاری…</p>{error && <div className="alert err">{error}</div>}</main>
   if (session.status === 'anonymous') return <Login onLogin={login} />
@@ -103,6 +104,7 @@ export default function App() {
       <main>
         {DEMO && <div className="alert">نسخه نمایشی: بدون سرور و بدون ورود کاربران. داده‌ها فقط در همین مرورگر می‌مانند و با کسی به اشتراک گذاشته نمی‌شوند.</div>}
         {error && <div className="alert err" onClick={clearError}>{error} (برای بستن بزنید)</div>}
+        {current === 'شروع کار' && <Guide catalog={catalog} movements={state.movements} batches={state.batches} role={DEMO ? 'admin' : user.role} demo={DEMO} go={t => setTab(t as Tab)} />}
         {current === 'لیست قیمت' && <PriceList catalog={catalog} />}
         {current === 'مواد' && <Materials catalog={catalog} update={update} />}
         {current === 'فرمول‌ها' && <Recipes catalog={catalog} update={update} />}

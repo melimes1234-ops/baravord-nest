@@ -52,3 +52,13 @@ tr.click { cursor: pointer; } tr.click:hover { background: var(--bg); }
 .kpi { flex: 1 1 140px; border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
 .kpi b { display: block; font-size: 18px; }
 .over { color: var(--err); font-weight: 600; }
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.step { display: flex; gap: 12px; align-items: flex-start; }
+.step-num { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--brand); color: var(--brand); display: grid; place-items: center; font-size: 14px; }
+.step.done .step-num { background: var(--brand); color: var(--brand-ink); }
+.step-body { min-width: 0; }
+.step-body p { margin: 4px 0 10px; line-height: 1.8; }
+.note { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
+.note p { margin: 4px 0 0; line-height: 1.8; }
+label.check { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; }
+label.check input { min-width: 0; }
