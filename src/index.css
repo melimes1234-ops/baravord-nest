@@ -57,10 +57,10 @@ main[data-tab="users"] { --accent: var(--c-users); }
 header { background: var(--brand); color: var(--brand-ink); padding: 10px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 header h1 { font-size: 18px; margin: 0; margin-inline-end: auto; }
 header .who { font-size: 13px; opacity: .9; }
-header .btn { background: transparent; color: var(--brand-ink); border: 1px solid rgba(255, 255, 255, .6); padding: 6px 12px; }
+header .btn { background: transparent; color: var(--brand-ink); border: 1px solid rgba(255, 255, 255, .6); padding: 3px 10px; }
 
 nav { display: flex; gap: 6px; overflow-x: auto; padding: 8px 12px; background: var(--card); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 2; box-shadow: var(--shadow); }
-nav button { --tab: var(--brand); white-space: nowrap; display: flex; align-items: center; gap: 7px; border: 1px solid transparent; background: transparent; padding: 8px 12px; border-radius: 10px; cursor: pointer; color: var(--ink); }
+nav button { --tab: var(--brand); white-space: nowrap; display: flex; align-items: center; gap: 6px; border: 1px solid transparent; background: transparent; padding: 5px 10px; font-size: 14px; border-radius: 8px; cursor: pointer; color: var(--ink); }
 nav button::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--tab); flex: none; }
 nav button:hover { background: var(--tint); }
 nav button.on { background: var(--tab); color: var(--on-accent); font-weight: 600; }
@@ -71,11 +71,11 @@ h2 { font-size: 17px; margin: 0 0 12px; color: var(--ink); }
 h2::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--accent); margin-inline-end: 8px; }
 .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
 label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
-input, select { padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); min-width: 0; }
-input.num { width: 130px; text-align: left; direction: ltr; }
-input[type="color"] { padding: 2px; width: 44px; height: 36px; cursor: pointer; }
+input, select { padding: 6px 9px; font-size: 14px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); min-width: 0; }
+input.num { width: 104px; text-align: left; direction: ltr; }
+input[type="color"] { padding: 2px; width: 38px; height: 30px; cursor: pointer; }
 
-.btn { background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); padding: 8px 15px; border-radius: 9px; cursor: pointer; font-weight: 600; }
+.btn { background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); padding: 4px 11px; border-radius: 7px; cursor: pointer; font-weight: 600; font-size: 13px; line-height: 1.6; }
 .btn:hover { filter: brightness(1.08); }
 .btn.ghost { background: transparent; color: var(--accent); }
 .btn.danger { background: transparent; color: var(--err); border-color: var(--err); }
@@ -83,7 +83,7 @@ input[type="color"] { padding: 2px; width: 44px; height: 36px; cursor: pointer; 
 
 .tablewrap { overflow-x: auto; border-radius: 10px; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
-th, td { padding: 9px 11px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
 th { color: var(--muted); font-weight: 600; font-size: 13px; background: var(--tint); }
 td.n, th.n { text-align: left; direction: ltr; font-variant-numeric: tabular-nums; }
 tbody tr:hover td { background: color-mix(in srgb, var(--accent) 6%, var(--card)); }
@@ -115,14 +115,14 @@ label.check { flex-direction: row; align-items: center; gap: 8px; color: var(--i
 label.check input { min-width: 0; }
 
 /* ---- colour swatches, chips, segmented controls ---- */
-.swatch { display: inline-block; flex: none; width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .35); box-shadow: 0 0 0 1px rgba(255, 255, 255, .5); vertical-align: middle; }
-.swatch.lg { width: 30px; height: 30px; }
+.swatch { display: inline-block; flex: none; width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .35); box-shadow: 0 0 0 1px rgba(255, 255, 255, .5); vertical-align: middle; }
+.swatch.lg { width: 26px; height: 26px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 10px; border: 2px solid var(--line); border-radius: 99px; background: var(--card); cursor: pointer; font-weight: 600; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border: 2px solid var(--line); border-radius: 99px; background: var(--card); cursor: pointer; font-weight: 600; font-size: 13px; }
 .chip:hover { border-color: var(--muted); }
 .chip[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--card)); }
-.seg { display: inline-flex; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); }
-.seg button { border: 0; background: transparent; padding: 7px 14px; cursor: pointer; font-weight: 600; color: var(--muted); }
+.seg { display: inline-flex; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--card); }
+.seg button { border: 0; background: transparent; padding: 4px 11px; font-size: 13px; cursor: pointer; font-weight: 600; color: var(--muted); }
 .seg button + button { border-inline-start: 1px solid var(--line); }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .field-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; display: block; }
@@ -177,7 +177,7 @@ td.prodcell { white-space: normal; min-width: 150px; }
 
 /* ---- tooltip + lock ---- */
 .tip { position: relative; display: inline-flex; vertical-align: middle; }
-.tip-btn { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--accent); background: transparent; color: var(--accent); font-weight: 800; font-size: 13px; line-height: 1; cursor: pointer; padding: 0; }
+.tip-btn { width: 19px; height: 19px; border-radius: 50%; border: 1.5px solid var(--accent); background: transparent; color: var(--accent); font-weight: 800; font-size: 11px; line-height: 1; cursor: pointer; padding: 0; }
 .tip-btn:hover, .tip-btn[aria-expanded="true"] { background: var(--accent); color: var(--on-accent); }
 .tip-pop { position: absolute; z-index: 20; top: calc(100% + 8px); inset-inline-start: -8px; width: min(340px, calc(100vw - 44px)); background: var(--card); color: var(--ink); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; line-height: 1.9; font-weight: 400; box-shadow: 0 6px 24px rgba(0, 0, 0, .25); white-space: normal; text-align: right; }
 .tip-pop p { margin: 0 0 6px; } .tip-pop p:last-child { margin: 0; }
@@ -186,7 +186,16 @@ td.prodcell { white-space: normal; min-width: 150px; }
 .locked-banner .tip-btn { border-color: var(--warn); color: var(--warn); }
 .locked-banner .tip-btn:hover, .locked-banner .tip-btn[aria-expanded="true"] { background: var(--warn); color: var(--card); }
 .stepper { display: inline-flex; gap: 4px; margin-inline-start: 6px; }
-.stepper button { width: 30px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-weight: 800; font-size: 16px; }
+.stepper button { width: 24px; height: 26px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-weight: 800; font-size: 14px; padding: 0; }
 .stepper button:hover { border-color: var(--accent); color: var(--accent); }
 td input.num[readonly], td input.num:disabled { background: transparent; border-color: transparent; color: var(--ink); }
 .minibar { display: inline-block; height: 8px; border-radius: 4px; vertical-align: middle; min-width: 2px; }
+
+/* touch screens: still smaller than before, but easy to hit with a finger */
+@media (pointer: coarse) {
+  .btn { padding: 6px 13px; font-size: 14px; }
+  .seg button { padding: 6px 12px; }
+  .chip { padding: 5px 11px 5px 9px; }
+  .stepper button { width: 30px; height: 32px; }
+  nav button { padding: 7px 11px; }
+}
