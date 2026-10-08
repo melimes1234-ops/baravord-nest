@@ -209,13 +209,13 @@ end $$;
 
 create or replace function public.get_state() returns jsonb
 language plpgsql stable security definer set search_path = public, pg_temp as $$
-declare r text := public.app_role(); res jsonb;
+declare r text := public.app_role(); v_cat jsonb; v_ver integer;
 begin
   if r is null then raise exception 'ابتدا وارد شوید' using errcode = '28000'; end if;
-  select jsonb_build_object('role', r, 'email', (select email from public.profiles where id = auth.uid()),
-                            'catalog', value, 'version', version)
-    into res from public.app_config where key = 'catalog';
-  return res || jsonb_build_object(
+  select value, version into v_cat, v_ver from public.app_config where key = 'catalog';
+  -- catalog is null until an admin signs in for the first time and the app creates it (init_catalog)
+  return jsonb_build_object('role', r, 'email', (select email from public.profiles where id = auth.uid()),
+    'catalog', v_cat, 'version', coalesce(v_ver, 0),
     'movements', coalesce((
       select jsonb_agg(
         jsonb_build_object('id', id, 'date', to_char(date, 'YYYY-MM-DD'), 'materialId', material_id, 'kg', kg, 'type', type)
@@ -224,6 +224,17 @@ begin
         || case when note is not null then jsonb_build_object('note', note) else '{}'::jsonb end
         order by date, created_at, id) from public.movements), '[]'::jsonb),
     'batches', coalesce((select jsonb_agg(data order by date desc, created_at desc) from public.batches), '[]'::jsonb));
+end $$;
+
+-- First-run setup: the admin's app uploads the starting catalog. Does nothing if one already exists.
+create or replace function public.init_catalog(p_catalog jsonb) returns integer
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  perform public.app_need('admin');
+  perform public.app_validate_catalog(p_catalog);
+  insert into public.app_config (key, value, version) values ('catalog', p_catalog, 1) on conflict (key) do nothing;
+  perform public.app_audit('catalog.init', '{}'::jsonb);
+  return (select version from public.app_config where key = 'catalog');
 end $$;
 
 create or replace function public.save_catalog(p_catalog jsonb, p_version integer) returns integer
@@ -397,5 +408,5 @@ end $$;
 
 -- Only the API functions are callable by logged-in users; helpers stay internal.
 revoke execute on all functions in schema public from public, anon, authenticated;
-grant execute on function public.get_state(), public.save_catalog(jsonb, integer), public.add_movement(jsonb),
+grant execute on function public.get_state(), public.init_catalog(jsonb), public.save_catalog(jsonb, integer), public.add_movement(jsonb),
   public.add_batch(jsonb), public.list_users(), public.set_role(uuid, text), public.audit_log() to authenticated;

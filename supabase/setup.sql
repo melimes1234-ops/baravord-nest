@@ -54,6 +54,7 @@ alter table public.audit enable row level security;
 revoke all on public.profiles, public.app_config, public.movements, public.batches, public.audit from anon, authenticated;
 revoke all on sequence public.audit_id_seq from anon, authenticated;
 
+
 -- ---------------------------------------------------------------- users
 
 -- The first user who signs up becomes admin; everyone after starts as viewer.
@@ -90,6 +91,7 @@ language sql security definer set search_path = public, pg_temp as $$
   insert into public.audit (email, action, detail)
   values (coalesce((select email from public.profiles where id = auth.uid()), '?'), p_action, p_detail)
 $$;
+
 
 -- ---------------------------------------------------------------- formulas
 
@@ -205,17 +207,18 @@ begin
   if (cfg ->> 'wastePct')::numeric >= 100 then raise exception '%: درصد ضایعات', fail; end if;
 end $$;
 
+
 -- ---------------------------------------------------------------- API (called as supabase.rpc)
 
 create or replace function public.get_state() returns jsonb
 language plpgsql stable security definer set search_path = public, pg_temp as $$
-declare r text := public.app_role(); res jsonb;
+declare r text := public.app_role(); v_cat jsonb; v_ver integer;
 begin
   if r is null then raise exception 'ابتدا وارد شوید' using errcode = '28000'; end if;
-  select jsonb_build_object('role', r, 'email', (select email from public.profiles where id = auth.uid()),
-                            'catalog', value, 'version', version)
-    into res from public.app_config where key = 'catalog';
-  return res || jsonb_build_object(
+  select value, version into v_cat, v_ver from public.app_config where key = 'catalog';
+  -- catalog is null until an admin signs in for the first time and the app creates it (init_catalog)
+  return jsonb_build_object('role', r, 'email', (select email from public.profiles where id = auth.uid()),
+    'catalog', v_cat, 'version', coalesce(v_ver, 0),
     'movements', coalesce((
       select jsonb_agg(
         jsonb_build_object('id', id, 'date', to_char(date, 'YYYY-MM-DD'), 'materialId', material_id, 'kg', kg, 'type', type)
@@ -224,6 +227,17 @@ begin
         || case when note is not null then jsonb_build_object('note', note) else '{}'::jsonb end
         order by date, created_at, id) from public.movements), '[]'::jsonb),
     'batches', coalesce((select jsonb_agg(data order by date desc, created_at desc) from public.batches), '[]'::jsonb));
+end $$;
+
+-- First-run setup: the admin's app uploads the starting catalog. Does nothing if one already exists.
+create or replace function public.init_catalog(p_catalog jsonb) returns integer
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  perform public.app_need('admin');
+  perform public.app_validate_catalog(p_catalog);
+  insert into public.app_config (key, value, version) values ('catalog', p_catalog, 1) on conflict (key) do nothing;
+  perform public.app_audit('catalog.init', '{}'::jsonb);
+  return (select version from public.app_config where key = 'catalog');
 end $$;
 
 create or replace function public.save_catalog(p_catalog jsonb, p_version integer) returns integer
@@ -290,6 +304,7 @@ begin
   perform public.app_audit('movement.add', p || jsonb_build_object('id', v_id));
   return jsonb_build_object('id', v_id, 'version', v_version);
 end $$;
+
 
 create or replace function public.add_batch(p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, pg_temp as $$
@@ -397,10 +412,5 @@ end $$;
 
 -- Only the API functions are callable by logged-in users; helpers stay internal.
 revoke execute on all functions in schema public from public, anon, authenticated;
-grant execute on function public.get_state(), public.save_catalog(jsonb, integer), public.add_movement(jsonb),
+grant execute on function public.get_state(), public.init_catalog(jsonb), public.save_catalog(jsonb, integer), public.add_movement(jsonb),
   public.add_batch(jsonb), public.list_users(), public.set_role(uuid, text), public.audit_log() to authenticated;
-
--- Starting catalog (only inserted once; re-running this file keeps your data).
-insert into public.app_config (key, value, version)
-values ('catalog', '{"materials":{"wood":{"id":"wood","name":"پودر چوب (خاک اره)","pricePerKg":20500},"carbonate":{"id":"carbonate","name":"کربنات","pricePerKg":19000},"antioxidant":{"id":"antioxidant","name":"آنتی‌اکسیدان","pricePerKg":1350000},"pp-white":{"id":"pp-white","name":"پلیمر سفید","pricePerKg":205000},"pp-recycled":{"id":"pp-recycled","name":"پلیمر چهارمالی","pricePerKg":null},"graft":{"id":"graft","name":"گرافت","pricePerKg":290000},"wax":{"id":"wax","name":"وکس","pricePerKg":250000},"waste":{"id":"waste","name":"ضایعات","pricePerKg":0},"titan":{"id":"titan","name":"تیتان","pricePerKg":1572000},"yellow":{"id":"yellow","name":"رنگ زرد","pricePerKg":null},"red":{"id":"red","name":"رنگ قرمز","pricePerKg":null},"brown":{"id":"brown","name":"رنگ قهوه‌ای","pricePerKg":null},"carbon-black":{"id":"carbon-black","name":"دوده","pricePerKg":null}},"recipes":{"prp":{"id":"prp","name":"PRP","items":[{"ref":{"kind":"material","id":"carbonate"},"qtyKg":38.5},{"ref":{"kind":"material","id":"antioxidant"},"qtyKg":0.25},{"ref":{"kind":"material","id":"graft"},"qtyKg":1},{"ref":{"kind":"material","id":"pp-white"},"qtyKg":60}]},"wpc-profile":{"id":"wpc-profile","name":"پروفیل WPC (پایه)","items":[{"ref":{"kind":"material","id":"wood"},"qtyKg":60},{"ref":{"kind":"recipe","id":"prp"},"qtyKg":33},{"ref":{"kind":"material","id":"wax"},"qtyKg":2},{"ref":{"kind":"material","id":"graft"},"qtyKg":3}]},"cabinet":{"id":"cabinet","name":"صفحه کابینت","items":[{"ref":{"kind":"material","id":"wood"},"qtyKg":72},{"ref":{"kind":"material","id":"pp-recycled"},"qtyKg":24},{"ref":{"kind":"material","id":"wax"},"qtyKg":2},{"ref":{"kind":"material","id":"graft"},"qtyKg":1},{"ref":{"kind":"material","id":"waste"},"qtyKg":10}],"needsReview":true}},"colors":{"n1":{"id":"n1","name":"N1","items":[{"ref":{"kind":"material","id":"titan"},"qtyKg":1.5}],"needsReview":true},"n2":{"id":"n2","name":"N2","items":[{"ref":{"kind":"material","id":"red"},"qtyKg":1.3},{"ref":{"kind":"material","id":"brown"},"qtyKg":0.05},{"ref":{"kind":"material","id":"carbon-black"},"qtyKg":0.03},{"ref":{"kind":"material","id":"waste"},"qtyKg":0.1},{"ref":{"kind":"material","id":"graft"},"qtyKg":1.5},{"ref":{"kind":"material","id":"wax"},"qtyKg":3}],"needsReview":true},"n3":{"id":"n3","name":"N3","items":[{"ref":{"kind":"material","id":"yellow"},"qtyKg":2},{"ref":{"kind":"material","id":"red"},"qtyKg":0.25},{"ref":{"kind":"material","id":"titan"},"qtyKg":0.25}],"needsReview":true},"n4":{"id":"n4","name":"N4","items":[{"ref":{"kind":"material","id":"yellow"},"qtyKg":1.87},{"ref":{"kind":"material","id":"red"},"qtyKg":0.3},{"ref":{"kind":"material","id":"titan"},"qtyKg":0.3},{"ref":{"kind":"material","id":"carbon-black"},"qtyKg":0.03}],"needsReview":true},"n5":{"id":"n5","name":"N5","items":[{"ref":{"kind":"material","id":"brown"},"qtyKg":2},{"ref":{"kind":"material","id":"red"},"qtyKg":0.3},{"ref":{"kind":"material","id":"carbon-black"},"qtyKg":0.25}],"needsReview":true},"n6":{"id":"n6","name":"N6","items":[{"ref":{"kind":"material","id":"graft"},"qtyKg":1.5},{"ref":{"kind":"material","id":"wax"},"qtyKg":2},{"ref":{"kind":"material","id":"carbon-black"},"qtyKg":1.2},{"ref":{"kind":"material","id":"waste"},"qtyKg":0.1}],"needsReview":true},"n7":{"id":"n7","name":"N7","items":[{"ref":{"kind":"material","id":"brown"},"qtyKg":0.8},{"ref":{"kind":"material","id":"red"},"qtyKg":0.09},{"ref":{"kind":"material","id":"carbon-black"},"qtyKg":0.05},{"ref":{"kind":"material","id":"waste"},"qtyKg":0.1},{"ref":{"kind":"material","id":"wax"},"qtyKg":2},{"ref":{"kind":"material","id":"graft"},"qtyKg":1.8}],"needsReview":true},"n8":{"id":"n8","name":"N8","items":[{"ref":{"kind":"material","id":"red"},"qtyKg":2},{"ref":{"kind":"material","id":"brown"},"qtyKg":0.2},{"ref":{"kind":"material","id":"carbon-black"},"qtyKg":0.2}],"needsReview":true},"n9":{"id":"n9","name":"N9","items":[{"ref":{"kind":"material","id":"titan"},"qtyKg":1.5},{"ref":{"kind":"material","id":"carbon-black"},"qtyKg":0.1}],"needsReview":true},"n10":{"id":"n10","name":"N10","items":[{"ref":{"kind":"material","id":"carbon-black"},"qtyKg":0.18},{"ref":{"kind":"material","id":"titan"},"qtyKg":0.25}],"needsReview":true},"n11":{"id":"n11","name":"N11","items":[{"ref":{"kind":"material","id":"yellow"},"qtyKg":1.3},{"ref":{"kind":"material","id":"red"},"qtyKg":0.9},{"ref":{"kind":"material","id":"brown"},"qtyKg":0.3}],"needsReview":true}},"products":{"feel":{"id":"feel","name":"Feel","code":"FC140","widthMm":140,"thicknessMm":21,"usages":[],"weightPer3mG":4800,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"lead":{"id":"lead","name":"Lead","code":"FC103","widthMm":103,"thicknessMm":21,"usages":[],"weightPer3mG":5100,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"shine":{"id":"shine","name":"Shine","code":"FD21","widthMm":140,"thicknessMm":21,"usages":[],"weightPer3mG":7400,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"pond":{"id":"pond","name":"Pond","code":"FD155","widthMm":155,"thicknessMm":26,"usages":[],"weightPer3mG":10450,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"fair":{"id":"fair","name":"Fair","code":"FD26","widthMm":155,"thicknessMm":26,"usages":[],"weightPer3mG":9750,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"flex":{"id":"flex","name":"Flex","code":"FD140","widthMm":140,"thicknessMm":25,"usages":[],"weightPer3mG":7500,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":false},"once":{"id":"once","name":"Once","code":"FD142","widthMm":142,"thicknessMm":21,"usages":[],"weightPer3mG":7800,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"t-once":{"id":"t-once","name":"T-Once","code":"FD142","widthMm":142,"thicknessMm":21,"usages":[],"weightPer3mG":null,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"clan":{"id":"clan","name":"Clan","code":"FD92","widthMm":91.5,"thicknessMm":21,"usages":[],"weightPer3mG":5100,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"t-clan":{"id":"t-clan","name":"T-Clan","code":"FD92T","widthMm":91.5,"thicknessMm":21,"usages":[],"weightPer3mG":null,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"fame":{"id":"fame","name":"Fame","code":"FD72","widthMm":72,"thicknessMm":21,"usages":[],"weightPer3mG":3900,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"t-fame":{"id":"t-fame","name":"T-Fame","code":"FD72T","widthMm":72,"thicknessMm":21,"usages":[],"weightPer3mG":null,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"fate":{"id":"fate","name":"Fate","code":"FB290","widthMm":290,"thicknessMm":12,"usages":[],"weightPer3mG":15100,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"flat":{"id":"flat","name":"Flat","code":"FB130","widthMm":130,"thicknessMm":11,"usages":[],"weightPer3mG":5950,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"petal":{"id":"petal","name":"Petal","code":"FB68","widthMm":68,"thicknessMm":11,"usages":[],"weightPer3mG":2890,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"tail":{"id":"tail","name":"Tail","code":"FB55","widthMm":55,"thicknessMm":14,"usages":[],"weightPer3mG":3110,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"viva":{"id":"viva","name":"Viva","code":"FB92","widthMm":92,"thicknessMm":13,"usages":[],"weightPer3mG":4250,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"off":{"id":"off","name":"Off","code":"FT40","widthMm":38,"thicknessMm":38,"usages":[],"weightPer3mG":null,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"imp":{"id":"imp","name":"IMP","code":"FT90","widthMm":90,"thicknessMm":45,"usages":[],"weightPer3mG":5730,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"mela":{"id":"mela","name":"Mela","code":"FT60","widthMm":60,"thicknessMm":40,"usages":[],"weightPer3mG":5700,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"coffin":{"id":"coffin","name":"Coffin","code":"FT46","widthMm":27,"thicknessMm":46,"usages":[],"weightPer3mG":null,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"t-coffin":{"id":"t-coffin","name":"T-Coffin","code":"FT46T","widthMm":27,"thicknessMm":46,"usages":[],"weightPer3mG":null,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"down":{"id":"down","name":"Down","code":"FT27","widthMm":27,"thicknessMm":46,"usages":[],"weightPer3mG":2900,"baseRecipeId":"wpc-profile","colorable":true,"needsReview":true},"cabinet":{"id":"cabinet","name":"صفحه کابینت","code":"CAB","usages":[],"weightPer3mG":null,"baseRecipeId":"cabinet","colorable":false}},"tariffs":[{"id":"wholesale","name":"عمده","marginPct":15},{"id":"retail","name":"خرده","marginPct":25}],"config":{"monthlyCosts":[],"monthlyProductionKg":0,"perBatchCosts":[],"batchKg":100,"wastePct":0,"roundTo":100,"defaultTolerancePct":5,"toleranceByMaterial":{}}}'::jsonb, 1)
-on conflict (key) do nothing;

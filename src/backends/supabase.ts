@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { ApiError, type Role, type ServerState } from '../api'
 import type { Backend } from '../backend'
+import { seedCatalog, type Catalog } from '../core'
 
 declare global {
   interface Window {
@@ -47,10 +48,17 @@ export const supabaseBackend: Backend = {
   async loadState() {
     const { data: s } = await supabase().auth.getSession()
     if (!s.session) throw new ApiError(401, 'ابتدا وارد شوید')
-    const st = await rpc<{ role: Role; email: string } & Omit<ServerState, 'user'>>('get_state')
+    type Raw = { role: Role; email: string } & Omit<ServerState, 'user' | 'catalog'> & { catalog: Catalog | null }
+    let st = await rpc<Raw>('get_state')
+    if (!st.catalog) {
+      // First run: the project has no catalog yet. The first admin to sign in creates the starting one.
+      if (st.role !== 'admin') throw new ApiError(503, 'سیستم هنوز راه‌اندازی نشده؛ ادمین باید یک بار وارد شود')
+      await rpc('init_catalog', { p_catalog: seedCatalog() })
+      st = await rpc<Raw>('get_state')
+    }
     return {
       user: { id: 0, username: st.email, role: st.role },
-      catalog: st.catalog,
+      catalog: st.catalog as Catalog,
       version: st.version,
       movements: st.movements,
       batches: st.batches,

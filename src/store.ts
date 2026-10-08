@@ -44,9 +44,15 @@ export function useSession() {
 
   const login = useCallback(async (username: string, password: string) => {
     await backend.login(username, password)
-    setError('')
-    await refresh()
-  }, [refresh])
+    try {
+      apply(await backend.loadState())
+      setError('')
+    } catch (e) {
+      // e.g. the system is not set up yet: sign out again and show the reason on the login form
+      await backend.logout()
+      throw e
+    }
+  }, [apply])
 
   const logout = useCallback(async () => {
     await backend.logout()

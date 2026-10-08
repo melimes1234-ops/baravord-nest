@@ -28,14 +28,14 @@ npm test         # تست‌های منطق محاسبه و سرور
 میانگین موزون خرید، نقش‌ها) داخل خود پایگاه داده اجرا می‌شود و کاربر مستقیم به جدول‌ها دسترسی ندارد.
 
 1. در supabase.com یک پروژه بسازید.
-2. در **SQL Editor** محتوای فایل `supabase/setup.sql` را کامل بچسبانید و Run بزنید (اجرای دوباره داده را پاک نمی‌کند).
-3. در **Authentication ← Users ← Add user** اولین کاربر را بسازید (Auto Confirm User را بزنید). **اولین کاربر ادمین می‌شود**؛ بعدی‌ها «مشاهده‌گر» شروع می‌کنند و ادمین در تب «کاربران» نقششان را عوض می‌کند.
+2. در **SQL Editor** پنج فایل `supabase/setup/1-tables.sql` تا `5-api-b.sql` را **به ترتیب** و هر کدام در یک Query جدید بچسبانید و Run بزنید (هر کدام را از دکمه Copy raw file در GitHub کپی کنید). اجرای دوباره چیزی را پاک نمی‌کند. همین پنج فایل در `supabase/setup.sql` هم یک‌جا هست.
+3. در **Authentication ← Users ← Add user** اولین کاربر را بسازید (Auto Confirm User را بزنید). **اولین کاربر ادمین می‌شود** و کاتالوگ اولیه را بار اول که وارد می‌شود خودش می‌سازد؛ بعدی‌ها «مشاهده‌گر» شروع می‌کنند و ادمین در تب «کاربران» نقششان را عوض می‌کند.
 4. در **Project Settings ← API** مقدار Project URL و anon public key را بردارید و در `public/config.js` بگذارید (یا در `.env` به صورت `VITE_SUPABASE_URL` و `VITE_SUPABASE_ANON_KEY`).
 5. `npm run build` و پوشه `dist/` را روی هر هاست ایستا بگذارید (Netlify، Cloudflare Pages، GitHub Pages، ...). برای نصب روی اندروید، هاست باید HTTPS باشد.
 
 کلید `anon` عمومی است و مشکلی ندارد. کلید `service_role` را هرگز در اپ یا مخزن نگذارید.
 
-تست SQL (نیاز به Postgres محلی): `PGHOST=... PGPORT=... PGUSER=... npm run test:sql`. بعد از هر تغییر در `supabase/schema.sql` یا `src/core/seed.ts`، `npm run gen:sql` را بزنید.
+تست SQL (نیاز به Postgres محلی): `PGHOST=... PGPORT=... PGUSER=... npm run test:sql`. بعد از هر تغییر در `supabase/schema.sql` باید `npm run gen:sql` را بزنید تا فایل‌های `supabase/setup/` دوباره ساخته شوند.
 
 ### نقش‌ها
 

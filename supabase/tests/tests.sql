@@ -34,6 +34,15 @@ select t.as_user('alice@x.ir');
 select set_role((select id from profiles where email = 'bob@x.ir'), 'operator');
 select t.ok('admin can promote to operator', (select role from profiles where email = 'bob@x.ir') = 'operator');
 
+-- first run: no catalog until the admin creates it
+select t.as_user('carol@x.ir');
+select t.ok('catalog is null before first setup', (get_state() -> 'catalog') = 'null'::jsonb and (get_state() ->> 'version')::int = 0);
+select t.fails('viewer cannot init catalog', format($q$select init_catalog(%L::jsonb)$q$, :'seed'), '42501');
+select t.as_user('alice@x.ir');
+select t.fails('init refuses garbage', $q$select init_catalog('{"a":1}')$q$, 'P0001');
+select t.ok('admin creates the starting catalog', init_catalog(:'seed'::jsonb) = 1);
+select t.ok('init is idempotent', init_catalog(:'seed'::jsonb) = 1 and (select count(*) from app_config) = 1);
+
 -- anonymous and viewer
 select t.as_user('');
 select t.fails('anonymous cannot read state', 'select get_state()', '28000');
