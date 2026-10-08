@@ -20,8 +20,6 @@ export interface Recipe {
   id: Id
   name: string
   items: RecipeItem[]
-  /** Reading from a handwritten sheet that must be confirmed by the user. */
-  needsReview?: boolean
 }
 
 /** Pigment formula, added on top of the base recipe for every 100 kg batch. */
@@ -29,7 +27,6 @@ export interface Color {
   id: Id
   name: string
   items: RecipeItem[]
-  needsReview?: boolean
 }
 
 export interface Product {
@@ -44,7 +41,6 @@ export interface Product {
   baseRecipeId: Id
   /** false for products that are sold without a colour (e.g. cabinet sheet). */
   colorable: boolean
-  needsReview?: boolean
 }
 
 export interface Tariff {

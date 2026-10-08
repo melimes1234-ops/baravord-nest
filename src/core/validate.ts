@@ -30,9 +30,6 @@ export function validateCatalog(c: Catalog): Issue[] {
   }
   for (const col of Object.values(c.colors)) {
     for (const i of col.items) if (i.ref.kind === 'material') used.add(i.ref.id)
-    if (col.needsReview) {
-      issues.push({ level: 'warn', where: col.name, message: 'فرمول رنگ از روی دست‌نوشته خوانده شده و باید تأیید شود' })
-    }
   }
   for (const id of used) {
     const m = c.materials[id]

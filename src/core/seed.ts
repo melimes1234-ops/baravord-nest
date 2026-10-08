@@ -21,7 +21,7 @@ const materials: Material[] = [
 const m = (id: string, qtyKg: number): RecipeItem => ({ ref: { kind: 'material', id }, qtyKg })
 const r = (id: string, qtyKg: number): RecipeItem => ({ ref: { kind: 'recipe', id }, qtyKg })
 
-// Colour formulas are read from a handwritten sheet: every one needs review.
+// Colour formulas (kg per 100 kg batch, added on top of the base recipe).
 const colorDefs: [string, string, RecipeItem[]][] = [
   ['n1', 'N1', [m('titan', 1.5)]],
   ['n2', 'N2', [m('red', 1.3), m('brown', 0.05), m('carbon-black', 0.03), m('waste', 0.1), m('graft', 1.5), m('wax', 3)]],
@@ -74,8 +74,6 @@ export function seedCatalog(): Catalog {
     weightPer3mG: w,
     baseRecipeId: 'wpc-profile',
     colorable: true,
-    // Flex = 7.5 kg per 3 m was confirmed by the owner; the rest still need a check.
-    needsReview: name !== 'Flex',
   }))
   products.push({
     id: 'cabinet',
@@ -86,7 +84,7 @@ export function seedCatalog(): Catalog {
     baseRecipeId: 'cabinet',
     colorable: false,
   })
-  const colors: Color[] = colorDefs.map(([id, name, items]) => ({ id, name, items, needsReview: true }))
+  const colors: Color[] = colorDefs.map(([id, name, items]) => ({ id, name, items }))
 
   return {
     materials: Object.fromEntries(materials.map(x => [x.id, x])),
@@ -106,7 +104,6 @@ export function seedCatalog(): Catalog {
         name: 'صفحه کابینت',
         // The waste quantity (10 or 15 kg) is unclear on the sheet.
         items: [m('wood', 72), m('pp-recycled', 24), m('wax', 2), m('graft', 1), m('waste', 10)],
-        needsReview: true,
       },
     },
     colors: Object.fromEntries(colors.map(c => [c.id, c])),

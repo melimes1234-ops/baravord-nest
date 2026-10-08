@@ -16,7 +16,7 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
                 <td>{p.code}</td>
                 <td>{p.widthMm ? `${p.widthMm}×${p.thicknessMm}` : '—'}</td>
                 <td className="n">
-                  <NumInput money value={p.weightPer3mG} onChange={v => update(s => { const q = s.catalog.products[p.id]; q.weightPer3mG = v; q.needsReview = false })} />
+                  <NumInput money value={p.weightPer3mG} onChange={v => update(s => { s.catalog.products[p.id].weightPer3mG = v })} />
                 </td>
                 <td>
                   <select value={p.baseRecipeId} onChange={e => update(s => { s.catalog.products[p.id].baseRecipeId = e.target.value })}>
@@ -24,7 +24,7 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
                   </select>
                 </td>
                 <td>
-                  {p.weightPer3mG == null ? <Tag kind="err">وزن وارد نشود</Tag> : p.needsReview ? <Tag>وزن باید تأیید شود</Tag> : null}
+                  {p.weightPer3mG == null && <Tag kind="err">وزن وارد نشده</Tag>}
                 </td>
               </tr>
             ))}

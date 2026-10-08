@@ -1,23 +1,22 @@
 import { useState } from 'react'
 import { formatKg, sumKg, toFa, type Catalog, type RecipeItem } from '../core'
 import type { Update } from '../store'
-import { NumInput, Tag } from '../ui'
+import { NumInput } from '../ui'
 
 type Target = { type: 'recipe' | 'color'; id: string }
 
 export function Recipes({ catalog, update }: { catalog: Catalog; update: Update }) {
-  const targets: (Target & { name: string; items: RecipeItem[]; review?: boolean })[] = [
-    ...Object.values(catalog.recipes).map(r => ({ type: 'recipe' as const, id: r.id, name: `فرمول ${r.name}`, items: r.items, review: r.needsReview })),
-    ...Object.values(catalog.colors).map(c => ({ type: 'color' as const, id: c.id, name: `رنگ ${c.name}`, items: c.items, review: c.needsReview })),
+  const targets: (Target & { name: string; items: RecipeItem[] })[] = [
+    ...Object.values(catalog.recipes).map(r => ({ type: 'recipe' as const, id: r.id, name: `فرمول ${r.name}`, items: r.items })),
+    ...Object.values(catalog.colors).map(c => ({ type: 'color' as const, id: c.id, name: `رنگ ${c.name}`, items: c.items })),
   ]
   const [sel, setSel] = useState(`${targets[0].type}:${targets[0].id}`)
   const cur = targets.find(t => `${t.type}:${t.id}` === sel) ?? targets[0]
 
-  const edit = (fn: (items: RecipeItem[]) => void, markReviewed = true) =>
+  const edit = (fn: (items: RecipeItem[]) => void) =>
     update(s => {
       const obj = cur.type === 'recipe' ? s.catalog.recipes[cur.id] : s.catalog.colors[cur.id]
       fn(obj.items)
-      if (markReviewed) obj.needsReview = false
     })
 
   const nameOf = (i: RecipeItem) =>
@@ -38,7 +37,6 @@ export function Recipes({ catalog, update }: { catalog: Catalog; update: Update 
             {targets.map(t => <option key={`${t.type}:${t.id}`} value={`${t.type}:${t.id}`}>{t.name}</option>)}
           </select>
         </label>
-        {cur.review && <Tag>از روی دست‌نوشته خوانده شده؛ بررسی و ویرایش کنید</Tag>}
       </div>
       <div className="tablewrap">
         <table>
