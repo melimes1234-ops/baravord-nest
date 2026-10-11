@@ -8,6 +8,7 @@ import { DEMO, useDemoSession } from './demo'
 import { applyTheme, initialTheme, type Theme } from './theme'
 import { useSession } from './store'
 import { Batches } from './tabs/Batches'
+import { Calc } from './tabs/Calc'
 import { Costs } from './tabs/Costs'
 import { Guide, guideHidden } from './tabs/Guide'
 import { Issues } from './tabs/Issues'
@@ -19,11 +20,11 @@ import { Stock } from './tabs/Stock'
 import { SupabaseUsers } from './tabs/SupabaseUsers'
 import { Users } from './tabs/Users'
 
-const ALL = ['شروع کار', 'لیست قیمت', 'مواد', 'فرمول‌ها', 'محصولات', 'هزینه‌ها', 'پارت تولید', 'انبار', 'هشدارها', 'کاربران'] as const
+const ALL = ['شروع کار', 'لیست قیمت', 'محاسبات', 'مواد', 'فرمول‌ها', 'محصولات', 'هزینه‌ها', 'پارت تولید', 'انبار', 'هشدارها', 'کاربران'] as const
 type Tab = (typeof ALL)[number]
 
 const TAB_KEY: Record<Tab, string> = {
-  'شروع کار': 'guide', 'لیست قیمت': 'prices', 'مواد': 'materials', 'فرمول‌ها': 'recipes', 'محصولات': 'products',
+  'شروع کار': 'guide', 'لیست قیمت': 'prices', 'محاسبات': 'calc', 'مواد': 'materials', 'فرمول‌ها': 'recipes', 'محصولات': 'products',
   'هزینه‌ها': 'costs', 'پارت تولید': 'batches', 'انبار': 'stock', 'هشدارها': 'issues', 'کاربران': 'users',
 }
 
@@ -111,6 +112,7 @@ export default function App() {
         {error && <div className="alert err" onClick={clearError}>{error} (برای بستن بزنید)</div>}
         {current === 'شروع کار' && <Guide catalog={catalog} movements={state.movements} batches={state.batches} role={DEMO ? 'admin' : user.role} demo={DEMO} go={t => setTab(t as Tab)} />}
         {current === 'لیست قیمت' && <PriceList catalog={catalog} onEditTariffs={user.role === 'admin' || DEMO ? () => setTab('هزینه‌ها') : undefined} />}
+        {current === 'محاسبات' && <Calc catalog={catalog} />}
         {current === 'مواد' && <Materials catalog={catalog} update={update} />}
         {current === 'فرمول‌ها' && <Recipes catalog={catalog} update={update} />}
         {current === 'محصولات' && <Products catalog={catalog} update={update} />}

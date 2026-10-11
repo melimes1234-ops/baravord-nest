@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
-  colorSwatch, formulaCost, normalizeTo, recipeUsage, setItemPercent, withReplacement, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
+  calcCsv, colorSwatch, explainPrice, formulaCost, normalizeTo, recipeUsage, setItemPercent, withReplacement, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
   replaceBatchItem, seedCatalog, setActualQty, stockLevels, toJalaliDate, validateCatalog,
   type Catalog, type Movement,
 } from './index'
@@ -274,5 +274,64 @@ describe('formula tools', () => {
     expect(priceProduct(c.products.flex, 'n1', c.tariffs[0], alt).perStick!).toBeLessThan(before)
     expect(priceProduct(c.products.flex, 'n1', c.tariffs[0], c).perStick!).toBe(before)
     expect(c.recipes.prp.items.find(i => i.ref.id === 'pp-white')!.qtyKg).toBe(60)
+  })
+})
+
+describe('calculation explanation', () => {
+  const full = () => {
+    const c = cat()
+    c.config.monthlyCosts = [{ name: 'برق', amount: 30_000_000 }, { name: 'حقوق', amount: 70_000_000 }]
+    c.config.monthlyProductionKg = 50_000
+    c.config.perBatchCosts = [{ name: 'کرایه', amount: 100_000 }]
+    c.config.wastePct = 5
+    for (const id of ['yellow', 'red', 'brown', 'carbon-black', 'pp-recycled']) c.materials[id].pricePerKg = 1_000_000
+    return c
+  }
+
+  it('independent recomputation equals the pricing engine for every product, colour and tariff', () => {
+    const c = full()
+    for (const p of Object.values(c.products)) {
+      for (const colorId of ['n1', 'n3', 'n7']) {
+        for (const t of c.tariffs) {
+          const e = explainPrice(p, p.colorable ? colorId : null, t, c)
+          const eng = priceProduct(p, p.colorable ? colorId : null, t, c)
+          expect(e.perStick).toBe(eng.perStick)
+          expect(e.perMeter).toBe(eng.perMeter)
+          expect(e.salePerKg).toBeCloseTo(eng.salePerKg, 6)
+          expect(e.checks.find(k => k.title.startsWith('محاسبه‌ی مستقل'))?.ok).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('the steps add up: cost = materials after waste + overhead + extras; sale = cost x (1 + margin)', () => {
+    const c = full()
+    const e = explainPrice(c.products.flex, 'n1', c.tariffs[1], c)
+    expect(e.overheadPerKg).toBeCloseTo(2000, 9)
+    expect(e.extrasPerKg).toBeCloseTo(1000, 9)
+    expect(e.afterWastePerKg).toBeCloseTo(e.materialPerKg / 0.95, 6)
+    expect(e.costPerKg).toBeCloseTo(e.afterWastePerKg + 3000, 6)
+    expect(e.salePerKg).toBeCloseTo(e.costPerKg * 1.25, 6)
+    expect(e.perStickRaw).toBeCloseTo((e.salePerKg * 7500) / 1000, 6)
+    expect(e.rows.reduce((s, r) => s + (r.cost ?? 0), 0)).toBeCloseTo(e.materialCost, 6)
+    expect(e.profitPerKg).toBeCloseTo(e.salePerKg - e.costPerKg, 9)
+  })
+
+  it('checks report what is missing, and are all green when the data is complete', () => {
+    const c = cat()
+    const bad = explainPrice(c.products['t-once'], 'n3', c.tariffs[0], c)
+    const titles = bad.checks.filter(k => !k.ok).map(k => k.title)
+    expect(titles).toEqual(expect.arrayContaining(['قیمت بعضی مواد وارد نشده', 'وزن شاخه ۳ متری وارد نشده', 'سربار صفر است']))
+    const c2 = full()
+    expect(explainPrice(c2.products.flex, 'n1', c2.tariffs[0], c2).checks.every(k => k.ok)).toBe(true)
+  })
+
+  it('csv has one row per product, a BOM, and quotes cells that need it', () => {
+    const c = full()
+    c.products.flex.name = 'Fl"ex, 1'
+    const csv = calcCsv(c, 'n1', c.tariffs[0])
+    expect(csv.startsWith('\uFEFF')).toBe(true)
+    expect(csv.split('\r\n')).toHaveLength(1 + Object.keys(c.products).length)
+    expect(csv).toContain('"Fl""ex, 1"')
   })
 })

@@ -6,7 +6,7 @@
   --info: #1f5fa8; --info-bg: #e5eefb;
   /* one colour per section, so you always know where you are */
   --c-guide: #0f766e; --c-prices: #2e7d32; --c-materials: #a35a00; --c-recipes: #1f5fa8; --c-products: #6a3fb0;
-  --c-costs: #b4470f; --c-batches: #ad1457; --c-stock: #3949ab; --c-issues: #b3261e; --c-users: #455a64;
+  --c-costs: #b4470f; --c-batches: #ad1457; --c-stock: #3949ab; --c-issues: #b3261e; --c-users: #455a64; --c-calc: #6d4c41;
   /* product series in the price list */
   --s-FC: #00796b; --s-FD: #1565c0; --s-FB: #b26a00; --s-FT: #7b3fa0; --s-other: #546e7a;
   --shadow: 0 1px 2px rgba(20, 40, 30, .06);
@@ -20,7 +20,7 @@
     --ok: #62d49b; --ok-bg: #16352a; --warn: #f2b658; --warn-bg: #3b2d12; --err: #ff9188; --err-bg: #3d2120;
     --info: #86b8f2; --info-bg: #1b2d44;
     --c-guide: #4fd1c5; --c-prices: #7bd88f; --c-materials: #f2b658; --c-recipes: #86b8f2; --c-products: #bba0f0;
-    --c-costs: #f59a63; --c-batches: #f48fb1; --c-stock: #a3acf2; --c-issues: #ff9188; --c-users: #b0c1ca;
+    --c-costs: #f59a63; --c-batches: #f48fb1; --c-stock: #a3acf2; --c-issues: #ff9188; --c-users: #b0c1ca; --c-calc: #bcaaa4;
     --s-FC: #4db6ac; --s-FD: #64b5f6; --s-FB: #ffb74d; --s-FT: #ce93d8; --s-other: #90a4ae;
     --shadow: none; color-scheme: dark;
   }
@@ -31,7 +31,7 @@
   --ok: #62d49b; --ok-bg: #16352a; --warn: #f2b658; --warn-bg: #3b2d12; --err: #ff9188; --err-bg: #3d2120;
   --info: #86b8f2; --info-bg: #1b2d44;
   --c-guide: #4fd1c5; --c-prices: #7bd88f; --c-materials: #f2b658; --c-recipes: #86b8f2; --c-products: #bba0f0;
-  --c-costs: #f59a63; --c-batches: #f48fb1; --c-stock: #a3acf2; --c-issues: #ff9188; --c-users: #b0c1ca;
+  --c-costs: #f59a63; --c-batches: #f48fb1; --c-stock: #a3acf2; --c-issues: #ff9188; --c-users: #b0c1ca; --c-calc: #bcaaa4;
   --s-FC: #4db6ac; --s-FD: #64b5f6; --s-FB: #ffb74d; --s-FT: #ce93d8; --s-other: #90a4ae;
   --shadow: none; color-scheme: dark;
 }
@@ -53,6 +53,7 @@ main[data-tab="batches"] { --accent: var(--c-batches); }
 main[data-tab="stock"] { --accent: var(--c-stock); }
 main[data-tab="issues"] { --accent: var(--c-issues); }
 main[data-tab="users"] { --accent: var(--c-users); }
+main[data-tab="calc"] { --accent: var(--c-calc); }
 
 header { background: var(--brand); color: var(--brand-ink); padding: 10px 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 header h1 { font-size: 18px; margin: 0; margin-inline-end: auto; }
@@ -199,3 +200,21 @@ td input.num[readonly], td input.num:disabled { background: transparent; border-
   .stepper button { width: 30px; height: 32px; }
   nav button { padding: 7px 11px; }
 }
+
+/* ---- calculations page ---- */
+.calc-steps { gap: 18px; }
+.calc-step { display: flex; gap: 12px; align-items: flex-start; }
+.calc-step .step-body { flex: 1; }
+.calc-line { margin: 6px 0; line-height: 1.9; }
+.calc-tag { display: inline-block; min-width: 96px; text-align: center; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 6px; background: var(--tint); color: var(--muted); margin-inline-end: 6px; }
+.calc-result { margin: 8px 0 4px; padding: 7px 12px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 12%, var(--card)); border-inline-start: 4px solid var(--accent); font-weight: 600; }
+.calc-result > span { display: inline-block; min-width: 96px; text-align: center; font-size: 12px; font-weight: 700; margin-inline-end: 6px; color: var(--accent); }
+.calc-note { margin-top: 4px; font-size: 13px; }
+.num-inline { font-variant-numeric: tabular-nums; font-weight: 700; }
+.calc-step .tablewrap { margin: 6px 0; max-width: 620px; }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.check-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border-radius: 9px; background: var(--tint); }
+.check-ico { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 13px; color: var(--card); background: var(--ok); }
+.check-row.warn { background: var(--warn-bg); } .check-row.warn .check-ico { background: var(--warn); }
+.check-row.error { background: var(--err-bg); } .check-row.error .check-ico { background: var(--err); }
+.copybox { width: 100%; margin: 6px 0 12px; font-family: inherit; font-size: 13px; line-height: 1.8; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); resize: vertical; }

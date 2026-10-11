@@ -63,7 +63,12 @@ const productDefs: [string, string, number, number, number | null][] = [
   ['Down', 'FT27', 27, 46, 2900],
 ]
 
+/** A fresh copy every time: callers edit the result, and the module-level tables must never change. */
 export function seedCatalog(): Catalog {
+  return structuredClone(buildSeed())
+}
+
+function buildSeed(): Catalog {
   const products: Product[] = productDefs.map(([name, code, widthMm, thicknessMm, w]) => ({
     id: name.toLowerCase(),
     name,
