@@ -4,7 +4,7 @@ import {
   type Catalog, type Product, type Tariff,
 } from '../core'
 import { DEMO } from '../demo'
-import { NumInput, Swatch, Tag } from '../ui'
+import { InfoTip, NumInput, Swatch, Tag } from '../ui'
 
 /** 'FD142' -> 'FD'. Products of one series share a colour in the list. */
 const seriesOf = (p: Product): string => {
@@ -14,6 +14,14 @@ const seriesOf = (p: Product): string => {
 const seriesTitle = (s: string) => (s === 'other' ? 'سایر محصولات' : `سری ${s}`)
 
 const CUSTOM = 'custom'
+
+const SQM_TIP = (
+  <>
+    <p><b>قیمت متر مربع</b> = قیمت هر متر ÷ عرض محصول (به متر). مثلاً عرض ۱۴۰ میلی‌متر یعنی تقسیم بر ۰٫۱۴.</p>
+    <p>عرض از ستون «عرض» در تب «محصولات» می‌آید. اگر عرض پوششی واقعی فرق دارد (مثلاً به‌خاطر قفل و بست بین تخته‌ها)، همان عدد را آن‌جا عوض کنید.</p>
+    <p>برای محصولات توخالی یا مکعبی (مثل Off، IMP و Coffin) قیمت متر مربع با سطح پوشش یکی نیست. برنامه آن را حساب می‌کند ولی خودتان تشخیص بدهید کجا به کار می‌آید.</p>
+  </>
+)
 
 export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEditTariffs?: () => void }) {
   const colors = Object.values(catalog.colors)
@@ -88,6 +96,7 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
         {color && <Swatch hex={colorSwatch(color, catalog)} large />}
         <span>قیمت‌ها برای رنگ <b>{color?.name ?? '—'}</b> و تعرفه <b>{tariff.name}</b> ({toFa(tariff.marginPct)}٪ سود)</span>
         <span className="muted">صفحه کابینت رنگ ندارد و همیشه یک قیمت دارد.</span>
+        <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>قیمت متر مربع چطور حساب می‌شود؟ <InfoTip>{SQM_TIP}</InfoTip></span>
       </div>
 
       <div className="tablewrap">

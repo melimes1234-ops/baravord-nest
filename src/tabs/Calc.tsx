@@ -211,7 +211,11 @@ export function Calc({ catalog }: { catalog: Catalog }) {
             calc={e.widthM == null || e.perMeterRaw == null ? undefined : <N>{money(e.perMeterRaw)} ÷ {kg(e.widthM)} متر = {money(e.perSqmRaw)}</N>}
             result={e.perSqm == null
               ? <span className="over">برای قیمت متر مربع، هم وزن و هم عرض محصول لازم است.</span>
-              : <>هر متر مربع: <N>{money(e.perSqm)}</N> تومان (برای عرض <N>{toFa(String(e.product.widthMm))}</N> میلی‌متر)</>} />
+              : <>هر متر مربع: <N>{money(e.perSqm)}</N> تومان (برای عرض <N>{toFa(String(e.product.widthMm))}</N> میلی‌متر)</>}
+            note={<>
+              عرض از تب «محصولات» می‌آید؛ اگر عرض پوششی واقعی فرق دارد همان‌جا عوضش کنید.
+              برای محصولات توخالی یا مکعبی (مثل Off، IMP و Coffin) قیمت متر مربع با سطح پوشش یکی نیست.
+            </>} />
         </ol>
       </div>
     </>

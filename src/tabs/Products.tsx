@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { recipeUsage, type Catalog } from '../core'
 import type { Update } from '../store'
-import { NumInput, Tag, TextInput } from '../ui'
+import { InfoTip, NumInput, Tag, TextInput } from '../ui'
 
 const emptyForm = { name: '', code: '', widthMm: null as number | null, thicknessMm: null as number | null, weightPer3mG: null as number | null, colorable: true }
 
@@ -48,6 +48,12 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
             </div>
           </div>
           <span className="muted">در هر دو حالت یک عدد ذخیره می‌شود (وزن ۳ متر = ۳ × وزن ۱ متر)، پس محاسبات هیچ فرقی نمی‌کند.</span>
+          <InfoTip>
+            <p><b>وزن:</b> می‌توانید وزن را برای ۳ متر یا برای ۱ متر وارد کنید. محاسبات فرقی نمی‌کند، چون همیشه یک عدد (وزن ۳ متر) ذخیره می‌شود.</p>
+            <p>اگر وزن ۱ متری گرد نباشد (مثلاً ۱۰۳۶٫۶۷)، در ۳ ضرب می‌شود و ممکن است وزن ۳ متر چند صدم گرم فرق کند. در قیمت اثری ندارد.</p>
+            <p><b>عرض:</b> برای قیمت متر مربع استفاده می‌شود (قیمت هر متر ÷ عرض به متر). اگر عرض پوششی واقعی با عرض اسمی فرق دارد، همین‌جا عوضش کنید.</p>
+            <p>برای محصولات توخالی یا مکعبی (مثل Off، IMP و Coffin) قیمت متر مربع با سطح پوشش یکی نیست.</p>
+          </InfoTip>
         </div>
         <div className="tablewrap">
           <table>
