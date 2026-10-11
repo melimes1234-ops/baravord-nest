@@ -93,6 +93,13 @@ export interface ProductPrice {
   /** price of one 3 m stick, null without weight */
   perStick: number | null
   perMeter: number | null
+  /** Price of 1 m2 of surface: price per metre / (width in metres). null without weight or width. */
+  perSqm: number | null
+}
+
+/** Width in metres used for the area price, or null when the product has no width. */
+export function widthMeters(product: Product): number | null {
+  return product.widthMm != null && product.widthMm > 0 ? product.widthMm / 1000 : null
 }
 
 /** Items that make up one batch of this product in this colour. */
@@ -119,11 +126,13 @@ export function priceProduct(
   const salePerKg = cost.costPerKg * (1 + tariff.marginPct / 100)
   const w = product.weightPer3mG
   const perStick = w == null ? null : roundTo((salePerKg * w) / 1000, step)
+  const wm = widthMeters(product)
   return {
     cost,
     costPerKg: cost.costPerKg,
     salePerKg,
     perStick,
     perMeter: perStick == null ? null : roundTo((salePerKg * w!) / 3000, step),
+    perSqm: w == null || wm == null ? null : roundTo((salePerKg * w) / 3000 / wm, step),
   }
 }

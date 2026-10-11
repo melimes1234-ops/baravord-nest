@@ -38,6 +38,7 @@ function summaryText(e: Explain): string {
   L.push(`۵) قیمت تمام‌شده هر کیلو = ${money(e.costPerKg)}`)
   L.push(`۶) قیمت فروش هر کیلو = ${money(e.costPerKg)} × (۱ + ${e.marginPct / 100}) = ${money(e.salePerKg)}`)
   L.push(`۷) هر متر = ${money(e.perMeter)} / شاخه ۳ متری = ${money(e.perStick)} (وزن ${e.weightG ?? '—'} گرم)`)
+  L.push(`۸) هر متر مربع = ${money(e.perMeterRaw)} ÷ ${e.widthM ?? '—'} متر = ${money(e.perSqm)}`)
   const bad = e.checks.filter(c => !c.ok)
   if (bad.length) { L.push('', 'هشدارها:'); for (const c of bad) L.push(`  - ${c.title}: ${c.detail}`) }
   return L.join('\n')
@@ -90,7 +91,7 @@ export function Calc({ catalog }: { catalog: Catalog }) {
       <div className="card">
         <h2>محاسبات <InfoTip><p>اینجا می‌بینید قیمت هر محصول قدم‌به‌قدم چطور حساب می‌شود.</p><p>اگر عددی غلط به نظر رسید، «کپی خلاصه‌ی محاسبه» را بزنید و برای ما بفرستید.</p></InfoTip></h2>
         <p style={{ margin: '0 0 12px' }}>
-          قیمت هر محصول در ۹ قدم ساخته می‌شود. محصول، رنگ و تعرفه را انتخاب کنید و از بالا به پایین بخوانید.
+          قیمت هر محصول در ۱۰ قدم ساخته می‌شود. محصول، رنگ و تعرفه را انتخاب کنید و از بالا به پایین بخوانید.
           هر قدم می‌گوید چه کار می‌کنیم، با چه عددهایی، و جوابش چیست.
         </p>
         <div className="row">
@@ -204,6 +205,13 @@ export function Calc({ catalog }: { catalog: Catalog }) {
             result={e.weightG == null
               ? <span className="over">وزن محصول وارد نشده؛ پس قیمت شاخه و متر حساب نمی‌شود.</span>
               : <>هر شاخه ۳ متری: <N>{money(e.perStick)}</N> تومان · هر متر: <N>{money(e.perMeter)}</N> تومان (گرد شده به مضرب <N>{money(e.roundStep)}</N>)</>} />
+
+          <Step n={10} title="قیمت هر متر مربع"
+            what="هر متر از این محصول فقط به اندازه‌ی عرضش سطح را می‌پوشاند. پس عرض را به متر درمی‌آوریم (میلی‌متر ÷ ۱۰۰۰) و قیمت هر متر را بر آن تقسیم می‌کنیم."
+            calc={e.widthM == null || e.perMeterRaw == null ? undefined : <N>{money(e.perMeterRaw)} ÷ {kg(e.widthM)} متر = {money(e.perSqmRaw)}</N>}
+            result={e.perSqm == null
+              ? <span className="over">برای قیمت متر مربع، هم وزن و هم عرض محصول لازم است.</span>
+              : <>هر متر مربع: <N>{money(e.perSqm)}</N> تومان (برای عرض <N>{toFa(String(e.product.widthMm))}</N> میلی‌متر)</>} />
         </ol>
       </div>
     </>

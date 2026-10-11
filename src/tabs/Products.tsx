@@ -12,6 +12,10 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
   const [form, setForm] = useState(emptyForm)
   const [recipeId, setRecipeId] = useState(recipes[0]?.id ?? '')
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
+  // Weight can be typed per 3 m or per 1 m. It is always stored per 3 m, so prices do not depend on the choice.
+  const [per, setPer] = useState<3 | 1>(3)
+  const toShown = (w: number | null) => (w == null ? null : per === 1 ? Math.round((w / 3) * 100) / 100 : w)
+  const fromShown = (v: number | null) => (v == null ? null : Math.round((per === 1 ? v * 3 : v) * 1000) / 1000)
   const [err, setErr] = useState('')
 
   const add = () => {
@@ -34,10 +38,20 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
   return (
     <>
       <div className="card">
-        <h2>محصولات و وزن شاخه ۳ متری ({Object.keys(catalog.products).length} محصول)</h2>
+        <h2>محصولات و وزن ({Object.keys(catalog.products).length} محصول)</h2>
+        <div className="row">
+          <div>
+            <span className="field-label">وزن را بر اساس چه طولی وارد می‌کنید؟</span>
+            <div className="seg" role="group" aria-label="طول وزن">
+              <button aria-pressed={per === 3} onClick={() => setPer(3)}>شاخه ۳ متری</button>
+              <button aria-pressed={per === 1} onClick={() => setPer(1)}>۱ متر</button>
+            </div>
+          </div>
+          <span className="muted">در هر دو حالت یک عدد ذخیره می‌شود (وزن ۳ متر = ۳ × وزن ۱ متر)، پس محاسبات هیچ فرقی نمی‌کند.</span>
+        </div>
         <div className="tablewrap">
           <table>
-            <thead><tr><th>نام</th><th>کد</th><th className="n">عرض (mm)</th><th className="n">ضخامت (mm)</th><th className="n">وزن ۳ متر (گرم)</th><th>فرمول پایه</th><th>رنگ‌پذیر</th><th /></tr></thead>
+            <thead><tr><th>نام</th><th>کد</th><th className="n">عرض (mm)</th><th className="n">ضخامت (mm)</th><th className="n">وزن {per === 1 ? '۱ متر' : '۳ متر'} (گرم)</th><th>فرمول پایه</th><th>رنگ‌پذیر</th><th /></tr></thead>
             <tbody>
               {Object.values(catalog.products).map(p => (
                 <tr key={p.id}>
@@ -45,7 +59,7 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
                   <td><TextInput ltr width={90} value={p.code} onChange={v => update(s => { s.catalog.products[p.id].code = v })} /></td>
                   <td className="n"><NumInput value={p.widthMm ?? null} onChange={v => update(s => { if (v == null) delete s.catalog.products[p.id].widthMm; else s.catalog.products[p.id].widthMm = v })} /></td>
                   <td className="n"><NumInput value={p.thicknessMm ?? null} onChange={v => update(s => { if (v == null) delete s.catalog.products[p.id].thicknessMm; else s.catalog.products[p.id].thicknessMm = v })} /></td>
-                  <td className="n"><NumInput money value={p.weightPer3mG} onChange={v => update(s => { s.catalog.products[p.id].weightPer3mG = v })} /></td>
+                  <td className="n"><NumInput money={per === 3} decimals={2} value={toShown(p.weightPer3mG)} onChange={v => update(s => { s.catalog.products[p.id].weightPer3mG = fromShown(v) })} /></td>
                   <td>
                     <select value={p.baseRecipeId} onChange={e => update(s => { s.catalog.products[p.id].baseRecipeId = e.target.value })}>
                       {Object.values(catalog.recipes).filter(r => !isSemi(r.id) || r.id === p.baseRecipeId).map(r => <option key={r.id} value={r.id}>{r.name}{r.custom ? ' (آزمایشی)' : ''}</option>)}
@@ -80,7 +94,7 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
           <label>کد<input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="مثلاً FD150" style={{ direction: 'ltr' }} /></label>
           <label>عرض (mm)<NumInput value={form.widthMm} onChange={v => setForm({ ...form, widthMm: v })} /></label>
           <label>ضخامت (mm)<NumInput value={form.thicknessMm} onChange={v => setForm({ ...form, thicknessMm: v })} /></label>
-          <label>وزن ۳ متر (گرم)<NumInput money value={form.weightPer3mG} onChange={v => setForm({ ...form, weightPer3mG: v })} /></label>
+          <label>وزن {per === 1 ? '۱ متر' : '۳ متر'} (گرم)<NumInput money={per === 3} decimals={2} value={toShown(form.weightPer3mG)} onChange={v => setForm({ ...form, weightPer3mG: fromShown(v) })} /></label>
           <label>فرمول پایه
             <select value={recipeId} onChange={e => setRecipeId(e.target.value)}>
               {recipes.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}

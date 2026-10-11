@@ -335,3 +335,25 @@ describe('calculation explanation', () => {
     expect(csv).toContain('"Fl""ex, 1"')
   })
 })
+
+describe('price per square metre', () => {
+  it('= price per metre / width in metres, and needs both weight and width', () => {
+    const c = cat()
+    c.config.roundTo = 1
+    const p = priceProduct(c.products.flex, 'n1', c.tariffs[0], c)
+    expect(p.perSqm).toBe(Math.round((p.salePerKg * 7500) / 3000 / 0.14))
+    expect(p.perSqm!).toBeGreaterThan(p.perMeter!) // a 14 cm board: 1 m2 is about 7 metres
+    c.products.flex.widthMm = undefined
+    expect(priceProduct(c.products.flex, 'n1', c.tariffs[0], c).perSqm).toBeNull()
+    expect(priceProduct(c.products['t-once'], null, c.tariffs[0], c).perSqm).toBeNull() // no weight
+  })
+
+  it('the explanation computes the same figure independently and warns about a missing width', () => {
+    const c = cat()
+    const e = explainPrice(c.products.flex, 'n1', c.tariffs[0], c)
+    expect(e.perSqm).toBe(priceProduct(c.products.flex, 'n1', c.tariffs[0], c).perSqm)
+    expect(e.widthM).toBeCloseTo(0.14, 9)
+    c.products.flex.widthMm = undefined
+    expect(explainPrice(c.products.flex, 'n1', c.tariffs[0], c).checks.some(k => !k.ok && k.title === 'عرض محصول وارد نشده')).toBe(true)
+  })
+})

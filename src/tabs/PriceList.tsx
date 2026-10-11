@@ -95,15 +95,15 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
           <thead>
             <tr>
               <th>محصول</th><th className="n hide-sm">وزن ۳ متر</th><th className="n hide-sm">هر کیلو</th>
-              <th className="n">هر متر</th><th className="n">شاخه ۳ متری</th><th className="hide-sm status">وضعیت</th>
+              <th className="n">هر متر</th><th className="n hide-sm">هر متر مربع</th><th className="n">شاخه ۳ متری</th><th className="hide-sm status">وضعیت</th>
             </tr>
           </thead>
           <tbody>
-            {groups.length === 0 && <tr><td colSpan={6} className="muted">محصولی با این نام پیدا نشد.</td></tr>}
+            {groups.length === 0 && <tr><td colSpan={7} className="muted">محصولی با این نام پیدا نشد.</td></tr>}
             {groups.map(g => (
               <Fragment key={g.series}>
                 <tr className={`group ${g.series}`}>
-                  <td colSpan={6}>{seriesTitle(g.series)} · {toFa(g.rows.length)} محصول</td>
+                  <td colSpan={7}>{seriesTitle(g.series)} · {toFa(g.rows.length)} محصول</td>
                 </tr>
                 {g.rows.map(({ p, price }) => {
                   const bad = price.cost.missingPrices.length > 0
@@ -127,6 +127,7 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
                         <td className="n dim hide-sm">{p.weightPer3mG == null ? '—' : `${formatKg(p.weightPer3mG / 1000)} kg`}</td>
                         <td className="n dim hide-sm">{formatToman(price.salePerKg)}</td>
                         <td className="n">{formatToman(price.perMeter)}</td>
+                        <td className="n dim hide-sm">{formatToman(price.perSqm)}</td>
                         <td className="n price-main">{formatToman(price.perStick)}</td>
                         <td className="hide-sm status">
                           {bad && <Tag kind="err">قیمت ناقص</Tag>}{' '}
@@ -136,7 +137,7 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
                       </tr>
                       {isOpen && (
                         <tr className="panel">
-                          <td colSpan={6}>
+                          <td colSpan={7}>
                             <Breakdown catalog={catalog} product={p} colorId={p.colorable ? colorId || null : null} tariff={tariff} />
                           </td>
                         </tr>
@@ -149,7 +150,7 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
           </tbody>
         </table>
       </div>
-      <p className="muted">روی هر محصول بزنید تا ببینید قیمتش از چه چیزهایی ساخته شده. قیمت‌ها به تومان و گرد‌شده به مضرب {toFa(catalog.config.roundTo)} هستند. نوار رنگی کنار هر محصول نشان‌دهنده‌ی سری آن است و نوار قرمز یعنی قیمت ناقص.</p>
+      <p className="muted">روی هر محصول بزنید تا ببینید قیمتش از چه چیزهایی ساخته شده. قیمت‌ها به تومان و گرد‌شده به مضرب {toFa(catalog.config.roundTo)} هستند. قیمت متر مربع از عرض محصول حساب می‌شود (قیمت هر متر ÷ عرض به متر). نوار رنگی کنار هر محصول نشان‌دهنده‌ی سری آن است و نوار قرمز یعنی قیمت ناقص.</p>
     </div>
   )
 }
@@ -175,6 +176,7 @@ function Breakdown({ catalog, product, colorId, tariff }: { catalog: Catalog; pr
         <div className="kpi" style={{ ['--k' as string]: 'var(--muted)' }}><span>قیمت تمام‌شده هر کیلو</span><b>{formatToman(c.costPerKg)}</b></div>
         <div className="kpi"><span>قیمت فروش هر کیلو</span><b>{formatToman(price.salePerKg)}</b></div>
         <div className="kpi"><span>قیمت هر متر</span><b>{formatToman(price.perMeter)}</b></div>
+        <div className="kpi"><span>قیمت هر متر مربع</span><b>{formatToman(price.perSqm)}</b></div>
         <div className="kpi" style={{ ['--k' as string]: 'var(--accent)' }}><span>قیمت شاخه ۳ متری</span><b>{formatToman(price.perStick)}</b></div>
       </div>
 
