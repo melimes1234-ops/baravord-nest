@@ -104,5 +104,5 @@ end $$;
 
 -- Only the API functions are callable by logged-in users; helpers stay internal.
 revoke execute on all functions in schema public from public, anon, authenticated;
-grant execute on function public.get_state(), public.init_catalog(jsonb), public.save_catalog(jsonb, integer), public.add_movement(jsonb),
+grant execute on function public.get_state(), public.init_catalog(jsonb), public.save_catalog(jsonb, integer, text), public.add_movement(jsonb),
   public.add_batch(jsonb), public.list_users(), public.set_role(uuid, text), public.audit_log() to authenticated;

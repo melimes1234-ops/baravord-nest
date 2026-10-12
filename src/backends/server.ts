@@ -11,7 +11,7 @@ export const serverBackend: Backend = {
   logout: async () => {
     await api('POST', '/api/logout', {}).catch(() => {})
   },
-  saveCatalog: async (catalog, version) =>
+  saveCatalog: async (catalog, version) => // the server writes the change log itself
     (await api<{ version: number }>('PUT', '/api/catalog', { catalog, version })).version,
   addMovement: async m => {
     await api('POST', '/api/movements', m)

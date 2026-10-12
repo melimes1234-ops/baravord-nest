@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { formatKg, formatToman, fromJalaliDate, stockLevels, toFa, toJalaliDate, type Catalog, type Movement } from '../core'
+import { formatKg, formatToman, stockLevels, toFa, toJalaliDate, todayIso, type Catalog, type Movement } from '../core'
 import type { Update } from '../store'
+import { DateField } from '../DateField'
 import { InfoTip, NumInput } from '../ui'
 
 export function Stock({ catalog, movements, update, readOnly }: { catalog: Catalog; movements: Movement[]; update: Update; readOnly?: boolean }) {
@@ -11,12 +12,11 @@ export function Stock({ catalog, movements, update, readOnly }: { catalog: Catal
   const [materialId, setMaterialId] = useState(Object.keys(catalog.materials)[0])
   const [kg, setKg] = useState<number | null>(null)
   const [price, setPrice] = useState<number | null>(null)
-  const [date, setDate] = useState(() => toJalaliDate(new Date().toISOString()))
+  const [date, setDate] = useState(todayIso)
   const [error, setError] = useState('')
 
   const add = (type: 'in' | 'waste_in') => {
-    const iso = fromJalaliDate(date)
-    if (!iso) return setError('تاریخ شمسی معتبر نیست (مثلاً ۱۴۰۵/۰۷/۱۲)')
+    const iso = date
     if (!kg || kg <= 0) return setError('مقدار را وارد کنید')
     update(s => {
       s.movements.push({ id: `M${Date.now().toString(36)}`, date: iso, materialId, kg, type, pricePerKg: type === 'in' ? price ?? undefined : undefined })
@@ -33,7 +33,7 @@ export function Stock({ catalog, movements, update, readOnly }: { catalog: Catal
           <label>ماده<select value={materialId} onChange={e => setMaterialId(e.target.value)}>{Object.values(catalog.materials).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
           <label>مقدار (کیلو)<NumInput unit="کیلو" value={kg} onChange={setKg} /></label>
           <label>قیمت خرید هر کیلو (تومان)<NumInput unit="تومان" money value={price} onChange={setPrice} /></label>
-          <label>تاریخ شمسی<input value={date} onChange={e => setDate(e.target.value)} style={{ width: 120 }} /></label>
+          <div className="lbl"><span>تاریخ</span><DateField value={date} onChange={setDate} /></div>
           <button className="btn" onClick={() => add('in')}>ثبت خرید</button>
           <button className="btn ghost" onClick={() => add('waste_in')}>ضایعات برگشتی</button>
         </div>

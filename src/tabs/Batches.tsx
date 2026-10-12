@@ -1,19 +1,19 @@
 import { useMemo, useState } from 'react'
 import {
   addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, flatten, formatKg, formatToman,
-  productItems, removeBatchItem, setActualQty, stockLevels, toFa, toJalaliDate, batchActualFlat,
+  productItems, removeBatchItem, setActualQty, stockLevels, toFa, toJalaliDate, todayIso, batchActualFlat,
   type Batch, type Catalog, type ItemRef,
 } from '../core'
 import type { AppState, Update } from '../store'
+import { DateField } from '../DateField'
 import { Bill, DeltaBadge, Kpi, NumInput, Tag } from '../ui'
-
-const today = () => new Date().toISOString().slice(0, 10)
 
 export function Batches({ state, update }: { state: AppState; update: Update }) {
   const { catalog } = state
   const [productId, setProductId] = useState(Object.keys(catalog.products)[0])
   const [colorId, setColorId] = useState(Object.keys(catalog.colors)[0] ?? '')
   const [totalKg, setTotalKg] = useState<number | null>(null)
+  const [date, setDate] = useState(todayIso)
   const [draft, setDraft] = useState<Batch | null>(null)
   const [user] = useState('کاربر')
   const [error, setError] = useState('')
@@ -30,7 +30,7 @@ export function Batches({ state, update }: { state: AppState; update: Update }) 
   const start = () => {
     const items = productItems(product, product.colorable ? colorId : null, catalog)
     flatten(items, catalog) // throws on broken formulas
-    setDraft(createBatch({ id: `B${Date.now().toString(36)}`, date: today(), productId, colorId: product.colorable ? colorId : null, items, totalKg: totalKg ?? undefined }, catalog))
+    setDraft(createBatch({ id: `B${Date.now().toString(36)}`, date, productId, colorId: product.colorable ? colorId : null, items, totalKg: totalKg ?? undefined }, catalog))
     setError('')
   }
 
@@ -54,6 +54,7 @@ export function Batches({ state, update }: { state: AppState; update: Update }) 
           <label>محصول<select value={productId} onChange={e => setProductId(e.target.value)}>{Object.values(catalog.products).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
           {product.colorable && <label>رنگ<select value={colorId} onChange={e => setColorId(e.target.value)}>{Object.values(catalog.colors).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}
           <label>وزن کل پارت (کیلو، اختیاری)<NumInput unit="کیلو" value={totalKg} placeholder="طبق فرمول" onChange={setTotalKg} /></label>
+          <div className="lbl"><span>تاریخ پارت</span><DateField value={date} onChange={setDate} /></div>
           <button className="btn" onClick={start}>شروع پارت</button>
         </div>
       </div>

@@ -237,7 +237,9 @@ begin
   return (select version from public.app_config where key = 'catalog');
 end $$;
 
-create or replace function public.save_catalog(p_catalog jsonb, p_version integer) returns integer
+-- Older versions took two arguments; two overloads would make the API call ambiguous.
+drop function if exists public.save_catalog(jsonb, integer);
+create or replace function public.save_catalog(p_catalog jsonb, p_version integer, p_note text default null) returns integer
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare cur integer;
 begin
@@ -248,7 +250,7 @@ begin
     raise exception 'کاتالوگ توسط کاربر دیگری تغییر کرده؛ صفحه را تازه کنید' using errcode = '40001';
   end if;
   update public.app_config set value = p_catalog, version = cur + 1 where key = 'catalog';
-  perform public.app_audit('catalog.update', jsonb_build_object('from', cur, 'to', cur + 1));
+  perform public.app_audit('catalog.update', jsonb_build_object('from', cur, 'to', cur + 1, 'note', left(coalesce(p_note, ''), 1500)));
   return cur + 1;
 end $$;
 
@@ -408,5 +410,5 @@ end $$;
 
 -- Only the API functions are callable by logged-in users; helpers stay internal.
 revoke execute on all functions in schema public from public, anon, authenticated;
-grant execute on function public.get_state(), public.init_catalog(jsonb), public.save_catalog(jsonb, integer), public.add_movement(jsonb),
+grant execute on function public.get_state(), public.init_catalog(jsonb), public.save_catalog(jsonb, integer, text), public.add_movement(jsonb),
   public.add_batch(jsonb), public.list_users(), public.set_role(uuid, text), public.audit_log() to authenticated;

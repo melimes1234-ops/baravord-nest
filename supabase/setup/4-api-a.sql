@@ -30,7 +30,9 @@ begin
   return (select version from public.app_config where key = 'catalog');
 end $$;
 
-create or replace function public.save_catalog(p_catalog jsonb, p_version integer) returns integer
+-- Older versions took two arguments; two overloads would make the API call ambiguous.
+drop function if exists public.save_catalog(jsonb, integer);
+create or replace function public.save_catalog(p_catalog jsonb, p_version integer, p_note text default null) returns integer
 language plpgsql security definer set search_path = public, pg_temp as $$
 declare cur integer;
 begin
@@ -41,7 +43,7 @@ begin
     raise exception 'کاتالوگ توسط کاربر دیگری تغییر کرده؛ صفحه را تازه کنید' using errcode = '40001';
   end if;
   update public.app_config set value = p_catalog, version = cur + 1 where key = 'catalog';
-  perform public.app_audit('catalog.update', jsonb_build_object('from', cur, 'to', cur + 1));
+  perform public.app_audit('catalog.update', jsonb_build_object('from', cur, 'to', cur + 1, 'note', left(coalesce(p_note, ''), 1500)));
   return cur + 1;
 end $$;
 

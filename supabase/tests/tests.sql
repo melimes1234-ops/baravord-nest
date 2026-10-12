@@ -60,7 +60,8 @@ select t.fails('operator cannot adjust stock', $q$select add_movement('{"type":"
 select t.as_user('alice@x.ir');
 create temp table cat as select (get_state() -> 'catalog') as c, (get_state() ->> 'version')::int as v;
 select t.ok('seed catalog loaded', (select jsonb_typeof(c -> 'materials') from cat) = 'object' and (select v from cat) = 1);
-select t.ok('save with right version bumps it', save_catalog((select c from cat), 1) = 2);
+select t.ok('save with right version bumps it', save_catalog((select c from cat), 1, 'قیمت وکس عوض شد') = 2);
+select t.ok('the note is kept in the change log', (select detail ->> 'note' from audit where action = 'catalog.update' order by id desc limit 1) = 'قیمت وکس عوض شد');
 select t.fails('stale version is refused', 'select save_catalog((select c from cat), 1)', '40001');
 select t.fails('negative price is refused', $q$select save_catalog(jsonb_set((select c from cat), '{materials,wax,pricePerKg}', '-5'), 2)$q$, 'P0001');
 select t.fails('waste 100 is refused', $q$select save_catalog(jsonb_set((select c from cat), '{config,wastePct}', '100'), 2)$q$, 'P0001');

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, type Role, type User } from '../api'
-import { toJalaliDate } from '../core'
+import { toJalaliDate, type Catalog } from '../core'
+import { auditLabel, auditLines } from '../auditText'
 
 const ROLE_LABEL: Record<Role, string> = { admin: 'ادمین', operator: 'اپراتور', viewer: 'مشاهده‌گر' }
 interface Row extends User { created_at: string }
 interface AuditRow { at: string; username: string; action: string; detail: string }
 
-export function Users({ me }: { me: User }) {
+export function Users({ me, catalog }: { me: User; catalog?: Catalog }) {
   const [users, setUsers] = useState<Row[]>([])
   const [audit, setAudit] = useState<AuditRow[]>([])
   const [err, setErr] = useState('')
@@ -69,10 +70,10 @@ export function Users({ me }: { me: User }) {
         <h2>گزارش تغییرات (۲۰۰ مورد آخر)</h2>
         <div className="tablewrap scroll-box">
           <table>
-            <thead><tr><th>زمان</th><th>کاربر</th><th>عمل</th><th>جزئیات</th></tr></thead>
+            <thead><tr><th>زمان</th><th>کاربر</th><th>چه کاری</th><th>جزئیات</th></tr></thead>
             <tbody>
               {audit.map((a, i) => (
-                <tr key={i}><td>{toJalaliDate(a.at)} {new Date(a.at).toLocaleTimeString('fa-IR')}</td><td>{a.username}</td><td>{a.action}</td><td style={{ whiteSpace: 'normal', maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.detail}</td></tr>
+                <tr key={i}><td>{toJalaliDate(a.at)} {new Date(a.at).toLocaleTimeString('fa-IR')}</td><td>{a.username}</td><td>{auditLabel(a.action)}</td><td className="audit-detail">{auditLines(a.action, a.detail, catalog).map((l, k) => <div key={k}>{l}</div>)}</td></tr>
               ))}
             </tbody>
           </table>

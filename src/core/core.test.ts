@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
-  stickLength, calcCsv, colorSwatch, explainPrice, formulaCost, normalizeTo, recipeUsage, setItemPercent, withReplacement, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
+  stickLength, calcCsv, catalogChanges, todayIso, isoToJalali, jalaliToIso, jalaliMonthLength, jalaliWeekday, colorSwatch, explainPrice, formulaCost, normalizeTo, recipeUsage, setItemPercent, withReplacement, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
   replaceBatchItem, seedCatalog, setActualQty, stockLevels, toJalaliDate, validateCatalog,
   type Catalog, type Movement,
 } from './index'
@@ -392,5 +392,54 @@ describe('stick length (the cabinet sheet is 4.10 m, not 3 m)', () => {
     expect(e.lengthM).toBe(4.1)
     expect(e.perMeter).toBe(eng.perMeter)
     expect(e.perStick).toBe(eng.perStick)
+  })
+})
+
+describe('change log sentences', () => {
+  it('says what changed in plain words, and nothing when nothing changed', () => {
+    const a = cat()
+    const b = structuredClone(a)
+    expect(catalogChanges(a, b)).toEqual([])
+    b.materials.wax.pricePerKg = 300_000
+    b.products.flex.weightPer3mG = 7600
+    b.tariffs[0].marginPct = 18
+    b.config.wastePct = 4
+    b.recipes.prp.items[3].qtyKg = 58
+    delete b.products.tail
+    const lines = catalogChanges(a, b)
+    expect(lines).toContain('قیمت «وکس» از ۲۵۰٬۰۰۰ به ۳۰۰٬۰۰۰ تومان')
+    expect(lines).toContain('وزن شاخه‌ی «Flex» از ۷٬۵۰۰ به ۷٬۶۰۰ گرم')
+    expect(lines).toContain('سود تعرفه‌ی «عمده» از ۱۵٪ به ۱۸٪')
+    expect(lines.some(l => l.includes('درصد دورریز'))).toBe(true)
+    expect(lines).toContain('مقدار مواد فرمول «PRP» عوض شد')
+    expect(lines).toContain('محصول حذف شد: «Tail»')
+  })
+
+  it('keeps long lists short', () => {
+    const a = cat()
+    const b = structuredClone(a)
+    for (const m of Object.values(b.materials)) m.pricePerKg = (m.pricePerKg ?? 0) + 1
+    const lines = catalogChanges(a, b, 5)
+    expect(lines).toHaveLength(6)
+    expect(lines.at(-1)).toMatch(/^و .* تغییر دیگر$/)
+  })
+})
+
+describe('dates', () => {
+  it('today is taken from the local clock, not UTC', () => {
+    // 00:30 local time on the 5th: UTC is still the 4th for a viewer east of Greenwich, but the user lives on the 5th
+    expect(todayIso(new Date(2026, 9, 5, 0, 30))).toBe('2026-10-05')
+    expect(todayIso(new Date(2026, 0, 1, 23, 59))).toBe('2026-01-01')
+  })
+
+  it('Jalali conversion, month lengths and weekday (week starts on Saturday)', () => {
+    expect(isoToJalali('2026-10-04')).toEqual({ jy: 1405, jm: 7, jd: 12 })
+    expect(jalaliToIso(1405, 7, 12)).toBe('2026-10-04')
+    expect(jalaliMonthLength(1405, 1)).toBe(31)
+    expect(jalaliMonthLength(1405, 7)).toBe(30)
+    expect(jalaliMonthLength(1403, 12)).toBe(30) // leap year
+    expect(jalaliMonthLength(1404, 12)).toBe(29)
+    expect(jalaliWeekday(1405, 7, 12)).toBe(1) // 4 Oct 2026 is a Sunday: Saturday=0, Sunday=1
+    expect(jalaliWeekday(1405, 7, 11)).toBe(0) // Saturday
   })
 })

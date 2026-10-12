@@ -11,7 +11,7 @@ export interface Backend {
   login(identity: string, password: string): Promise<void>
   logout(): Promise<void>
   /** Returns the new catalog version. */
-  saveCatalog(catalog: Catalog, version: number): Promise<number>
+  saveCatalog(catalog: Catalog, version: number, note?: string): Promise<number>
   addMovement(m: Movement): Promise<void>
   addBatch(b: Batch): Promise<void>
 }

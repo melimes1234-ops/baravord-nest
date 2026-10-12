@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Role } from '../api'
-import { toJalaliDate } from '../core'
+import { toJalaliDate, type Catalog } from '../core'
+import { auditLabel, auditLines } from '../auditText'
 import { rpc } from '../backends/supabase'
 
 const ROLE_LABEL: Record<Role, string> = { admin: 'ادمین', operator: 'اپراتور', viewer: 'مشاهده‌گر' }
@@ -8,7 +9,7 @@ interface Row { id: string; email: string; role: Role; created_at: string }
 interface AuditRow { at: string; username: string; action: string; detail: string }
 
 /** Accounts are created in the Supabase dashboard; here the admin only assigns roles. */
-export function SupabaseUsers() {
+export function SupabaseUsers({ catalog }: { catalog?: Catalog }) {
   const [users, setUsers] = useState<Row[]>([])
   const [audit, setAudit] = useState<AuditRow[]>([])
   const [err, setErr] = useState('')
@@ -49,22 +50,18 @@ export function SupabaseUsers() {
             </tbody>
           </table>
         </div>
-        <p className="muted">
-          برای کاربر جدید: در Supabase بروید به Authentication ← Users ← Add user و ایمیل و رمز بدهید (گزینه Auto Confirm User را بزنید).
-          کاربر جدید «مشاهده‌گر» شروع می‌کند و اینجا نقشش را عوض می‌کنید. حذف کاربر یا رمز فراموش‌شده هم از همان صفحه Supabase انجام می‌شود.
-        </p>
       </div>
       <div className="card">
         <h2>گزارش تغییرات (۲۰۰ مورد آخر)</h2>
         <div className="tablewrap scroll-box">
           <table>
-            <thead><tr><th>زمان</th><th>کاربر</th><th>عمل</th><th>جزئیات</th></tr></thead>
+            <thead><tr><th>زمان</th><th>کاربر</th><th>چه کاری</th><th>جزئیات</th></tr></thead>
             <tbody>
               {audit.map((a, i) => (
                 <tr key={i}>
                   <td>{toJalaliDate(a.at)} {new Date(a.at).toLocaleTimeString('fa-IR')}</td>
-                  <td>{a.username}</td><td>{a.action}</td>
-                  <td style={{ whiteSpace: 'normal', maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.detail}</td>
+                  <td>{a.username}</td><td>{auditLabel(a.action)}</td>
+                  <td className="audit-detail">{auditLines(a.action, a.detail, catalog).map((l, k) => <div key={k}>{l}</div>)}</td>
                 </tr>
               ))}
             </tbody>

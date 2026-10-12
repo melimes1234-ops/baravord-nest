@@ -2,7 +2,7 @@ import { Hono, type Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { bodyLimit } from 'hono/body-limit'
 import {
-  consumeBatch, currentPrices, seedCatalog, stockLevels,
+  catalogChanges, consumeBatch, currentPrices, seedCatalog, stockLevels,
   type Batch, type Catalog, type ItemRef, type Movement,
 } from '../src/core'
 import {
@@ -180,7 +180,7 @@ export function createApp(db: Db) {
       if (cur.version !== body.version) throw new HttpError(409, 'کاتالوگ توسط کاربر دیگری تغییر کرده؛ صفحه را تازه کنید')
       const next = cur.version + 1
       db.prepare('UPDATE kv SET value = ?, version = ? WHERE key = ?').run(JSON.stringify(body.catalog), next, CATALOG_KEY)
-      audit(user.username, 'catalog.update', { from: cur.version, to: next })
+      audit(user.username, 'catalog.update', { from: cur.version, to: next, changes: catalogChanges(cur.catalog, body.catalog as Catalog) })
       return next
     })
     return c.json({ version })

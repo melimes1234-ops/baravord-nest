@@ -130,7 +130,7 @@ export default function App() {
         {current === 'پارت تولید' && canEdit && <Batches state={state} update={update} />}
         {current === 'انبار' && <Stock catalog={catalog} movements={state.movements} update={update} readOnly={!canEdit} />}
         {current === 'هشدارها' && <Issues catalog={catalog} />}
-        {current === 'کاربران' && (backend.kind === 'supabase' ? <SupabaseUsers /> : <Users me={user} />)}
+        {current === 'کاربران' && (backend.kind === 'supabase' ? <SupabaseUsers catalog={catalog} /> : <Users me={user} catalog={catalog} />)}
       </main>
     </>
   )

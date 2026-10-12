@@ -1,4 +1,4 @@
-import { toGregorian, toJalaali } from 'jalaali-js'
+import { isLeapJalaaliYear, toGregorian, toJalaali } from 'jalaali-js'
 
 const FA = '۰۱۲۳۴۵۶۷۸۹'
 const AR = '٠١٢٣٤٥٦٧٨٩'
@@ -46,4 +46,34 @@ export function fromJalaliDate(s: string): string | null {
   if (jm < 1 || jm > 12 || jd < 1 || jd > 31) return null
   const g = toGregorian(jy, jm, jd)
   return `${g.gy}-${String(g.gm).padStart(2, '0')}-${String(g.gd).padStart(2, '0')}`
+}
+
+/** Today as 'YYYY-MM-DD' on the user's own clock (toISOString would give yesterday's date after midnight in Iran). */
+export function todayIso(now: Date = new Date()): string {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+export const JALALI_MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند']
+/** Week starts on Saturday. */
+export const JALALI_WEEKDAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه']
+
+export interface JalaliParts { jy: number; jm: number; jd: number }
+
+export function isoToJalali(iso: string): JalaliParts {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+  const j = toJalaali(y, m, d)
+  return { jy: j.jy, jm: j.jm, jd: j.jd }
+}
+
+export function jalaliToIso(jy: number, jm: number, jd: number): string {
+  const g = toGregorian(jy, jm, jd)
+  return `${g.gy}-${String(g.gm).padStart(2, '0')}-${String(g.gd).padStart(2, '0')}`
+}
+
+export const jalaliMonthLength = (jy: number, jm: number): number => (jm <= 6 ? 31 : jm <= 11 ? 30 : isLeapJalaaliYear(jy) ? 30 : 29)
+
+/** 0 = Saturday ... 6 = Friday, for a Jalali date. */
+export function jalaliWeekday(jy: number, jm: number, jd: number): number {
+  const [y, m, d] = jalaliToIso(jy, jm, jd).split('-').map(Number)
+  return (new Date(y, m - 1, d).getDay() + 1) % 7
 }

@@ -289,3 +289,31 @@ main { animation: pageIn .2s ease both; }
 .calc-what { margin: 4px 0 8px; line-height: 1.95; }
 .calc-aside { margin: 0 0 8px; padding: 6px 10px; border-radius: 8px; background: var(--tint); line-height: 1.9; font-size: 13.5px; }
 .calc-step .bill { margin: 4px 0; }
+
+.audit-detail { white-space: normal !important; min-width: 220px; line-height: 1.8; }
+.audit-detail > div + div { border-top: 1px dashed var(--line); margin-top: 2px; padding-top: 2px; }
+
+/* ---- Persian calendar ---- */
+.date-wrap { position: relative; display: inline-block; }
+.date-btn { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); cursor: pointer; font-size: 14px; color: var(--ink); }
+.date-btn:hover { border-color: var(--accent); }
+.date-btn svg { color: var(--accent); }
+.date-btn em { font-style: normal; color: var(--muted); font-size: 12.5px; }
+.cal { position: absolute; z-index: 40; top: calc(100% + 6px); inset-inline-start: 0; width: 290px; max-width: calc(100vw - 32px); padding: 10px; background: var(--card); color: var(--ink); border: 1px solid var(--accent); border-radius: 12px; box-shadow: 0 8px 28px rgba(0, 0, 0, .28); animation: tipIn .14s ease both; }
+.cal-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 8px; }
+.cal-head b { flex: 1; text-align: center; font-size: 15px; }
+.cal-head button { width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); cursor: pointer; font-size: 17px; line-height: 1; color: var(--ink); }
+.cal-head button:hover { border-color: var(--accent); color: var(--accent); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-weekdays span { text-align: center; font-size: 12px; color: var(--muted); padding: 3px 0; font-weight: 700; }
+.cal-grid .fri, .cal-weekdays .fri { color: var(--err); }
+.cal-day { height: 34px; border: 1px solid transparent; border-radius: 8px; background: transparent; cursor: pointer; font-size: 14px; color: var(--ink); }
+.cal-day.fri { color: var(--err); }
+.cal-day:hover { background: var(--tint); border-color: var(--line); }
+.cal-day.today { border-color: var(--accent); font-weight: 800; }
+.cal-day.sel { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 800; }
+.cal-foot { display: flex; justify-content: space-between; margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { .cal { animation: none; } }
+
+/* like a <label>, but a <label> would re-click the calendar button when a day is chosen */
+.lbl { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }

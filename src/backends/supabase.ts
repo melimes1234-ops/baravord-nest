@@ -71,7 +71,17 @@ export const supabaseBackend: Backend = {
   async logout() {
     await supabase().auth.signOut()
   },
-  saveCatalog: (catalog, version) => rpc<number>('save_catalog', { p_catalog: catalog, p_version: version }),
+  async saveCatalog(catalog, version, note) {
+    try {
+      return await rpc<number>('save_catalog', { p_catalog: catalog, p_version: version, p_note: note ?? null })
+    } catch (e) {
+      // The project still has the older two-argument function (the SQL was not re-run yet): save without the note.
+      if (e instanceof ApiError && /save_catalog|schema cache|PGRST202/i.test(e.message)) {
+        return rpc<number>('save_catalog', { p_catalog: catalog, p_version: version })
+      }
+      throw e
+    }
+  },
   async addMovement(m) {
     await rpc('add_movement', { p: m })
   },

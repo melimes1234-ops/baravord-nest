@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Batch, Catalog, Movement } from './core'
+import { catalogChanges, type Batch, type Catalog, type Movement } from './core'
 import { ApiError, type ServerState, type User } from './api'
 import { backend } from './backends'
 
@@ -25,9 +25,12 @@ export function useSession() {
   const version = useRef(0)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const dirtyCatalog = useRef<Catalog | null>(null)
+  // the catalog as the server has it, to describe what an edit changed
+  const savedCatalog = useRef<Catalog | null>(null)
 
   const apply = useCallback((s: ServerState) => {
     version.current = s.version
+    savedCatalog.current = s.catalog
     setSession({ status: 'ready', user: s.user, state: { catalog: s.catalog, movements: s.movements, batches: s.batches } })
   }, [])
 
@@ -64,7 +67,9 @@ export function useSession() {
     if (!catalog) return
     dirtyCatalog.current = null
     try {
-      version.current = await backend.saveCatalog(catalog, version.current)
+      const note = savedCatalog.current ? catalogChanges(savedCatalog.current, catalog).join('\n') : undefined
+      version.current = await backend.saveCatalog(catalog, version.current, note)
+      savedCatalog.current = catalog
       setError('')
     } catch (e) {
       setError((e as Error).message)
