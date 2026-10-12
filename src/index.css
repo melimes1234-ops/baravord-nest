@@ -336,3 +336,5 @@ main { animation: pageIn .2s ease both; }
 .pick[aria-pressed="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--card)); }
 .summary { margin: 0; padding-inline-start: 20px; line-height: 2; }
 .alert.ok { border-color: var(--ok, #2e7d32); }
+.btn.link { margin-inline-start: 8px; padding: 1px 9px; }
+.check-row .btn.link { margin: 4px 0 0; }

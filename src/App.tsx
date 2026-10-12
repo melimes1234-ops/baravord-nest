@@ -123,7 +123,7 @@ export default function App() {
         {error && <div className="alert err" onClick={clearError}>{error} (برای بستن بزنید)</div>}
         {current === 'شروع کار' && <Guide catalog={catalog} movements={state.movements} batches={state.batches} role={DEMO ? 'admin' : user.role} demo={DEMO} go={t => setTab(t as Tab)} />}
         {current === 'لیست قیمت' && <PriceList catalog={catalog} onEditTariffs={user.role === 'admin' || DEMO ? () => setTab('هزینه‌ها') : undefined} />}
-        {current === 'محاسبات' && <Calc catalog={catalog} />}
+        {current === 'محاسبات' && <Calc catalog={catalog} go={user.role === 'admin' || DEMO ? t => setTab(t as Tab) : undefined} />}
         {current === 'مواد' && <Materials catalog={catalog} update={update} />}
         {current === 'فرمول‌ها' && <Recipes catalog={catalog} update={update} />}
         {current === 'محصولات' && <Products catalog={catalog} update={update} />}
@@ -131,7 +131,7 @@ export default function App() {
         {current === 'پارت تولید' && canEdit && <Batches state={state} update={update} />}
         {current === 'محصول ساخته‌شده' && <Goods state={state} update={update} readOnly={!canEdit} canDelete={user.role === 'admin' || DEMO} />}
         {current === 'انبار' && <Stock catalog={catalog} movements={state.movements} update={update} readOnly={!canEdit} />}
-        {current === 'هشدارها' && <Issues catalog={catalog} />}
+        {current === 'هشدارها' && <Issues catalog={catalog} go={user.role === 'admin' || DEMO ? t => setTab(t as Tab) : undefined} />}
         {current === 'کاربران' && (backend.kind === 'supabase' ? <SupabaseUsers catalog={catalog} /> : <Users me={user} catalog={catalog} />)}
       </main>
     </>

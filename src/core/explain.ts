@@ -23,6 +23,8 @@ export interface Check {
   level: 'ok' | 'warn' | 'error'
   title: string
   detail: string
+  /** Tab where the user fixes it (shown as a link). */
+  tab?: string
 }
 
 /** Every number behind one price, recomputed here independently of the pricing engine. */
@@ -110,19 +112,22 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
   const checks: Check[] = [
     missingPrices.length === 0
       ? { ok: true, level: 'ok', title: 'همه‌ی مواد قیمت دارند', detail: `${rows.length} ماده در این پارت هست و برای همه‌شان قیمت نوشته شده.` }
-      : { ok: false, level: 'error', title: 'قیمت بعضی مواد نوشته نشده', detail: `${missingPrices.join('، ')}. قیمتشان را در تب «مواد» بنویسید. تا آن موقع قیمت محصول کمتر از واقعی درمی‌آید.` },
+      : { ok: false, level: 'error', title: 'قیمت بعضی مواد نوشته نشده', detail: `${missingPrices.join('، ')}. قیمتشان را در تب «مواد» بنویسید. تا آن موقع قیمت محصول کمتر از واقعی درمی‌آید.`, tab: 'مواد' },
     zeroPriced.length === 0
       ? { ok: true, level: 'ok', title: 'قیمت صفر مشکوکی نیست', detail: 'فقط دورریز مواد می‌تواند رایگان باشد.' }
-      : { ok: false, level: 'warn', title: 'قیمت یک ماده صفر است', detail: `${zeroPriced.join('، ')} قیمت صفر دارد. اگر عمدی نیست، درستش کنید.` },
+      : { ok: false, level: 'warn', title: 'قیمت یک ماده صفر است', detail: `${zeroPriced.join('، ')} قیمت صفر دارد. اگر عمدی نیست، درستش کنید.`, tab: 'مواد' },
     w == null
-      ? { ok: false, level: 'error', title: 'وزن شاخه را ننوشته‌اید', detail: 'بدون وزن، قیمت شاخه و متر معلوم نمی‌شود. وزن را در تب «محصولات» بنویسید.' }
+      ? { ok: false, level: 'error', title: 'وزن شاخه را ننوشته‌اید', detail: 'بدون وزن، قیمت شاخه و متر معلوم نمی‌شود. وزن را در تب «محصولات» بنویسید.', tab: 'محصولات' }
       : { ok: true, level: 'ok', title: 'وزن شاخه نوشته شده', detail: `هر شاخه ${lengthM} متری ${w} گرم وزن دارد.` },
     widthM != null
       ? { ok: true, level: 'ok', title: 'عرض محصول نوشته شده', detail: `${product.widthMm} میلی‌متر. قیمت متر مربع از روی همین حساب می‌شود.` }
-      : { ok: false, level: 'warn', title: 'عرض محصول را ننوشته‌اید', detail: 'بدون عرض، قیمت متر مربع معلوم نمی‌شود. عرض را در تب «محصولات» بنویسید.' },
-    monthlyCostTotal > 0 && cfg.monthlyProductionKg > 0
-      ? { ok: true, level: 'ok', title: 'هزینه‌های ثابت کارخانه نوشته شده', detail: 'هزینه‌های ماهانه و کیلوی تولید این ماه وارد شده است.' }
-      : { ok: false, level: 'warn', title: 'هزینه‌های ثابت کارخانه نوشته نشده', detail: 'برق، حقوق، اجاره و مانند آن هنوز وارد نشده و در قیمت نیست. در تب «هزینه‌ها» بنویسید.' },
+      : { ok: false, level: 'warn', title: 'عرض محصول را ننوشته‌اید', detail: 'بدون عرض، قیمت متر مربع معلوم نمی‌شود. عرض را در تب «محصولات» بنویسید.', tab: 'محصولات' },
+    monthlyCostTotal > 0
+      ? { ok: true, level: 'ok', title: 'هزینه‌های ثابت کارخانه نوشته شده', detail: 'مبلغ هزینه‌های ماهانه (برق، حقوق و …) وارد شده است.' }
+      : { ok: false, level: 'warn', title: 'هزینه‌های ثابت کارخانه نوشته نشده', detail: 'برق، حقوق، اجاره و مانند آن هنوز وارد نشده و در قیمت نیست. در تب «هزینه‌ها»، جدول اول، ردیف و مبلغ ماهانه را بنویسید.', tab: 'هزینه‌ها' },
+    cfg.monthlyProductionKg > 0
+      ? { ok: true, level: 'ok', title: 'کیلوی تولید ماهانه نوشته شده', detail: `در ماه ${cfg.monthlyProductionKg} کیلو ساخته می‌شود و هزینه‌های ثابت بین همین کیلوها پخش می‌شود.` }
+      : { ok: false, level: 'warn', title: 'کیلوی تولید ماهانه نوشته نشده', detail: 'برنامه باید بداند در یک ماه چند کیلو می‌سازید تا هزینه‌های ثابت را بین کیلوها پخش کند؛ تا آن موقع هزینه‌های ثابت در قیمت نمی‌آید. در تب «هزینه‌ها»، کادر «چند کیلو در این ماه ساخته‌اید؟» را پر کنید.', tab: 'هزینه‌ها' },
     totalKg >= 95 && totalKg <= 105
       ? { ok: true, level: 'ok', title: 'وزن پارت حدود ۱۰۰ کیلو است', detail: `جمع فرمول (خود محصول و رنگ) ${totalKg.toFixed(2)} کیلو می‌شود.` }
       : { ok: false, level: 'warn', title: 'وزن پارت با ۱۰۰ کیلو فرق زیادی دارد', detail: `فرمول‌ها باید روی ۱۰۰ کیلو نوشته شده باشند. الان ${totalKg.toFixed(2)} کیلو می‌شود؛ احتمالاً یکی از مقدارها اشتباه است.` },

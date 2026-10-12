@@ -43,7 +43,7 @@ function summaryText(e: Explain): string {
 
 const ICON: Record<Check['level'], string> = { ok: '✓', warn: '!', error: '✕' }
 
-export function Calc({ catalog }: { catalog: Catalog }) {
+export function Calc({ catalog, go }: { catalog: Catalog; go?: (tab: string) => void }) {
   const products = Object.values(catalog.products)
   const colors = Object.values(catalog.colors)
   const [productId, setProductId] = useState(products.find(p => p.id === 'flex')?.id ?? products[0]?.id ?? '')
@@ -128,7 +128,7 @@ export function Calc({ catalog }: { catalog: Catalog }) {
           {e.checks.map(c => (
             <li key={c.title} className={`check-row ${c.level}`}>
               <span className="check-ico" aria-hidden="true">{ICON[c.level]}</span>
-              <div><b>{c.title}</b><div className="muted">{c.detail}</div></div>
+              <div><b>{c.title}</b><div className="muted">{c.detail}</div>{!c.ok && c.tab && go && <button className="btn ghost link" onClick={() => go(c.tab!)}>بروید به «{c.tab}» ←</button>}</div>
             </li>
           ))}
         </ul>
