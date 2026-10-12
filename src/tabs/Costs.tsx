@@ -2,10 +2,11 @@ import { formatToman, overheadPerKg, extrasPerKg, type Catalog, type CostLine } 
 import type { Update } from '../store'
 import { NumInput, TextInput } from '../ui'
 
-function Lines({ title, lines, onChange }: { title: string; lines: CostLine[]; onChange: (l: CostLine[]) => void }) {
+function Lines({ title, help, lines, onChange }: { title: string; help: string; lines: CostLine[]; onChange: (l: CostLine[]) => void }) {
   return (
     <div className="card">
       <h2>{title}</h2>
+      <p className="muted help">{help}</p>
       <div className="tablewrap">
         <table>
           <tbody>
@@ -30,8 +31,9 @@ export function Costs({ catalog, update }: { catalog: Catalog; update: Update })
   const oh = overheadPerKg(c)
   return (
     <>
-      <Lines title="هزینه‌های ثابتِ هر ماه (برق، حقوق، اجاره و مانند آن)" lines={c.monthlyCosts} onChange={l => update(s => { s.catalog.config.monthlyCosts = l })} />
+      <Lines title="هزینه‌های ثابتِ هر ماه (برق، حقوق، اجاره و مانند آن)" help="هر ماه این پول‌ها را می‌دهید، چه کار کنید چه نکنید. اسم هر هزینه و مبلغ یک ماهش را بنویسید. برنامه این مبلغ را بین کیلوهایی که در ماه می‌سازید پخش می‌کند تا ببیند روی هر کیلو چقدر می‌افتد." lines={c.monthlyCosts} onChange={l => update(s => { s.catalog.config.monthlyCosts = l })} />
       <div className="card">
+        <p className="muted help">عدد «چند کیلو در ماه» را واقعی بنویسید. هر چه بیشتر بسازید، سهم هر کیلو از هزینه‌های ثابت کمتر می‌شود، و برعکس. دو کادر کناری فقط نتیجه را نشان می‌دهند و خودتان چیزی در آن‌ها نمی‌نویسید.</p>
         <div className="row">
           <label>چند کیلو در این ماه ساخته‌اید؟<NumInput unit="کیلو" value={c.monthlyProductionKg} onChange={v => update(s => { s.catalog.config.monthlyProductionKg = v ?? 0 })} /></label>
           <div className="kpi"><span className="muted">سهم هر کیلو از این هزینه‌ها</span><b>{formatToman(oh.value)} تومان</b></div>
@@ -39,8 +41,11 @@ export function Costs({ catalog, update }: { catalog: Catalog; update: Update })
         </div>
         {oh.warning && <div className="alert">{oh.warning}</div>}
       </div>
-      <Lines title="هزینه‌هایی که برای هر پارت پرداخت می‌شود (کرایه، انبارداری، باسکول)" lines={c.perBatchCosts} onChange={l => update(s => { s.catalog.config.perBatchCosts = l })} />
+      <Lines title="هزینه‌هایی که برای هر پارت پرداخت می‌شود (کرایه، انبارداری، باسکول)" help="این‌ها را فقط وقتی یک پارت می‌سازید یا جابه‌جا می‌کنید می‌دهید. مبلغ یک بار پارت را بنویسید؛ برنامه آن را بین کیلوهای همان پارت پخش می‌کند." lines={c.perBatchCosts} onChange={l => update(s => { s.catalog.config.perBatchCosts = l })} />
       <div className="card">
+        <p className="muted help">
+          «یک پارت معمولی» برای پخش کردن هزینه‌های هر پارت لازم است. «دورریز» یعنی چند درصد مواد هدر می‌رود و خرجش روی قیمت می‌آید. «رُند کردن» قیمت‌ها را به عدد گرد می‌رساند (مثلاً ۱۰٬۰۰۰). «هشدار» وقتی است که کارگر در پارت بیشتر یا کمتر از فرمول بریزد.
+        </p>
         <div className="row">
           <label>یک پارت معمولی چند کیلو است؟<NumInput unit="کیلو" value={c.batchKg} onChange={v => update(s => { s.catalog.config.batchKg = v ?? 100 })} /></label>
           <div className="kpi"><span className="muted">سهم هر کیلو از کرایه و انبارداری</span><b>{formatToman(extrasPerKg(c))} تومان</b></div>
@@ -51,6 +56,7 @@ export function Costs({ catalog, update }: { catalog: Catalog; update: Update })
       </div>
       <div className="card">
         <h2>تعرفه‌ها: چند درصد سود می‌خواهید؟</h2>
+        <p className="muted help">هر تعرفه یک نوع فروش است (مثلاً عمده یا خرده) و درصد سودش را می‌نویسید. در «لیست قیمت» می‌توانید بین آن‌ها جابه‌جا شوید. سود روی قیمت تمام‌شده اضافه می‌شود.</p>
         <div className="tablewrap">
           <table>
             <tbody>

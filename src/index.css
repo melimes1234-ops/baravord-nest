@@ -317,3 +317,4 @@ main { animation: pageIn .2s ease both; }
 
 /* like a <label>, but a <label> would re-click the calendar button when a day is chosen */
 .lbl { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.help { margin: 0 0 10px; line-height: 1.9; }
