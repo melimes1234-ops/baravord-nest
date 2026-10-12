@@ -1,10 +1,16 @@
 import { useState } from 'react'
 import { formatKg, formatToman, fromJalaliDate, stockLevels, toFa, toJalaliDate, type Catalog, type Movement } from '../core'
 import type { Update } from '../store'
-import { NumInput } from '../ui'
+import { InfoTip, NumInput } from '../ui'
+
+/** Numbers read left-to-right even inside Persian text. */
+const N = ({ children }: { children: React.ReactNode }) => <bdi dir="ltr" className="num-inline">{children}</bdi>
 
 export function Stock({ catalog, movements, update, readOnly }: { catalog: Catalog; movements: Movement[]; update: Update; readOnly?: boolean }) {
   const levels = stockLevels(movements)
+  // a live example from the first material that has a purchase price
+  const exId = Object.keys(levels).find(id => levels[id].avgPrice != null && levels[id].qtyKg > 0)
+  const example = exId ? `مثلاً ${catalog.materials[exId]?.name}: ${formatKg(levels[exId].qtyKg)} کیلو × ${formatToman(levels[exId].avgPrice)} = ${formatToman(levels[exId].qtyKg * levels[exId].avgPrice!)}` : null
   const [materialId, setMaterialId] = useState(Object.keys(catalog.materials)[0])
   const [kg, setKg] = useState<number | null>(null)
   const [price, setPrice] = useState<number | null>(null)
@@ -37,7 +43,12 @@ export function Stock({ catalog, movements, update, readOnly }: { catalog: Catal
         <p className="muted">با ثبت خرید با قیمت، سرور قیمت ماده را با میانگین موزون موجودی به‌روز می‌کند. مصرف تولید خودکار از فرمول واقعی هر پارت کم می‌شود.</p>
       </div>}
       <div className="card">
-        <h2>باقی‌مانده مواد</h2>
+        <h2>باقی‌مانده مواد <InfoTip>
+          <p><b>موجودی</b> = جمع همه‌ی ورودها (خرید و ضایعات برگشتی) منهای مصرف پارت‌ها و تعدیل‌ها.</p>
+          <p><b>میانگین قیمت</b> = میانگین موزون قیمت خریدها. هر خرید جدید طبق مقدارش در میانگین اثر می‌گذارد؛ مصرف میانگین را عوض نمی‌کند.</p>
+          <p><b>ارزش موجودی</b> = موجودی × میانگین قیمت.</p>
+          {example && <p><N>{example}</N></p>}
+        </InfoTip></h2>
         <div className="tablewrap scroll-box">
           <table>
             <thead><tr><th>ماده</th><th className="n">موجودی (کیلو)</th><th className="n">میانگین قیمت</th><th className="n">ارزش موجودی</th></tr></thead>
