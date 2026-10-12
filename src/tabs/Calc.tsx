@@ -204,7 +204,8 @@ export function Calc({ catalog }: { catalog: Catalog }) {
             calc={e.weightG == null ? undefined : <N>{money(e.salePerKg)} × {kg(e.weightG / 1000)} کیلو = {money(e.perStickRaw)}</N>}
             result={e.weightG == null
               ? <span className="over">وزن محصول وارد نشده؛ پس قیمت شاخه و متر حساب نمی‌شود.</span>
-              : <>هر شاخه ۳ متری: <N>{money(e.perStick)}</N> تومان · هر متر: <N>{money(e.perMeter)}</N> تومان (گرد شده به مضرب <N>{money(e.roundStep)}</N>)</>} />
+              : <>هر شاخه ۳ متری: <N>{money(e.perStick)}</N> تومان · هر متر: <N>{money(e.perMeter)}</N> تومان (گرد شده به مضرب <N>{money(e.roundStep)}</N>)</>}
+            note="شاخه و متر هر کدام جدا از عدد دقیق گرد می‌شوند. برای همین ممکن است سه برابرِ قیمت متر، یک گامِ گرد کردن (مثلاً ۱۰۰ تومان) با قیمت شاخه فرق کند. این خطا نیست." />
 
           <Step n={10} title="قیمت هر متر مربع"
             what="هر متر از این محصول فقط به اندازه‌ی عرضش سطح را می‌پوشاند. پس عرض را به متر درمی‌آوریم (میلی‌متر ÷ ۱۰۰۰) و قیمت هر متر را بر آن تقسیم می‌کنیم."

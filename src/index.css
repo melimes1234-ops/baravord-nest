@@ -218,3 +218,11 @@ td input.num[readonly], td input.num:disabled { background: transparent; border-
 .check-row.warn { background: var(--warn-bg); } .check-row.warn .check-ico { background: var(--warn); }
 .check-row.error { background: var(--err-bg); } .check-row.error .check-ico { background: var(--err); }
 .copybox { width: 100%; margin: 6px 0 12px; font-family: inherit; font-size: 13px; line-height: 1.8; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); resize: vertical; }
+
+/* ---- which parts count in the price ---- */
+.parts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.part { flex-direction: row; align-items: center; gap: 7px; padding: 5px 12px; border: 2px solid var(--line); border-radius: 99px; background: var(--card); cursor: pointer; color: var(--muted); font-weight: 600; font-size: 13px; }
+.part input { min-width: 0; accent-color: var(--accent); }
+.part em { font-style: normal; font-weight: 400; font-size: 12px; opacity: .85; }
+.part.on { color: var(--ink); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+.part.locked-part { cursor: default; }

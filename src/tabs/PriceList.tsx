@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import {
-  colorSwatch, flatten, formatKg, formatToman, priceProduct, productItems, toFa,
+  colorSwatch, extrasPerKg, flatten, formatKg, formatToman, overheadPerKg, priceProduct, productItems, toFa,
   type Catalog, type Product, type Tariff,
 } from '../core'
 import { DEMO } from '../demo'
@@ -30,11 +30,31 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
   const [colorId, setColorId] = useState<string>(colors[0]?.id ?? '')
   const [open, setOpen] = useState<string | null>(null)
   const [query, setQuery] = useState('')
-  const tariff: Tariff | undefined =
+  // Which cost parts count in the shown prices. Only changes this view: nothing is saved.
+  const [incl, setIncl] = useState({ waste: true, overhead: true, extras: true, profit: true })
+  const allIn = incl.waste && incl.overhead && incl.extras && incl.profit
+  const fullTariff: Tariff | undefined =
     tariffId === CUSTOM
       ? { id: CUSTOM, name: 'سود دلخواه', marginPct: Math.max(0, customPct ?? 0) }
       : catalog.tariffs.find(t => t.id === tariffId) ?? catalog.tariffs[0]
   const color = catalog.colors[colorId]
+  // The same engine, fed a copy of the settings with the unticked parts switched off.
+  const view = useMemo<Catalog>(
+    () => ({
+      ...catalog,
+      config: {
+        ...catalog.config,
+        wastePct: incl.waste ? catalog.config.wastePct : 0,
+        monthlyCosts: incl.overhead ? catalog.config.monthlyCosts : [],
+        perBatchCosts: incl.extras ? catalog.config.perBatchCosts : [],
+      },
+    }),
+    [catalog, incl.waste, incl.overhead, incl.extras],
+  )
+  const tariff: Tariff | undefined = fullTariff && (incl.profit ? fullTariff : { ...fullTariff, marginPct: 0 })
+  const excluded = [
+    !incl.waste && 'ضایعات', !incl.overhead && 'سربار کارخانه', !incl.extras && 'کرایه و انبارداری', !incl.profit && 'سود',
+  ].filter(Boolean) as string[]
 
   const groups = useMemo(() => {
     if (!tariff) return []
@@ -43,14 +63,16 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
     const by = new Map<string, { p: Product; price: ReturnType<typeof priceProduct> }[]>()
     for (const p of Object.values(catalog.products)) {
       if (q && !`${p.name} ${p.code}`.toLowerCase().includes(q)) continue
-      const price = priceProduct(p, p.colorable ? colorId || null : null, tariff, catalog)
+      const price = priceProduct(p, p.colorable ? colorId || null : null, tariff, view)
       const s = seriesOf(p)
       by.set(s, [...(by.get(s) ?? []), { p, price }])
     }
     return order.filter(s => by.has(s)).map(s => ({ series: s, rows: by.get(s)! }))
-  }, [catalog, colorId, tariff, query])
+  }, [catalog, view, colorId, tariff, query])
 
-  if (!tariff) return <div className="card">ابتدا یک تعرفه تعریف کنید.</div>
+  if (!tariff || !fullTariff) return <div className="card">ابتدا یک تعرفه تعریف کنید.</div>
+  const oh = overheadPerKg(catalog.config).value
+  const ex = extrasPerKg(catalog.config)
 
   return (
     <div className="card">
@@ -59,14 +81,14 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
           <span className="field-label">تعرفه (درصد سود)</span>
           <div className="seg" role="group" aria-label="تعرفه">
             {catalog.tariffs.map(t => (
-              <button key={t.id} aria-pressed={t.id === tariff.id} onClick={() => setTariffId(t.id)}>
+              <button key={t.id} aria-pressed={t.id === fullTariff.id} onClick={() => setTariffId(t.id)}>
                 {t.name} · {toFa(t.marginPct)}٪
               </button>
             ))}
-            <button aria-pressed={tariff.id === CUSTOM} onClick={() => setTariffId(CUSTOM)}>سود دلخواه</button>
+            <button aria-pressed={fullTariff.id === CUSTOM} onClick={() => setTariffId(CUSTOM)}>سود دلخواه</button>
           </div>
         </div>
-        {tariff.id === CUSTOM && (
+        {fullTariff.id === CUSTOM && (
           <label>
             درصد سود دلخواه
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -92,9 +114,24 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
         ))}
       </div>
 
+      <span className="field-label">چه چیزهایی در قیمت حساب شود؟</span>
+      <div className="parts" role="group" aria-label="اجزای قیمت">
+        <label className="part on locked-part"><input type="checkbox" checked readOnly disabled /> مواد اولیه <em>همیشه</em></label>
+        <label className={`part${incl.waste ? ' on' : ''}`}><input type="checkbox" checked={incl.waste} onChange={e => setIncl({ ...incl, waste: e.target.checked })} /> ضایعات <em>{toFa(catalog.config.wastePct)}٪</em></label>
+        <label className={`part${incl.overhead ? ' on' : ''}`}><input type="checkbox" checked={incl.overhead} onChange={e => setIncl({ ...incl, overhead: e.target.checked })} /> سربار کارخانه <em>{formatToman(oh)} در هر کیلو</em></label>
+        <label className={`part${incl.extras ? ' on' : ''}`}><input type="checkbox" checked={incl.extras} onChange={e => setIncl({ ...incl, extras: e.target.checked })} /> کرایه و انبارداری <em>{formatToman(ex)} در هر کیلو</em></label>
+        <label className={`part${incl.profit ? ' on' : ''}`}><input type="checkbox" checked={incl.profit} onChange={e => setIncl({ ...incl, profit: e.target.checked })} /> سود <em>{toFa(fullTariff.marginPct)}٪</em></label>
+      </div>
+      {!allIn && (
+        <div className="alert">
+          <b>این قیمت‌ها کامل نیستند.</b> در این نمایش حساب نشده: {excluded.join('، ')}. فقط برای دیدن اثر همین بخش‌هاست و چیزی ذخیره نمی‌شود.{' '}
+          <button className="btn ghost" onClick={() => setIncl({ waste: true, overhead: true, extras: true, profit: true })}>همه حساب شود</button>
+        </div>
+      )}
+
       <div className="summary">
         {color && <Swatch hex={colorSwatch(color, catalog)} large />}
-        <span>قیمت‌ها برای رنگ <b>{color?.name ?? '—'}</b> و تعرفه <b>{tariff.name}</b> ({toFa(tariff.marginPct)}٪ سود)</span>
+        <span>قیمت‌ها برای رنگ <b>{color?.name ?? '—'}</b> و تعرفه <b>{fullTariff.name}</b> ({incl.profit ? `${toFa(fullTariff.marginPct)}٪ سود` : 'بدون سود'}){!allIn && <> · <b className="over">ناقص</b></>}</span>
         <span className="muted">صفحه کابینت رنگ ندارد و همیشه یک قیمت دارد.</span>
         <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>قیمت متر مربع چطور حساب می‌شود؟ <InfoTip>{SQM_TIP}</InfoTip></span>
       </div>
@@ -147,7 +184,7 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
                       {isOpen && (
                         <tr className="panel">
                           <td colSpan={7}>
-                            <Breakdown catalog={catalog} product={p} colorId={p.colorable ? colorId || null : null} tariff={tariff} />
+                            <Breakdown catalog={view} product={p} colorId={p.colorable ? colorId || null : null} tariff={tariff} />
                           </td>
                         </tr>
                       )}
