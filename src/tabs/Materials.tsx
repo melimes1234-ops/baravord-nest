@@ -1,24 +1,16 @@
 import { useState } from 'react'
-import { formatToman, rialToToman } from '../core'
 import type { Update } from '../store'
 import type { Catalog } from '../core'
 import { NumInput, Tag } from '../ui'
 
 export function Materials({ catalog, update }: { catalog: Catalog; update: Update }) {
-  const [rial, setRial] = useState(false)
   const [name, setName] = useState('')
   return (
     <div className="card">
       <h2>مواد اولیه: هر کیلو چند تومان است؟</h2>
-      <div className="row">
-        <label style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <input type="checkbox" checked={rial} onChange={e => setRial(e.target.checked)} style={{ minWidth: 0 }} />
-          قیمت‌ها را به ریال می‌نویسم (برنامه خودش به تومان تبدیل می‌کند)
-        </label>
-      </div>
       <div className="tablewrap scroll-box">
         <table>
-          <thead><tr><th>ماده</th><th className="n">قیمت هر کیلو ({rial ? 'ریال' : 'تومان'})</th><th className="n">معادل تومان</th><th /></tr></thead>
+          <thead><tr><th>ماده</th><th className="n">قیمت هر کیلو (تومان)</th><th /></tr></thead>
           <tbody>
             {Object.values(catalog.materials).map(m => (
               <tr key={m.id}>
@@ -26,12 +18,11 @@ export function Materials({ catalog, update }: { catalog: Catalog; update: Updat
                 <td className="n">
                   <NumInput
                     money
-                    unit={rial ? 'ریال' : 'تومان'}
-                    value={m.pricePerKg == null ? null : rial ? m.pricePerKg * 10 : m.pricePerKg}
-                    onChange={v => update(s => { s.catalog.materials[m.id].pricePerKg = v == null ? null : rial ? rialToToman(v) : v })}
+                    unit="تومان"
+                    value={m.pricePerKg}
+                    onChange={v => update(s => { s.catalog.materials[m.id].pricePerKg = v })}
                   />
                 </td>
-                <td className="n">{formatToman(m.pricePerKg)}</td>
                 <td>{m.pricePerKg == null && <Tag kind="err">قیمت نوشته نشده</Tag>}</td>
               </tr>
             ))}

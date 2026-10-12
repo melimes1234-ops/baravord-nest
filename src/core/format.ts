@@ -30,7 +30,6 @@ export const formatKg = (n: number, digits = 3): string =>
   toFa(String(Number(n.toFixed(digits)))).replace('.', '٫')
 
 /** Rial typed by the user -> Toman. */
-export const rialToToman = (rial: number): number => rial / 10
 
 export function toJalaliDate(iso: string): string {
   const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
