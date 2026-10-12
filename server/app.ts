@@ -321,6 +321,27 @@ export function createApp(db: Db) {
     return c.json({ goods: g })
   })
 
+  app.delete('/api/goods/:id', c => {
+    const user = need(c, 'admin')
+    const id = c.req.param('id')
+    tx(db, () => {
+      const rec = readGoods().find(g => g.id === id)
+      if (!rec) throw new HttpError(404, 'این مورد پیدا نشد')
+      db.prepare('DELETE FROM goods WHERE id = ?').run(id)
+      if (rec.type === 'in' && rec.productId && rec.lengthM) {
+        const left = goodsStock(readGoods()).find(r => r.key === goodsKey(rec.productId!, rec.colorId, rec.lengthM!))?.sticks ?? 0
+        if (left < 0) throw new HttpError(409, 'بعد از این ثبت، چند شاخه از همین محصول خارج شده؛ اول آن خروج‌ها را حذف کنید')
+      }
+      if (rec.type === 'scrap' && rec.returned && rec.kg) {
+        // take the returned waste out of the materials store again
+        insertMovement({ id: uid('M'), date: rec.date, materialId: 'waste', kg: -rec.kg, type: 'adjust', note: 'حذف ضایعات برگشتیِ ثبت‌شده' })
+        if (stockLevels(readMovements()).waste.qtyKg < -1e-9) throw new HttpError(409, 'ضایعات برگشتی قبلاً در پارت‌ها مصرف شده و حذفش ممکن نیست')
+      }
+      audit(user.username, 'goods.delete', rec)
+    })
+    return c.json({ ok: true })
+  })
+
   // ---- users (admin) ----
   app.get('/api/users', c => {
     need(c, 'admin')

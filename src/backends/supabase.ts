@@ -89,6 +89,9 @@ export const supabaseBackend: Backend = {
   async addBatch(b) {
     await rpc('add_batch', { p: b })
   },
+  async deleteGoods(id) {
+    await rpc('delete_goods', { p_id: id })
+  },
   async addGoods(g) {
     try {
       await rpc('add_goods', { p: g })

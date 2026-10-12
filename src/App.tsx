@@ -129,7 +129,7 @@ export default function App() {
         {current === 'محصولات' && <Products catalog={catalog} update={update} />}
         {current === 'هزینه‌ها' && <Costs catalog={catalog} update={update} />}
         {current === 'پارت تولید' && canEdit && <Batches state={state} update={update} />}
-        {current === 'محصول ساخته‌شده' && <Goods state={state} update={update} readOnly={!canEdit} />}
+        {current === 'محصول ساخته‌شده' && <Goods state={state} update={update} readOnly={!canEdit} canDelete={user.role === 'admin' || DEMO} />}
         {current === 'انبار' && <Stock catalog={catalog} movements={state.movements} update={update} readOnly={!canEdit} />}
         {current === 'هشدارها' && <Issues catalog={catalog} />}
         {current === 'کاربران' && (backend.kind === 'supabase' ? <SupabaseUsers catalog={catalog} /> : <Users me={user} catalog={catalog} />)}

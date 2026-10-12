@@ -22,4 +22,7 @@ export const serverBackend: Backend = {
   addGoods: async g => {
     await api('POST', '/api/goods', g)
   },
+  deleteGoods: async id => {
+    await api('DELETE', `/api/goods/${encodeURIComponent(id)}`)
+  },
 }

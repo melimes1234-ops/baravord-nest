@@ -101,19 +101,22 @@ export function useSession() {
     const newMoves = next.movements.filter(m => !moveIds.has(m.id) && m.type !== 'out')
     const goodsIds = new Set(prev.state.goods.map(g => g.id))
     const newGoods = next.goods.filter(g => !goodsIds.has(g.id))
+    const nextGoodsIds = new Set(next.goods.map(g => g.id))
+    const removedGoods = prev.state.goods.filter(g => !nextGoodsIds.has(g.id))
 
     // Records are only shown once the server has accepted them, so keep the old lists until refresh().
-    const shown: AppState = newBatches.length || newMoves.length || newGoods.length
+    const shown: AppState = newBatches.length || newMoves.length || newGoods.length || removedGoods.length
       ? { ...next, batches: prev.state.batches, movements: prev.state.movements, goods: prev.state.goods }
       : next
     const updated: Session = { ...prev, state: shown }
     current.current = updated
     setSession(updated)
 
-    if (newBatches.length || newMoves.length || newGoods.length) {
+    if (newBatches.length || newMoves.length || newGoods.length || removedGoods.length) {
       void (async () => {
         try {
           for (const g of newGoods) await backend.addGoods(g)
+          for (const g of removedGoods) await backend.deleteGoods(g.id)
           for (const m of newMoves) await backend.addMovement(m)
           for (const b of newBatches) await backend.addBatch(b)
           setError('')

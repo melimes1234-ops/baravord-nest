@@ -450,6 +450,32 @@ begin
   return v_rec;
 end $$;
 
+-- Admin only: remove a finished-goods record (e.g. a test entry).
+create or replace function public.delete_goods(p_id text) returns void
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare rec jsonb; v_date date; left_sticks numeric;
+begin
+  perform public.app_need('admin');
+  perform pg_advisory_xact_lock(7001);
+  perform pg_advisory_xact_lock(7002);
+  select data, date into rec, v_date from public.goods where id = p_id for update;
+  if rec is null then raise exception 'این مورد پیدا نشد'; end if;
+  delete from public.goods where id = p_id;
+  if rec ->> 'type' = 'in' then
+    select coalesce(sum(case when data ->> 'type' = 'in' then (data ->> 'sticks')::numeric else -(data ->> 'sticks')::numeric end), 0) into left_sticks
+      from public.goods
+      where data ->> 'type' in ('in', 'out') and data ->> 'productId' = rec ->> 'productId'
+        and coalesce(data ->> 'colorId', '') = coalesce(rec ->> 'colorId', '') and (data ->> 'lengthM')::numeric = (rec ->> 'lengthM')::numeric;
+    if left_sticks < 0 then raise exception 'بعد از این ثبت، چند شاخه از همین محصول خارج شده؛ اول آن خروج‌ها را حذف کنید' using errcode = '23514'; end if;
+  end if;
+  if rec ->> 'type' = 'scrap' and rec ->> 'returned' = 'true' then
+    insert into public.movements (id, date, material_id, kg, type, note, created_by)
+    values ('M' || substr(md5(random()::text || clock_timestamp()::text), 1, 12), v_date, 'waste', -(rec ->> 'kg')::numeric, 'adjust', 'حذف ضایعات برگشتیِ ثبت‌شده', auth.uid());
+    if public.app_stock('waste') < -1e-9 then raise exception 'ضایعات برگشتی قبلاً در پارت‌ها مصرف شده و حذفش ممکن نیست' using errcode = '23514'; end if;
+  end if;
+  perform public.app_audit('goods.delete', rec);
+end $$;
+
 create or replace function public.list_users() returns jsonb
 language plpgsql stable security definer set search_path = public, pg_temp as $$
 begin
@@ -483,4 +509,4 @@ end $$;
 -- Only the API functions are callable by logged-in users; helpers stay internal.
 revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.get_state(), public.init_catalog(jsonb), public.save_catalog(jsonb, integer, text), public.add_movement(jsonb),
-  public.add_batch(jsonb), public.add_goods(jsonb), public.list_users(), public.set_role(uuid, text), public.audit_log() to authenticated;
+  public.add_batch(jsonb), public.add_goods(jsonb), public.delete_goods(text), public.list_users(), public.set_role(uuid, text), public.audit_log() to authenticated;

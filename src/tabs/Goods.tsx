@@ -5,6 +5,7 @@ import {
 } from '../core'
 import type { AppState, Update } from '../store'
 import { DateField } from '../DateField'
+import { DEMO } from '../demo'
 import { InfoTip, NumInput, Swatch, Tag } from '../ui'
 
 type Mode = 'in' | 'out'
@@ -68,12 +69,13 @@ function Choice({ on, onClick, children }: { on: boolean; onClick: () => void; c
   return <button type="button" className="pick" aria-pressed={on} onClick={onClick}>{children}</button>
 }
 
-export function Goods({ state, update, readOnly }: { state: AppState; update: Update; readOnly?: boolean }) {
+export function Goods({ state, update, readOnly, canDelete }: { state: AppState; update: Update; readOnly?: boolean; canDelete?: boolean }) {
   const { catalog, goods, batches } = state
   const [mode, setMode] = useState<Mode | null>(null)
   const [d, setD] = useState<Draft>(blank)
   const [filter, setFilter] = useState<'all' | GoodsMove['type']>('all')
   const [done, setDone] = useState('')
+  const [sure, setSure] = useState('')
   const stock = useMemo(() => goodsStock(goods), [goods])
   const set = (patch: Partial<Draft>) => setD(prev => ({ ...prev, ...patch }))
 
@@ -105,6 +107,17 @@ export function Goods({ state, update, readOnly }: { state: AppState; update: Up
     const what = `${toFa(d.sticks ?? 0)} شاخه ${fmtLen(d.lengthM ?? 0)} متری ${nameOf(d.productId)}`
     setDone(mode === 'in' ? `ثبت شد: ${what} به موجودی اضافه شد.` : `ثبت شد: ${what} از موجودی کم شد.`)
     close()
+  }
+
+  const remove = (id: string) => {
+    if (sure !== id) return setSure(id)
+    setSure('')
+    update(s => {
+      const g = s.goods.find(x => x.id === id)
+      s.goods = s.goods.filter(x => x.id !== id)
+      // the demo has no server to take returned waste out of the materials store again
+      if (DEMO && g?.type === 'scrap' && g.returned && g.kg) s.movements.push({ id: `M${Date.now().toString(36)}d`, date: g.date, materialId: 'waste', kg: -g.kg, type: 'adjust', note: 'حذف ضایعات برگشتیِ ثبت‌شده' })
+    })
   }
 
   // ---- the two step-by-step flows ----
@@ -235,14 +248,14 @@ export function Goods({ state, update, readOnly }: { state: AppState; update: Up
     },
     {
       title: 'برای چه کاری و به چه کسی؟',
-      help: 'دلیل خروج را انتخاب کنید. نام مشتری (یا هر نامی که بعداً بشناسید) را هم بنویسید؛ لازم نیست قیمتی ثبت شود.',
+      help: 'دلیل خروج را انتخاب کنید و نام خریدار (یا گیرنده) را بنویسید. لازم نیست قیمتی ثبت شود.',
       ok: true,
       body: (
         <>
           <div className="picks">
             {(Object.keys(REASON_LABEL) as GoodsReason[]).map(r => <Choice key={r} on={d.reason === r} onClick={() => set({ reason: r })}>{REASON_LABEL[r]}</Choice>)}
           </div>
-          <label style={{ maxWidth: 360, marginTop: 12 }}>نام مشتری یا گیرنده (اختیاری)<input value={d.party} maxLength={100} onChange={e => set({ party: e.target.value })} /></label>
+          <label style={{ maxWidth: 360, marginTop: 12 }}>نام خریدار یا گیرنده<input value={d.party} maxLength={100} onChange={e => set({ party: e.target.value })} /></label>
         </>
       ),
     },
@@ -253,7 +266,7 @@ export function Goods({ state, update, readOnly }: { state: AppState; update: Up
       ok: true,
       body: <Summary lines={[
         `${toFa(d.sticks ?? 0)} شاخه ${fmtLen(d.lengthM ?? 0)} متری ${nameOf(d.productId)}${d.colorId ? ` · رنگ ${colorName(d.colorId)}` : ''}${totalKgText(d.sticks)}`,
-        `${REASON_LABEL[d.reason]}${d.party.trim() ? ` · ${d.party.trim()}` : ''}`,
+        `${REASON_LABEL[d.reason]} · خریدار: ${d.party.trim() || 'نام نوشته نشده'}`,
         `تاریخ: ${toJalaliDate(d.date)}`,
       ]} />,
     },
@@ -328,6 +341,7 @@ export function Goods({ state, update, readOnly }: { state: AppState; update: Up
 
       <div className="card">
         <h2>تاریخچه</h2>
+        {canDelete && <p className="muted help">اگر چیزی را آزمایشی یا اشتباه ثبت کرده‌اند، با «حذف» از لیست برمی‌دارید. موجودی خودش درست می‌شود. فقط ادمین حذف می‌کند.</p>}
         <div className="chips" style={{ marginBottom: 10 }}>
           {([['all', 'همه'], ['in', 'ساخته شد'], ['out', 'خارج شد'], ['scrap', 'ضایعات']] as const).map(([k, label]) => (
             <button key={k} className="chip" aria-pressed={filter === k} onClick={() => setFilter(k)}>{label}</button>
@@ -335,10 +349,10 @@ export function Goods({ state, update, readOnly }: { state: AppState; update: Up
         </div>
         <div className="tablewrap scroll-box">
           <table>
-            <thead className="sticky-head"><tr><th>تاریخ</th><th>شرح</th></tr></thead>
+            <thead className="sticky-head"><tr><th>تاریخ</th><th>شرح</th>{canDelete && <th />}</tr></thead>
             <tbody>
-              {rows.length === 0 && <tr><td colSpan={2} className="muted">موردی نیست.</td></tr>}
-              {rows.map(g => <tr key={g.id}><td>{toJalaliDate(g.date)}</td><td>{goodsSentence(g, catalog)}{g.note ? ` — ${g.note}` : ''}</td></tr>)}
+              {rows.length === 0 && <tr><td colSpan={3} className="muted">موردی نیست.</td></tr>}
+              {rows.map(g => <tr key={g.id}><td>{toJalaliDate(g.date)}</td><td>{goodsSentence(g, catalog)}{g.note ? ` — ${g.note}` : ''}</td>{canDelete && <td><button className="btn danger" onClick={() => remove(g.id)} onBlur={() => setSure('')}>{sure === g.id ? 'مطمئنید؟ دوباره بزنید' : 'حذف'}</button></td>}</tr>)}
             </tbody>
           </table>
         </div>

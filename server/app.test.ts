@@ -114,6 +114,20 @@ describe('roles', () => {
     expect((await rec({ type: 'in', sticks: 1, productId: 'ghost' })).status).toBe(400)
     const st = (await ctx.call(view, 'GET', '/api/state')).body
     expect(st.goods).toHaveLength(3)
+    const inId = st.goods.find((g: any) => g.type === 'in').id
+    const outId = st.goods.find((g: any) => g.type === 'out').id
+    const scrapId = st.goods.find((g: any) => g.type === 'scrap').id
+    expect((await ctx.call(op, 'DELETE', `/api/goods/${inId}`)).status).toBe(403)
+    expect((await ctx.call(admin, 'DELETE', `/api/goods/${inId}`)).status).toBe(409) // 4 were sold from it
+    expect((await ctx.call(admin, 'DELETE', `/api/goods/${outId}`)).status).toBe(200)
+    expect((await ctx.call(admin, 'DELETE', `/api/goods/${inId}`)).status).toBe(200)
+    expect((await ctx.call(admin, 'DELETE', `/api/goods/${inId}`)).status).toBe(404)
+    // the client puts returned waste into the materials store; deleting the scrap record takes it out again
+    await ctx.call(op, 'POST', '/api/movements', { type: 'waste_in', date: '2026-10-05', materialId: 'waste', kg: 3 })
+    expect((await ctx.call(admin, 'DELETE', `/api/goods/${scrapId}`)).status).toBe(200)
+    const after = (await ctx.call(view, 'GET', '/api/state')).body
+    expect(after.goods).toHaveLength(0)
+    expect(after.movements.filter((m: any) => m.materialId === 'waste').reduce((s: number, m: any) => s + m.kg, 0)).toBe(0)
   })
 
   it('viewer cannot write anything', async () => {

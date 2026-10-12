@@ -10,6 +10,7 @@ const LABEL: Record<string, string> = {
   'movement.add': 'ثبت در انبار',
   'batch.add': 'ثبت پارت تولید',
   'goods.add': 'ثبت محصول ساخته‌شده',
+  'goods.delete': 'حذف ثبت محصول ساخته‌شده',
   'user.add': 'ساخت کاربر',
   'user.update': 'تغییر کاربر',
   'user.delete': 'حذف کاربر',
@@ -50,6 +51,8 @@ export function auditLines(action: string, detailText: string, catalog?: Catalog
     }
     case 'goods.add':
       return [goodsSentence(d as unknown as GoodsMove, catalog)]
+    case 'goods.delete':
+      return [`حذف شد — ${goodsSentence(d as unknown as GoodsMove, catalog)}`]
     case 'user.add':
       return [`کاربر «${String(d.username ?? '')}» با نقش ${ROLE[String(d.role)] ?? ''} ساخته شد`]
     case 'user.update': {

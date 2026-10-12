@@ -15,4 +15,5 @@ export interface Backend {
   addMovement(m: Movement): Promise<void>
   addBatch(b: Batch): Promise<void>
   addGoods(g: GoodsMove): Promise<void>
+  deleteGoods(id: string): Promise<void>
 }

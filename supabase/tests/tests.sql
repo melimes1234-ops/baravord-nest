@@ -129,8 +129,20 @@ select add_goods(format('{"type":"out","date":"2026-10-06","productId":"%s","len
 select t.fails('goods: second out exceeds the rest', format($q$select add_goods('{"type":"out","date":"2026-10-06","productId":"%s","lengthM":3,"sticks":7}')$q$, :'pid'), '23514');
 select add_goods('{"type":"scrap","date":"2026-10-06","kg":3.5,"returned":true}');
 select t.fails('goods: negative scrap', $q$select add_goods('{"type":"scrap","date":"2026-10-06","kg":-1}')$q$, 'P0001');
+select t.fails('operator cannot delete goods', format($q$select delete_goods(%L)$q$, (select data ->> 'id' from goods where data ->> 'type' = 'in' limit 1)), '42501');
 select t.ok('goods are listed in order', jsonb_array_length(get_state() -> 'goods') = 3);
 select t.ok('goods change is audited', exists (select 1 from audit where action = 'goods.add'));
+
+select t.as_user('alice@x.ir');
+select t.fails('cannot delete a made batch that was already sold', format($q$select delete_goods(%L)$q$, (select data ->> 'id' from goods where data ->> 'type' = 'in' limit 1)), '23514');
+select t.fails('delete unknown goods', $q$select delete_goods('nope')$q$, 'P0001');
+select delete_goods((select data ->> 'id' from goods where data ->> 'type' = 'out' limit 1));
+select delete_goods((select data ->> 'id' from goods where data ->> 'type' = 'in' limit 1));
+select add_movement('{"type":"waste_in","date":"2026-10-06","materialId":"waste","kg":3.5}');
+select coalesce(sum(kg), 0) as w0 from movements where material_id = 'waste' \gset
+select delete_goods((select data ->> 'id' from goods where data ->> 'type' = 'scrap' limit 1));
+select t.ok('scrap delete takes the returned waste out of the store again', (select coalesce(sum(kg), 0) from movements where material_id = 'waste') = :w0 - 3.5);
+select t.ok('goods list is empty again', jsonb_array_length(get_state() -> 'goods') = 0);
 
 -- stock adjustments and roles
 select t.as_user('alice@x.ir');
