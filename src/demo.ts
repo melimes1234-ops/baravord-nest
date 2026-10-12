@@ -6,12 +6,15 @@ import type { AppState, Session, Update } from './store'
 export const DEMO = import.meta.env.VITE_DEMO === '1'
 
 const KEY = 'baravord-nest/demo-v1'
-const fresh = (): AppState => ({ catalog: seedCatalog(), movements: [], batches: [] })
+const fresh = (): AppState => ({ catalog: seedCatalog(), movements: [], batches: [], goods: [] })
 
 function load(): AppState {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return JSON.parse(raw) as AppState
+    if (raw) {
+      const st = JSON.parse(raw) as AppState
+      return { ...st, goods: st.goods ?? [] }
+    }
   } catch {
     // storage blocked: run from memory
   }

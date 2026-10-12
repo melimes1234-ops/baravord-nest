@@ -1,4 +1,4 @@
-import { formatKg, formatToman, type Catalog } from './core'
+import { formatKg, formatToman, goodsSentence, type Catalog, type GoodsMove } from './core'
 
 const ROLE: Record<string, string> = { admin: 'ادمین', operator: 'اپراتور', viewer: 'مشاهده‌گر' }
 const MOVE: Record<string, string> = { in: 'خرید', waste_in: 'ضایعات برگشتی', adjust: 'تعدیل موجودی' }
@@ -9,6 +9,7 @@ const LABEL: Record<string, string> = {
   'catalog.init': 'ساخت اطلاعات اولیه',
   'movement.add': 'ثبت در انبار',
   'batch.add': 'ثبت پارت تولید',
+  'goods.add': 'ثبت محصول ساخته‌شده',
   'user.add': 'ساخت کاربر',
   'user.update': 'تغییر کاربر',
   'user.delete': 'حذف کاربر',
@@ -47,6 +48,8 @@ export function auditLines(action: string, detailText: string, catalog?: Catalog
       const color = d.colorId ? catalog?.colors[String(d.colorId)]?.name : undefined
       return [`پارت ${product}${color ? ` با رنگ ${color}` : ''}`]
     }
+    case 'goods.add':
+      return [goodsSentence(d as unknown as GoodsMove, catalog)]
     case 'user.add':
       return [`کاربر «${String(d.username ?? '')}» با نقش ${ROLE[String(d.role)] ?? ''} ساخته شد`]
     case 'user.update': {

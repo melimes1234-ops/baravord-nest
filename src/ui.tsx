@@ -28,8 +28,10 @@ export function NumInput(props: {
   placeholder?: string
   readOnly?: boolean
   unit?: string
+  /** Also report every keystroke (not only on leaving the field), for step-by-step forms. */
+  live?: boolean
 }) {
-  const { value, onChange, money, decimals = 3, placeholder, readOnly, unit } = props
+  const { value, onChange, money, decimals = 3, placeholder, readOnly, unit, live } = props
   const [text, setText] = useState<string | null>(null)
   const ref = useRef<HTMLInputElement>(null)
   const caret = useRef<number | null>(null)
@@ -58,6 +60,7 @@ export function NumInput(props: {
       }}
       onChange={e => {
         const raw = e.currentTarget.value
+        if (live) onChange(parseNum(raw))
         if (!money) return setText(raw)
         const pos = e.currentTarget.selectionStart ?? raw.length
         const typed = [...raw.slice(0, pos)].filter(ch => SIG.test(ch)).length
@@ -69,6 +72,7 @@ export function NumInput(props: {
           idx++
         }
         caret.current = idx
+        if (live) onChange(parseNum(next))
         setText(next)
       }}
       onBlur={() => {

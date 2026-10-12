@@ -112,6 +112,26 @@ select t.fails('unknown product', format($q$select add_batch(jsonb_set(%L::jsonb
 select t.fails('negative quantity', format($q$select add_batch(jsonb_set(%L::jsonb, '{items,0,actualQty}', '-1'))$q$, (select p from b)), 'P0001');
 select t.fails('unknown ref', format($q$select add_batch(jsonb_set(%L::jsonb, '{items,0,ref,id}', '"ghost"'))$q$, (select p from b)), 'P0001');
 
+-- finished goods
+select t.as_user('carol@x.ir');
+select t.fails('viewer cannot add goods', $q$select add_goods('{"type":"in","date":"2026-10-05","productId":"flex","lengthM":3,"sticks":5}')$q$, '42501');
+select t.ok('viewer sees the goods list', jsonb_typeof(get_state() -> 'goods') = 'array');
+select t.as_user('bob@x.ir');
+select (select id from jsonb_each(get_state() -> 'catalog' -> 'products') t(id, v) limit 1) as pid \gset
+select add_goods(format('{"type":"in","date":"2026-10-05","productId":"%s","lengthM":3,"sticks":10}', :'pid')::jsonb);
+select t.fails('goods: zero sticks', format($q$select add_goods('{"type":"in","date":"2026-10-05","productId":"%s","lengthM":3,"sticks":0}')$q$, :'pid'), 'P0001');
+select t.fails('goods: fractional sticks', format($q$select add_goods('{"type":"in","date":"2026-10-05","productId":"%s","lengthM":3,"sticks":1.5}')$q$, :'pid'), 'P0001');
+select t.fails('goods: unknown product', $q$select add_goods('{"type":"in","date":"2026-10-05","productId":"ghost","lengthM":3,"sticks":1}')$q$, 'P0001');
+select t.fails('goods: bad date', format($q$select add_goods('{"type":"in","date":"x","productId":"%s","lengthM":3,"sticks":1}')$q$, :'pid'), 'P0001');
+select t.fails('goods: cannot send more than we have', format($q$select add_goods('{"type":"out","date":"2026-10-05","productId":"%s","lengthM":3,"sticks":11}')$q$, :'pid'), '23514');
+select t.fails('goods: other length has none', format($q$select add_goods('{"type":"out","date":"2026-10-05","productId":"%s","lengthM":1,"sticks":1}')$q$, :'pid'), '23514');
+select add_goods(format('{"type":"out","date":"2026-10-06","productId":"%s","lengthM":3,"sticks":4,"reason":"sale","party":"علی"}', :'pid')::jsonb);
+select t.fails('goods: second out exceeds the rest', format($q$select add_goods('{"type":"out","date":"2026-10-06","productId":"%s","lengthM":3,"sticks":7}')$q$, :'pid'), '23514');
+select add_goods('{"type":"scrap","date":"2026-10-06","kg":3.5,"returned":true}');
+select t.fails('goods: negative scrap', $q$select add_goods('{"type":"scrap","date":"2026-10-06","kg":-1}')$q$, 'P0001');
+select t.ok('goods are listed in order', jsonb_array_length(get_state() -> 'goods') = 3);
+select t.ok('goods change is audited', exists (select 1 from audit where action = 'goods.add'));
+
 -- stock adjustments and roles
 select t.as_user('alice@x.ir');
 select t.fails('adjust below zero is refused', $q$select add_movement('{"type":"adjust","date":"2026-10-04","materialId":"wax","kg":-99999}')$q$, '23514');

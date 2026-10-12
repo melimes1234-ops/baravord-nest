@@ -10,6 +10,7 @@ function Lines({ title, help, lines, onChange }: { title: string; help: string; 
       <div className="tablewrap">
         <table>
           <tbody>
+            {lines.length === 0 && <tr><td colSpan={3} className="muted">هنوز ردیفی نیست. دکمه‌ی «افزودن ردیف» را در پایین بزنید، بعد اسم هزینه و مبلغش را بنویسید.</td></tr>}
             {lines.map((l, i) => (
               <tr key={i}>
                 <td><input value={l.name} onChange={e => onChange(lines.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} /></td>

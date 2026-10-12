@@ -37,7 +37,9 @@ export function validateCatalog(c: Catalog): Issue[] {
     else if (m.pricePerKg == null) issues.push({ level: 'warn', where: m.name, message: 'قیمت ماده نوشته نشده' })
   }
   if (c.config.monthlyCosts.length === 0) {
-    issues.push({ level: 'warn', where: 'هزینه‌ها', message: 'هزینه‌های ثابت کارخانه نوشته نشده؛ در قیمت نیامده' })
+    issues.push({ level: 'warn', where: 'هزینه‌ها', message: 'هزینه‌های ثابت کارخانه نوشته نشده؛ در قیمت نیامده. در تب «هزینه‌ها»، در جدول اول، دکمه‌ی «افزودن ردیف» را بزنید و اسم و مبلغ ماهانه را بنویسید.' })
+  } else if (c.config.monthlyCosts.every(l => !(l.amount > 0))) {
+    issues.push({ level: 'warn', where: 'هزینه‌ها', message: 'ردیف هزینه‌ی ثابت هست ولی مبلغی جلویش نوشته نشده؛ در قیمت نیامده. مبلغ ماهانه‌ی هر ردیف را در جدول اول تب «هزینه‌ها» بنویسید.' })
   } else if (c.config.monthlyProductionKg <= 0) {
     issues.push({ level: 'error', where: 'هزینه‌ها', message: 'کیلوی تولید این ماه نوشته نشده' })
   }

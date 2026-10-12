@@ -98,6 +98,24 @@ describe('roles', () => {
     expect((await ctx.call(admin, 'PUT', '/api/catalog', { catalog: bad2, version })).status).toBe(400)
   })
 
+  it('finished goods: operator records, stock cannot go negative, viewer cannot write', async () => {
+    const pid = Object.keys(catalog.products)[0]
+    const rec = (b: object) => ctx.call(op, 'POST', '/api/goods', { date: '2026-10-05', productId: pid, colorId: null, lengthM: 3, ...b })
+    expect((await ctx.call(view, 'POST', '/api/goods', { type: 'in', date: '2026-10-05', productId: pid, lengthM: 3, sticks: 5 })).status).toBe(403)
+    expect((await rec({ type: 'in', sticks: 10 })).status).toBe(200)
+    expect((await rec({ type: 'in', sticks: 0 })).status).toBe(400)
+    expect((await rec({ type: 'in', sticks: 1.5 })).status).toBe(400)
+    expect((await rec({ type: 'out', sticks: 11, reason: 'sale' })).status).toBe(409)
+    expect((await rec({ type: 'out', sticks: 4, reason: 'sale', party: 'علی' })).status).toBe(200)
+    expect((await rec({ type: 'out', sticks: 7 })).status).toBe(409)
+    expect((await rec({ type: 'out', sticks: 6, lengthM: 1 })).status).toBe(409) // other length has none
+    expect((await ctx.call(op, 'POST', '/api/goods', { type: 'scrap', date: '2026-10-05', kg: 3, returned: true })).status).toBe(200)
+    expect((await ctx.call(op, 'POST', '/api/goods', { type: 'scrap', date: '2026-10-05', kg: -3 })).status).toBe(400)
+    expect((await rec({ type: 'in', sticks: 1, productId: 'ghost' })).status).toBe(400)
+    const st = (await ctx.call(view, 'GET', '/api/state')).body
+    expect(st.goods).toHaveLength(3)
+  })
+
   it('viewer cannot write anything', async () => {
     const m = { type: 'in', date: '2026-10-04', materialId: 'wax', kg: 10 }
     expect((await ctx.call(view, 'POST', '/api/movements', m)).status).toBe(403)

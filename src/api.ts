@@ -1,4 +1,4 @@
-import type { Batch, Catalog, Movement } from './core'
+import type { Batch, Catalog, GoodsMove, Movement } from './core'
 
 export type Role = 'admin' | 'operator' | 'viewer'
 export interface User { id: number; username: string; role: Role }
@@ -8,6 +8,7 @@ export interface ServerState {
   version: number
   movements: Movement[]
   batches: Batch[]
+  goods: GoodsMove[]
 }
 
 export class ApiError extends Error {

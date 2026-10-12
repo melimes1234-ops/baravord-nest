@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { catalogChanges, type Batch, type Catalog, type Movement } from './core'
+import { catalogChanges, type Batch, type Catalog, type GoodsMove, type Movement } from './core'
 import { ApiError, type ServerState, type User } from './api'
 import { backend } from './backends'
 
@@ -7,6 +7,7 @@ export interface AppState {
   catalog: Catalog
   movements: Movement[]
   batches: Batch[]
+  goods: GoodsMove[]
 }
 
 /** Mutates a draft copy of the state; changes are saved to the server afterwards. */
@@ -31,7 +32,7 @@ export function useSession() {
   const apply = useCallback((s: ServerState) => {
     version.current = s.version
     savedCatalog.current = s.catalog
-    setSession({ status: 'ready', user: s.user, state: { catalog: s.catalog, movements: s.movements, batches: s.batches } })
+    setSession({ status: 'ready', user: s.user, state: { catalog: s.catalog, movements: s.movements, batches: s.batches, goods: s.goods ?? [] } })
   }, [])
 
   const refresh = useCallback(async () => {
@@ -98,18 +99,21 @@ export function useSession() {
     const moveIds = new Set(prev.state.movements.map(m => m.id))
     const newBatches = next.batches.filter(b => !batchIds.has(b.id))
     const newMoves = next.movements.filter(m => !moveIds.has(m.id) && m.type !== 'out')
+    const goodsIds = new Set(prev.state.goods.map(g => g.id))
+    const newGoods = next.goods.filter(g => !goodsIds.has(g.id))
 
     // Records are only shown once the server has accepted them, so keep the old lists until refresh().
-    const shown: AppState = newBatches.length || newMoves.length
-      ? { ...next, batches: prev.state.batches, movements: prev.state.movements }
+    const shown: AppState = newBatches.length || newMoves.length || newGoods.length
+      ? { ...next, batches: prev.state.batches, movements: prev.state.movements, goods: prev.state.goods }
       : next
     const updated: Session = { ...prev, state: shown }
     current.current = updated
     setSession(updated)
 
-    if (newBatches.length || newMoves.length) {
+    if (newBatches.length || newMoves.length || newGoods.length) {
       void (async () => {
         try {
+          for (const g of newGoods) await backend.addGoods(g)
           for (const m of newMoves) await backend.addMovement(m)
           for (const b of newBatches) await backend.addBatch(b)
           setError('')

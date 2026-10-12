@@ -19,4 +19,7 @@ export const serverBackend: Backend = {
   addBatch: async b => {
     await api('POST', '/api/batches', b)
   },
+  addGoods: async g => {
+    await api('POST', '/api/goods', g)
+  },
 }

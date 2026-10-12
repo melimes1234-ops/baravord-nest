@@ -10,6 +10,7 @@ import { useSession } from './store'
 import { Batches } from './tabs/Batches'
 import { Calc } from './tabs/Calc'
 import { Costs } from './tabs/Costs'
+import { Goods } from './tabs/Goods'
 import { Guide, guideHidden } from './tabs/Guide'
 import { Issues } from './tabs/Issues'
 import { Materials } from './tabs/Materials'
@@ -20,18 +21,18 @@ import { Stock } from './tabs/Stock'
 import { SupabaseUsers } from './tabs/SupabaseUsers'
 import { Users } from './tabs/Users'
 
-const ALL = ['شروع کار', 'لیست قیمت', 'محاسبات', 'مواد', 'فرمول‌ها', 'محصولات', 'هزینه‌ها', 'پارت تولید', 'انبار', 'هشدارها', 'کاربران'] as const
+const ALL = ['شروع کار', 'لیست قیمت', 'محاسبات', 'مواد', 'فرمول‌ها', 'محصولات', 'هزینه‌ها', 'پارت تولید', 'محصول ساخته‌شده', 'انبار', 'هشدارها', 'کاربران'] as const
 type Tab = (typeof ALL)[number]
 
 const TAB_KEY: Record<Tab, string> = {
   'شروع کار': 'guide', 'لیست قیمت': 'prices', 'محاسبات': 'calc', 'مواد': 'materials', 'فرمول‌ها': 'recipes', 'محصولات': 'products',
-  'هزینه‌ها': 'costs', 'پارت تولید': 'batches', 'انبار': 'stock', 'هشدارها': 'issues', 'کاربران': 'users',
+  'هزینه‌ها': 'costs', 'پارت تولید': 'batches', 'محصول ساخته‌شده': 'goods', 'انبار': 'stock', 'هشدارها': 'issues', 'کاربران': 'users',
 }
 
 const ALLOWED: Record<Role, readonly Tab[]> = {
   admin: ALL,
-  operator: ['شروع کار', 'لیست قیمت', 'پارت تولید', 'انبار', 'هشدارها'],
-  viewer: ['شروع کار', 'لیست قیمت', 'انبار', 'هشدارها'],
+  operator: ['شروع کار', 'لیست قیمت', 'پارت تولید', 'محصول ساخته‌شده', 'انبار', 'هشدارها'],
+  viewer: ['شروع کار', 'لیست قیمت', 'محصول ساخته‌شده', 'انبار', 'هشدارها'],
 }
 const ROLE_LABEL: Record<Role, string> = { admin: 'ادمین', operator: 'اپراتور', viewer: 'مشاهده‌گر' }
 
@@ -128,6 +129,7 @@ export default function App() {
         {current === 'محصولات' && <Products catalog={catalog} update={update} />}
         {current === 'هزینه‌ها' && <Costs catalog={catalog} update={update} />}
         {current === 'پارت تولید' && canEdit && <Batches state={state} update={update} />}
+        {current === 'محصول ساخته‌شده' && <Goods state={state} update={update} readOnly={!canEdit} />}
         {current === 'انبار' && <Stock catalog={catalog} movements={state.movements} update={update} readOnly={!canEdit} />}
         {current === 'هشدارها' && <Issues catalog={catalog} />}
         {current === 'کاربران' && (backend.kind === 'supabase' ? <SupabaseUsers catalog={catalog} /> : <Users me={user} catalog={catalog} />)}

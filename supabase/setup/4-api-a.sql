@@ -16,7 +16,8 @@ begin
         || case when ref is not null then jsonb_build_object('ref', ref) else '{}'::jsonb end
         || case when note is not null then jsonb_build_object('note', note) else '{}'::jsonb end
         order by date, created_at, id) from public.movements), '[]'::jsonb),
-    'batches', coalesce((select jsonb_agg(data order by date desc, created_at desc) from public.batches), '[]'::jsonb));
+    'batches', coalesce((select jsonb_agg(data order by date desc, created_at desc) from public.batches), '[]'::jsonb),
+    'goods', coalesce((select jsonb_agg(data order by date, created_at, id) from public.goods), '[]'::jsonb));
 end $$;
 
 -- First-run setup: the admin's app uploads the starting catalog. Does nothing if one already exists.

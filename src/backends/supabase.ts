@@ -62,6 +62,7 @@ export const supabaseBackend: Backend = {
       version: st.version,
       movements: st.movements,
       batches: st.batches,
+      goods: st.goods ?? [],
     }
   },
   async login(email, password) {
@@ -87,5 +88,15 @@ export const supabaseBackend: Backend = {
   },
   async addBatch(b) {
     await rpc('add_batch', { p: b })
+  },
+  async addGoods(g) {
+    try {
+      await rpc('add_goods', { p: g })
+    } catch (e) {
+      if (e instanceof ApiError && /add_goods|schema cache|PGRST202/i.test(e.message)) {
+        throw new ApiError(400, 'بخش محصول ساخته‌شده هنوز در Supabase فعال نشده؛ فایل‌های SQL جدید را اجرا کنید')
+      }
+      throw e
+    }
   },
 }

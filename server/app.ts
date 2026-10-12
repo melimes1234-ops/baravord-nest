@@ -3,7 +3,7 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { bodyLimit } from 'hono/body-limit'
 import {
   catalogChanges, consumeBatch, currentPrices, seedCatalog, stockLevels,
-  type Batch, type Catalog, type ItemRef, type Movement,
+  type Batch, type Catalog, type GoodsMove, goodsKey, goodsStock, type ItemRef, type Movement,
 } from '../src/core'
 import {
   ROLES, createSession, createUser, destroySession, hashPassword, userFromToken,
@@ -96,6 +96,9 @@ export function createApp(db: Db) {
   const insertMovement = (m: Movement) =>
     db.prepare('INSERT INTO movements (id, date, json) VALUES (?,?,?)').run(m.id, m.date, JSON.stringify(m))
 
+  const readGoods = (): GoodsMove[] =>
+    (db.prepare('SELECT json FROM goods ORDER BY date, rowid').all() as { json: string }[]).map(r => JSON.parse(r.json))
+
   const uid = (p: string) => `${p}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 
   app.onError((err, c) => {
@@ -167,7 +170,7 @@ export function createApp(db: Db) {
 
   app.get('/api/state', c => {
     const { catalog, version } = readCatalog()
-    return c.json({ user: c.get('user'), catalog, version, movements: readMovements(), batches: readBatches() })
+    return c.json({ user: c.get('user'), catalog, version, movements: readMovements(), batches: readBatches(), goods: readGoods() })
   })
 
   app.put('/api/catalog', async c => {
@@ -272,6 +275,50 @@ export function createApp(db: Db) {
       return saved
     })
     return c.json({ batch })
+  })
+
+  // ---- finished goods ----
+  app.post('/api/goods', async c => {
+    const user = need(c, 'admin', 'operator')
+    const b = await c.req.json().catch(() => null)
+    if (!isObj(b)) throw new HttpError(400, 'درخواست نامعتبر')
+    const type = b.type
+    if (type !== 'in' && type !== 'out' && type !== 'scrap') throw new HttpError(400, 'نوع نامعتبر')
+    if (typeof b.date !== 'string' || !ISO_DATE.test(b.date)) throw new HttpError(400, 'تاریخ نامعتبر')
+    const text = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : undefined)
+    const g = tx(db, () => {
+      const { catalog } = readCatalog()
+      const rec: GoodsMove = { id: uid('G'), date: b.date as string, type, note: text(b.note, 200), batchId: text(b.batchId, 40) }
+      if (b.productId != null) {
+        if (typeof b.productId !== 'string' || !catalog.products[b.productId]) throw new HttpError(400, 'محصول پیدا نشد')
+        rec.productId = b.productId
+      }
+      if (type === 'scrap') {
+        if (!num(b.kg, 1e6) || (b.kg as number) <= 0) throw new HttpError(400, 'وزن ضایعات نامعتبر')
+        rec.kg = b.kg as number
+        rec.returned = b.returned === true
+      } else {
+        const product = rec.productId ? catalog.products[rec.productId] : undefined
+        if (!product) throw new HttpError(400, 'محصول پیدا نشد')
+        const colorId = b.colorId == null ? null : b.colorId
+        if (colorId !== null && (typeof colorId !== 'string' || !catalog.colors[colorId] || !product.colorable)) throw new HttpError(400, 'رنگ نامعتبر')
+        if (!num(b.lengthM, 20) || (b.lengthM as number) < 0.1) throw new HttpError(400, 'طول نامعتبر')
+        if (!Number.isInteger(b.sticks) || (b.sticks as number) < 1 || (b.sticks as number) > 1e6) throw new HttpError(400, 'تعداد شاخه نامعتبر')
+        rec.colorId = colorId
+        rec.lengthM = b.lengthM as number
+        rec.sticks = b.sticks as number
+        if (type === 'out') {
+          rec.reason = b.reason === 'sample' || b.reason === 'other' ? b.reason : 'sale'
+          rec.party = text(b.party, 100)
+          const have = goodsStock(readGoods()).find(r => r.key === goodsKey(rec.productId!, colorId, rec.lengthM!))?.sticks ?? 0
+          if (rec.sticks > have) throw new HttpError(409, `موجودی کافی نیست؛ فقط ${have} شاخه داریم`)
+        }
+      }
+      db.prepare('INSERT INTO goods (id, date, json) VALUES (?,?,?)').run(rec.id, rec.date, JSON.stringify(rec))
+      audit(user.username, 'goods.add', rec)
+      return rec
+    })
+    return c.json({ goods: g })
   })
 
   // ---- users (admin) ----

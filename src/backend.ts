@@ -1,4 +1,4 @@
-import type { Batch, Catalog, Movement } from './core'
+import type { Batch, Catalog, GoodsMove, Movement } from './core'
 import type { ServerState } from './api'
 
 /** What the app needs from a data store. Two implementations: own Node server, or Supabase. */
@@ -14,4 +14,5 @@ export interface Backend {
   saveCatalog(catalog: Catalog, version: number, note?: string): Promise<number>
   addMovement(m: Movement): Promise<void>
   addBatch(b: Batch): Promise<void>
+  addGoods(g: GoodsMove): Promise<void>
 }

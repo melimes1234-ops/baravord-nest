@@ -72,6 +72,64 @@ begin
   return v_saved;
 end $$;
 
+-- Finished goods: sticks made (in), sticks that left (out), waste from a batch (scrap).
+create or replace function public.add_goods(p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_type text := p ->> 'type'; v_date date; cat jsonb; v_product jsonb; v_color text; v_len numeric; v_sticks numeric; v_kg numeric;
+  v_id text := 'G' || substr(md5(random()::text || clock_timestamp()::text), 1, 12);
+  v_rec jsonb; have numeric;
+begin
+  perform public.app_need('admin', 'operator');
+  if coalesce(v_type, '') not in ('in', 'out', 'scrap') then raise exception 'نوع نامعتبر'; end if;
+  begin
+    v_date := (p ->> 'date')::date;
+  exception when others then raise exception 'تاریخ نامعتبر';
+  end;
+  if coalesce(p ->> 'date', '') !~ '^\d{4}-\d{2}-\d{2}$' then raise exception 'تاریخ نامعتبر'; end if;
+
+  perform pg_advisory_xact_lock(7002); -- serialise finished-goods changes
+  select value into cat from public.app_config where key = 'catalog';
+  v_rec := jsonb_build_object('id', v_id, 'date', p ->> 'date', 'type', v_type);
+  if p ->> 'note' is not null then v_rec := v_rec || jsonb_build_object('note', left(p ->> 'note', 200)); end if;
+  if p ->> 'batchId' is not null then v_rec := v_rec || jsonb_build_object('batchId', left(p ->> 'batchId', 40)); end if;
+
+  if p ->> 'productId' is not null then
+    if cat -> 'products' -> (p ->> 'productId') is null then raise exception 'محصول پیدا نشد'; end if;
+    v_rec := v_rec || jsonb_build_object('productId', p ->> 'productId');
+  end if;
+
+  if v_type = 'scrap' then
+    if jsonb_typeof(p -> 'kg') is distinct from 'number' or (p ->> 'kg')::numeric <= 0 or (p ->> 'kg')::numeric > 1e6 then raise exception 'وزن ضایعات نامعتبر'; end if;
+    v_rec := v_rec || jsonb_build_object('kg', p -> 'kg', 'returned', (p ->> 'returned') is not distinct from 'true');
+  else
+    v_product := cat -> 'products' -> (p ->> 'productId');
+    if v_product is null then raise exception 'محصول پیدا نشد'; end if;
+    if p -> 'colorId' is not null and jsonb_typeof(p -> 'colorId') is distinct from 'null' then
+      v_color := p ->> 'colorId';
+      if cat -> 'colors' -> v_color is null or (v_product ->> 'colorable') is distinct from 'true' then raise exception 'رنگ نامعتبر'; end if;
+    end if;
+    if jsonb_typeof(p -> 'lengthM') is distinct from 'number' or (p ->> 'lengthM')::numeric not between 0.1 and 20 then raise exception 'طول نامعتبر'; end if;
+    if jsonb_typeof(p -> 'sticks') is distinct from 'number' or (p ->> 'sticks')::numeric <> trunc((p ->> 'sticks')::numeric)
+       or (p ->> 'sticks')::numeric not between 1 and 1e6 then raise exception 'تعداد شاخه نامعتبر'; end if;
+    v_len := (p ->> 'lengthM')::numeric; v_sticks := (p ->> 'sticks')::numeric;
+    v_rec := v_rec || jsonb_build_object('colorId', to_jsonb(v_color), 'lengthM', p -> 'lengthM', 'sticks', p -> 'sticks');
+    if v_type = 'out' then
+      v_rec := v_rec || jsonb_build_object('reason', case when p ->> 'reason' in ('sample', 'other') then p ->> 'reason' else 'sale' end);
+      if nullif(trim(p ->> 'party'), '') is not null then v_rec := v_rec || jsonb_build_object('party', left(trim(p ->> 'party'), 100)); end if;
+      select coalesce(sum(case when data ->> 'type' = 'in' then (data ->> 'sticks')::numeric else -(data ->> 'sticks')::numeric end), 0) into have
+        from public.goods
+        where data ->> 'type' in ('in', 'out') and data ->> 'productId' = p ->> 'productId'
+          and coalesce(data ->> 'colorId', '') = coalesce(v_color, '') and (data ->> 'lengthM')::numeric = v_len;
+      if v_sticks > have then raise exception 'موجودی کافی نیست؛ فقط % شاخه داریم', have using errcode = '23514'; end if;
+    end if;
+  end if;
+
+  insert into public.goods (id, date, data, created_by) values (v_id, v_date, v_rec, auth.uid());
+  perform public.app_audit('goods.add', v_rec);
+  return v_rec;
+end $$;
+
 create or replace function public.list_users() returns jsonb
 language plpgsql stable security definer set search_path = public, pg_temp as $$
 begin
@@ -105,4 +163,4 @@ end $$;
 -- Only the API functions are callable by logged-in users; helpers stay internal.
 revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.get_state(), public.init_catalog(jsonb), public.save_catalog(jsonb, integer, text), public.add_movement(jsonb),
-  public.add_batch(jsonb), public.list_users(), public.set_role(uuid, text), public.audit_log() to authenticated;
+  public.add_batch(jsonb), public.add_goods(jsonb), public.list_users(), public.set_role(uuid, text), public.audit_log() to authenticated;

@@ -37,6 +37,14 @@ create table if not exists public.batches (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.goods (
+  id text primary key,
+  date date not null,
+  data jsonb not null,
+  created_by uuid,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.audit (
   id bigserial primary key,
   at timestamptz not null default now(),
@@ -49,8 +57,9 @@ alter table public.profiles enable row level security;
 alter table public.app_config enable row level security;
 alter table public.movements enable row level security;
 alter table public.batches enable row level security;
+alter table public.goods enable row level security;
 alter table public.audit enable row level security;
 -- No policies on purpose: the API roles cannot touch the tables, only call the functions.
-revoke all on public.profiles, public.app_config, public.movements, public.batches, public.audit from anon, authenticated;
+revoke all on public.profiles, public.app_config, public.movements, public.batches, public.goods, public.audit from anon, authenticated;
 revoke all on sequence public.audit_id_seq from anon, authenticated;
 
