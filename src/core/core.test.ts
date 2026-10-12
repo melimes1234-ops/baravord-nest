@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
-  calcCsv, colorSwatch, explainPrice, formulaCost, normalizeTo, recipeUsage, setItemPercent, withReplacement, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
+  stickLength, calcCsv, colorSwatch, explainPrice, formulaCost, normalizeTo, recipeUsage, setItemPercent, withReplacement, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
   replaceBatchItem, seedCatalog, setActualQty, stockLevels, toJalaliDate, validateCatalog,
   type Catalog, type Movement,
 } from './index'
@@ -321,7 +321,7 @@ describe('calculation explanation', () => {
     const c = cat()
     const bad = explainPrice(c.products['t-once'], 'n3', c.tariffs[0], c)
     const titles = bad.checks.filter(k => !k.ok).map(k => k.title)
-    expect(titles).toEqual(expect.arrayContaining(['قیمت بعضی مواد وارد نشده', 'وزن شاخه ۳ متری وارد نشده', 'سربار صفر است']))
+    expect(titles).toEqual(expect.arrayContaining(['قیمت بعضی مواد وارد نشده', 'وزن شاخه وارد نشده', 'سربار صفر است']))
     const c2 = full()
     expect(explainPrice(c2.products.flex, 'n1', c2.tariffs[0], c2).checks.every(k => k.ok)).toBe(true)
   })
@@ -355,5 +355,42 @@ describe('price per square metre', () => {
     expect(e.widthM).toBeCloseTo(0.14, 9)
     c.products.flex.widthMm = undefined
     expect(explainPrice(c.products.flex, 'n1', c.tariffs[0], c).checks.some(k => !k.ok && k.title === 'عرض محصول وارد نشده')).toBe(true)
+  })
+})
+
+describe('stick length (the cabinet sheet is 4.10 m, not 3 m)', () => {
+  it('per metre = stick price / its own length; a normal product still uses 3 m', () => {
+    const c = cat()
+    c.config.roundTo = 1
+    c.materials['pp-recycled'].pricePerKg = 100_000
+    c.products.cabinet.weightPer3mG = 20_000
+    const cab = priceProduct(c.products.cabinet, null, c.tariffs[0], c)
+    expect(stickLength(c.products.cabinet)).toBe(4.1)
+    expect(cab.perStick).toBe(Math.round((cab.salePerKg * 20_000) / 1000))
+    expect(cab.perMeter).toBe(Math.round((cab.salePerKg * 20_000) / 4100))
+    expect(stickLength(c.products.flex)).toBe(3)
+    const flex = priceProduct(c.products.flex, 'n1', c.tariffs[0], c)
+    expect(flex.perMeter).toBe(Math.round((flex.salePerKg * 7500) / 3000))
+  })
+
+  it('older saved catalogs without the field still treat the cabinet as 4.10 m, and an explicit length wins', () => {
+    const c = cat()
+    delete c.products.cabinet.stickLengthM
+    expect(stickLength(c.products.cabinet)).toBe(4.1)
+    c.products.cabinet.stickLengthM = 5
+    expect(stickLength(c.products.cabinet)).toBe(5)
+    c.products.flex.stickLengthM = 6
+    expect(stickLength(c.products.flex)).toBe(6)
+  })
+
+  it('the explanation uses the same length and still equals the engine', () => {
+    const c = cat()
+    c.materials['pp-recycled'].pricePerKg = 100_000
+    c.products.cabinet.weightPer3mG = 20_000
+    const e = explainPrice(c.products.cabinet, null, c.tariffs[0], c)
+    const eng = priceProduct(c.products.cabinet, null, c.tariffs[0], c)
+    expect(e.lengthM).toBe(4.1)
+    expect(e.perMeter).toBe(eng.perMeter)
+    expect(e.perStick).toBe(eng.perStick)
   })
 })

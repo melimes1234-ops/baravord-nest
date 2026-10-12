@@ -53,7 +53,7 @@ export function Batches({ state, update }: { state: AppState; update: Update }) 
         <div className="row">
           <label>محصول<select value={productId} onChange={e => setProductId(e.target.value)}>{Object.values(catalog.products).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
           {product.colorable && <label>رنگ<select value={colorId} onChange={e => setColorId(e.target.value)}>{Object.values(catalog.colors).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}
-          <label>وزن کل پارت (کیلو، اختیاری)<NumInput value={totalKg} placeholder="طبق فرمول" onChange={setTotalKg} /></label>
+          <label>وزن کل پارت (کیلو، اختیاری)<NumInput unit="کیلو" value={totalKg} placeholder="طبق فرمول" onChange={setTotalKg} /></label>
           <button className="btn" onClick={start}>شروع پارت</button>
         </div>
       </div>
@@ -61,7 +61,7 @@ export function Batches({ state, update }: { state: AppState; update: Update }) 
       {draft && report && (
         <div className="card">
           <h2>{product.name} {draft.colorId ? `— ${catalog.colors[draft.colorId].name}` : ''} — {toJalaliDate(draft.date)}</h2>
-          <div className="tablewrap">
+          <div className="tablewrap scroll-box">
             <table>
               <thead><tr><th>جزء</th><th className="n">استاندارد (کیلو)</th><th className="n">واقعی (کیلو)</th><th className="n">تغییر (٪)</th><th>نسبت به فرمول</th><th /></tr></thead>
               <tbody>
@@ -69,10 +69,11 @@ export function Batches({ state, update }: { state: AppState; update: Update }) 
                   <tr key={`${it.ref.kind}:${it.ref.id}`}>
                     <td>{nameOf(it.ref)}{it.stdQty === 0 && <> <Tag>افزوده شده</Tag></>}</td>
                     <td className="n">{formatKg(it.stdQty)}</td>
-                    <td className="n"><NumInput value={it.actualQty} onChange={v => setDraft(setActualQty(draft, it.ref, v ?? 0, user))} /></td>
+                    <td className="n"><NumInput unit="کیلو" value={it.actualQty} onChange={v => setDraft(setActualQty(draft, it.ref, v ?? 0, user))} /></td>
                     <td className="n">
                       {it.stdQty > 0 ? (
                         <NumInput
+                          unit="٪"
                           value={Math.round((it.actualQty / it.stdQty - 1) * 10000) / 100}
                           decimals={2}
                           onChange={v => setDraft(setActualQty(draft, it.ref, Math.max(0, it.stdQty * (1 + (v ?? 0) / 100)), user))}
@@ -122,7 +123,7 @@ export function Batches({ state, update }: { state: AppState; update: Update }) 
       <div className="card">
         <h2>پارت‌های ثبت‌شده</h2>
         {state.batches.length === 0 ? <p className="muted">هنوز پارتی ثبت نشده.</p> : (
-          <div className="tablewrap">
+          <div className="tablewrap scroll-box">
             <table>
               <thead><tr><th>تاریخ</th><th>محصول</th><th>رنگ</th><th className="n">وزن</th><th className="n">هزینه کل</th><th className="n">اختلاف با استاندارد</th><th>تغییرات</th></tr></thead>
               <tbody>

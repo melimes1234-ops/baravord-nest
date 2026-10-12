@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { toFa, validateCatalog } from './core'
 import type { Role } from './api'
 import { backend } from './backends'
@@ -41,6 +41,16 @@ export default function App() {
   const impl = useSessionImpl()
   const { session, error, clearError, login, logout, update } = impl
   const [confirmReset, setConfirmReset] = useState(false)
+  // The top menu is sticky; table headers that stick under it need its real height.
+  useLayoutEffect(() => {
+    const set = () => {
+      const nav = document.querySelector('nav')
+      if (nav) document.documentElement.style.setProperty('--nav-h', `${nav.getBoundingClientRect().height}px`)
+    }
+    set()
+    window.addEventListener('resize', set)
+    return () => window.removeEventListener('resize', set)
+  })
   const [theme, setTheme] = useState<Theme>(initialTheme)
   const toggleTheme = () => {
     const next: Theme = theme === 'dark' ? 'light' : 'dark'

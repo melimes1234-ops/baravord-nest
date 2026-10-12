@@ -290,7 +290,7 @@ function FormulaView(props: {
                 <tr key={`${it.ref.kind}:${it.ref.id}`}>
                   <td><span className="minibar" style={{ width: 10, height: 10, background: colorOf(it.ref.id), borderRadius: 3, marginInlineEnd: 8 }} />{nameOf(it)}</td>
                   <td className="n" style={{ whiteSpace: 'nowrap' }}>
-                    <NumInput value={round(shown(it))} decimals={2} readOnly={locked} onChange={v => setShown(idx, v ?? 0)} />
+                    <NumInput unit={unit === "kg" ? "کیلو" : unit === "g" ? "گرم" : "٪"} value={round(shown(it))} decimals={2} readOnly={locked} onChange={v => setShown(idx, v ?? 0)} />
                     {!locked && (
                       <span className="stepper">
                         <button aria-label="کم کن" onClick={() => setShown(idx, Math.max(0, round(shown(it) - step)))}>−</button>

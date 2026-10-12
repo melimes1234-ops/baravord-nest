@@ -90,11 +90,21 @@ export interface ProductPrice {
   cost: CostResult
   costPerKg: number
   salePerKg: number
-  /** price of one 3 m stick, null without weight */
+  /** price of one stick (its own length: 3 m, the cabinet sheet 4.10 m), null without weight */
   perStick: number | null
   perMeter: number | null
   /** Price of 1 m2 of surface: price per metre / (width in metres). null without weight or width. */
   perSqm: number | null
+}
+
+/**
+ * Length of one stick in metres. Older saved catalogs have no stickLengthM: the cabinet sheet is 4.10 m long,
+ * everything else 3 m.
+ */
+export function stickLength(product: Product): number {
+  const l = product.stickLengthM
+  if (l != null && l > 0) return l
+  return product.id === 'cabinet' ? 4.1 : 3
 }
 
 /** Width in metres used for the area price, or null when the product has no width. */
@@ -132,7 +142,7 @@ export function priceProduct(
     costPerKg: cost.costPerKg,
     salePerKg,
     perStick,
-    perMeter: perStick == null ? null : roundTo((salePerKg * w!) / 3000, step),
-    perSqm: w == null || wm == null ? null : roundTo((salePerKg * w) / 3000 / wm, step),
+    perMeter: perStick == null ? null : roundTo((salePerKg * w!) / (1000 * stickLength(product)), step),
+    perSqm: w == null || wm == null ? null : roundTo((salePerKg * w) / (1000 * stickLength(product)) / wm, step),
   }
 }

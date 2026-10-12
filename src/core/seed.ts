@@ -86,6 +86,7 @@ function buildSeed(): Catalog {
     code: 'CAB',
     usages: [],
     weightPer3mG: null,
+    stickLengthM: 4.1,
     baseRecipeId: 'cabinet',
     colorable: false,
   })

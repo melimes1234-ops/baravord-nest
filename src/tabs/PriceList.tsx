@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import {
-  colorSwatch, extrasPerKg, flatten, formatKg, formatToman, overheadPerKg, priceProduct, productItems, toFa,
+  colorSwatch, extrasPerKg, faNum, flatten, stickLength, formatKg, formatToman, overheadPerKg, priceProduct, productItems, toFa,
   type Catalog, type Product, type Tariff,
 } from '../core'
 import { DEMO } from '../demo'
@@ -92,7 +92,7 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
           <label>
             درصد سود دلخواه
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <NumInput value={customPct} decimals={2} onChange={setCustomPct} placeholder="مثلاً ۲۰" />٪
+              <NumInput unit="٪" value={customPct} decimals={2} onChange={setCustomPct} placeholder="مثلاً ۲۰" />
             </span>
           </label>
         )}
@@ -136,12 +136,12 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
         <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>قیمت متر مربع چطور حساب می‌شود؟ <InfoTip>{SQM_TIP}</InfoTip></span>
       </div>
 
-      <div className="tablewrap">
+      <div className="tablewrap sticky-head">
         <table className="price-table">
           <thead>
             <tr>
-              <th>محصول</th><th className="n hide-sm">وزن ۳ متر</th><th className="n hide-sm">هر کیلو</th>
-              <th className="n">هر متر</th><th className="n hide-sm">هر متر مربع</th><th className="n">شاخه ۳ متری</th><th className="hide-sm status">وضعیت</th>
+              <th>محصول</th><th className="n hide-sm">وزن شاخه</th><th className="n hide-sm">هر کیلو</th>
+              <th className="n">هر متر</th><th className="n hide-sm">هر متر مربع</th><th className="n">قیمت شاخه</th><th className="hide-sm status">وضعیت</th>
             </tr>
           </thead>
           <tbody>
@@ -164,7 +164,7 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
                         <td className="prodcell">
                           <span className="chev">{isOpen ? '▾' : '◂'}</span>
                           <span className="name">{p.name}</span>
-                          <div className="sub">{p.code}{p.widthMm ? ` · ${p.widthMm}×${p.thicknessMm}` : ''}</div>
+                          <div className="sub">{p.code}{p.widthMm ? ` · ${p.widthMm}×${p.thicknessMm}` : ''}{stickLength(p) !== 3 ? ` · شاخه ${faNum(stickLength(p))} متری` : ''}</div>
                           <div className="only-sm">
                             {bad && <Tag kind="err">قیمت ناقص</Tag>}{' '}
                             {p.weightPer3mG == null && <Tag>بدون وزن</Tag>}
@@ -223,7 +223,7 @@ function Breakdown({ catalog, product, colorId, tariff }: { catalog: Catalog; pr
         <div className="kpi"><span>قیمت فروش هر کیلو</span><b>{formatToman(price.salePerKg)}</b></div>
         <div className="kpi"><span>قیمت هر متر</span><b>{formatToman(price.perMeter)}</b></div>
         <div className="kpi"><span>قیمت هر متر مربع</span><b>{formatToman(price.perSqm)}</b></div>
-        <div className="kpi" style={{ ['--k' as string]: 'var(--accent)' }}><span>قیمت شاخه ۳ متری</span><b>{formatToman(price.perStick)}</b></div>
+        <div className="kpi" style={{ ['--k' as string]: 'var(--accent)' }}><span>قیمت شاخه ({faNum(stickLength(product))} متری)</span><b>{formatToman(price.perStick)}</b></div>
       </div>
 
       <div>

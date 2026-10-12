@@ -226,3 +226,14 @@ td input.num[readonly], td input.num:disabled { background: transparent; border-
 .part em { font-style: normal; font-weight: 400; font-size: 12px; opacity: .85; }
 .part.on { color: var(--ink); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
 .part.locked-part { cursor: default; }
+
+/* ---- unit shown inside number fields ---- */
+.unit-wrap { position: relative; display: inline-block; }
+.unit-wrap input.num { width: 150px; padding-right: 54px; }
+.unit { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); font-size: 11.5px; font-weight: 700; color: var(--muted); pointer-events: none; }
+
+/* ---- price-list header stays visible while the list scrolls ---- */
+.tablewrap.sticky-head { overflow: visible; }
+.sticky-head th { position: sticky; top: var(--nav-h, 50px); z-index: 1; box-shadow: 0 1px 0 var(--line), 0 2px 6px rgba(0, 0, 0, .08); }
+.tablewrap.scroll-box { max-height: 72vh; overflow: auto; }
+.scroll-box th { position: sticky; top: 0; z-index: 1; box-shadow: 0 1px 0 var(--line); }

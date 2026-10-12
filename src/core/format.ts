@@ -5,6 +5,9 @@ const AR = '٠١٢٣٤٥٦٧٨٩'
 
 export const toFa = (s: string | number): string => String(s).replace(/\d/g, d => FA[+d])
 
+/** A number with Persian digits and the Persian decimal mark: 4.1 -> ۴٫۱ */
+export const faNum = (n: number): string => toFa(String(n)).replace('.', '٫')
+
 export const fromFa = (s: string): string =>
   s
     .replace(/[۰-۹]/g, d => String(FA.indexOf(d)))

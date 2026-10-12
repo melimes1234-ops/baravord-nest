@@ -1,7 +1,25 @@
-import { useId, useState, type ReactNode } from 'react'
-import { formatKg, formatToman, parseNum, toFa } from './core'
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { formatKg, formatToman, fromFa, parseNum, toFa } from './core'
 
-/** Number field that accepts Persian/Latin digits and commits on blur. */
+const SIG = /[0-9۰-۹٠-٩.٫]/
+
+/** Groups the integer part in threes as you type: 2050000 -> ۲٬۰۵۰٬۰۰۰. Keeps one decimal point. */
+function groupLive(raw: string, allowNegative: boolean): string {
+  let s = fromFa(raw).replace(/[^\d.-]/g, '')
+  const neg = allowNegative && s.startsWith('-')
+  s = s.replace(/-/g, '')
+  const dot = s.indexOf('.')
+  const int = dot === -1 ? s : s.slice(0, dot)
+  const frac = dot === -1 ? null : s.slice(dot + 1).replace(/\./g, '')
+  const grouped = int.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return toFa((neg ? '-' : '') + grouped + (frac !== null ? '.' + frac : '')).replace(/,/g, '٬').replace('.', '٫')
+}
+
+/**
+ * Number field that accepts Persian/Latin digits and commits on blur.
+ * With `money` the digits are grouped in threes while typing (the caret stays where it was).
+ * `unit` is shown inside the field (تومان, کیلو, گرم, ٪ ...).
+ */
 export function NumInput(props: {
   value: number | null
   onChange: (v: number | null) => void
@@ -9,12 +27,23 @@ export function NumInput(props: {
   decimals?: number
   placeholder?: string
   readOnly?: boolean
+  unit?: string
 }) {
-  const { value, onChange, money, decimals = 3, placeholder, readOnly } = props
+  const { value, onChange, money, decimals = 3, placeholder, readOnly, unit } = props
   const [text, setText] = useState<string | null>(null)
+  const ref = useRef<HTMLInputElement>(null)
+  const caret = useRef<number | null>(null)
+  // After React rewrites the text, put the caret back after the same digit the user just typed.
+  useLayoutEffect(() => {
+    if (caret.current != null && ref.current) {
+      ref.current.setSelectionRange(caret.current, caret.current)
+      caret.current = null
+    }
+  })
   const shown = value == null ? '' : money ? formatToman(value) : formatKg(value, decimals)
-  return (
+  const input = (
     <input
+      ref={ref}
       className="num"
       inputMode="decimal"
       readOnly={readOnly}
@@ -22,10 +51,26 @@ export function NumInput(props: {
       placeholder={placeholder ?? '—'}
       value={text ?? shown}
       onFocus={e => {
-        setText(value == null ? '' : toFa(String(Number(value.toFixed(decimals)))))
-        e.currentTarget.select()
+        const el = e.currentTarget
+        const plain = value == null ? '' : String(Number(value.toFixed(decimals)))
+        setText(money ? groupLive(plain, true) : toFa(plain))
+        setTimeout(() => el.select(), 0)
       }}
-      onChange={e => setText(e.target.value)}
+      onChange={e => {
+        const raw = e.currentTarget.value
+        if (!money) return setText(raw)
+        const pos = e.currentTarget.selectionStart ?? raw.length
+        const typed = [...raw.slice(0, pos)].filter(ch => SIG.test(ch)).length
+        const next = groupLive(raw, false)
+        let seen = 0
+        let idx = 0
+        while (idx < next.length && seen < typed) {
+          if (SIG.test(next[idx])) seen++
+          idx++
+        }
+        caret.current = idx
+        setText(next)
+      }}
       onBlur={() => {
         if (text != null) {
           const n = parseNum(text)
@@ -36,6 +81,14 @@ export function NumInput(props: {
         setText(null)
       }}
     />
+  )
+  return unit ? (
+    <span className="unit-wrap">
+      {input}
+      <span className="unit" aria-hidden="true">{unit}</span>
+    </span>
+  ) : (
+    input
   )
 }
 

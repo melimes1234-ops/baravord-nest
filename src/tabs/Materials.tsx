@@ -16,7 +16,7 @@ export function Materials({ catalog, update }: { catalog: Catalog; update: Updat
           قیمت را به ریال وارد می‌کنم (تقسیم بر ۱۰ و ذخیره به تومان)
         </label>
       </div>
-      <div className="tablewrap">
+      <div className="tablewrap scroll-box">
         <table>
           <thead><tr><th>ماده</th><th className="n">قیمت هر کیلو ({rial ? 'ریال' : 'تومان'})</th><th className="n">معادل تومان</th><th /></tr></thead>
           <tbody>
@@ -26,6 +26,7 @@ export function Materials({ catalog, update }: { catalog: Catalog; update: Updat
                 <td className="n">
                   <NumInput
                     money
+                    unit={rial ? 'ریال' : 'تومان'}
                     value={m.pricePerKg == null ? null : rial ? m.pricePerKg * 10 : m.pricePerKg}
                     onChange={v => update(s => { s.catalog.materials[m.id].pricePerKg = v == null ? null : rial ? rialToToman(v) : v })}
                   />

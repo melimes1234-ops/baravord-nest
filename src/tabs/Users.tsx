@@ -29,7 +29,7 @@ export function Users({ me }: { me: User }) {
       <div className="card">
         <h2>کاربران</h2>
         {err && <div className="alert err">{err}</div>}
-        <div className="tablewrap">
+        <div className="tablewrap scroll-box">
           <table>
             <thead><tr><th>نام کاربری</th><th>نقش</th><th>ساخته‌شده</th><th /></tr></thead>
             <tbody>
@@ -67,7 +67,7 @@ export function Users({ me }: { me: User }) {
       </div>
       <div className="card">
         <h2>گزارش تغییرات (۲۰۰ مورد آخر)</h2>
-        <div className="tablewrap">
+        <div className="tablewrap scroll-box">
           <table>
             <thead><tr><th>زمان</th><th>کاربر</th><th>عمل</th><th>جزئیات</th></tr></thead>
             <tbody>

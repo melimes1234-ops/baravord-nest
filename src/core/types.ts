@@ -47,8 +47,13 @@ export interface Product {
   widthMm?: number
   thicknessMm?: number
   usages: string[]
-  /** Weight of one 3 m stick in grams. null = not entered yet. */
+  /**
+   * Weight in grams of ONE STICK (of length stickLengthM, 3 m unless set). null = not entered yet.
+   * The name is historical: it was always "per 3 m" before the stick length became adjustable.
+   */
   weightPer3mG: number | null
+  /** Length of one stick in metres. Default 3; the cabinet sheet is 4.10. */
+  stickLengthM?: number
   baseRecipeId: Id
   /** false for products that are sold without a colour (e.g. cabinet sheet). */
   colorable: boolean

@@ -27,8 +27,8 @@ export function Stock({ catalog, movements, update, readOnly }: { catalog: Catal
         <h2>ثبت ورود به انبار (خرید یا ضایعات برگشتی)</h2>
         <div className="row">
           <label>ماده<select value={materialId} onChange={e => setMaterialId(e.target.value)}>{Object.values(catalog.materials).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
-          <label>مقدار (کیلو)<NumInput value={kg} onChange={setKg} /></label>
-          <label>قیمت خرید هر کیلو (تومان)<NumInput money value={price} onChange={setPrice} /></label>
+          <label>مقدار (کیلو)<NumInput unit="کیلو" value={kg} onChange={setKg} /></label>
+          <label>قیمت خرید هر کیلو (تومان)<NumInput unit="تومان" money value={price} onChange={setPrice} /></label>
           <label>تاریخ شمسی<input value={date} onChange={e => setDate(e.target.value)} style={{ width: 120 }} /></label>
           <button className="btn" onClick={() => add('in')}>ثبت خرید</button>
           <button className="btn ghost" onClick={() => add('waste_in')}>ضایعات برگشتی</button>
@@ -38,7 +38,7 @@ export function Stock({ catalog, movements, update, readOnly }: { catalog: Catal
       </div>}
       <div className="card">
         <h2>باقی‌مانده مواد</h2>
-        <div className="tablewrap">
+        <div className="tablewrap scroll-box">
           <table>
             <thead><tr><th>ماده</th><th className="n">موجودی (کیلو)</th><th className="n">میانگین قیمت</th><th className="n">ارزش موجودی</th></tr></thead>
             <tbody>
@@ -59,7 +59,7 @@ export function Stock({ catalog, movements, update, readOnly }: { catalog: Catal
       </div>
       <div className="card">
         <h2>تاریخچه ورود و خروج</h2>
-        <div className="tablewrap">
+        <div className="tablewrap scroll-box">
           <table>
             <thead><tr><th>تاریخ</th><th>ماده</th><th>نوع</th><th className="n">کیلو</th></tr></thead>
             <tbody>

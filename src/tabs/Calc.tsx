@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { calcCsv, explainPrice, formatKg, formatToman, toFa, type Catalog, type Check, type Explain } from '../core'
+import { calcCsv, explainPrice, faNum, formatKg, formatToman, toFa, type Catalog, type Check, type Explain } from '../core'
 import { DEMO } from '../demo'
 import { InfoTip, Tag } from '../ui'
 
@@ -37,7 +37,7 @@ function summaryText(e: Explain): string {
   L.push(`۴) کرایه و انبارداری هر کیلو = ${money(e.perBatchCostTotal)} ÷ ${kg(e.batchKg)} = ${money(e.extrasPerKg)}`)
   L.push(`۵) قیمت تمام‌شده هر کیلو = ${money(e.costPerKg)}`)
   L.push(`۶) قیمت فروش هر کیلو = ${money(e.costPerKg)} × (۱ + ${e.marginPct / 100}) = ${money(e.salePerKg)}`)
-  L.push(`۷) هر متر = ${money(e.perMeter)} / شاخه ۳ متری = ${money(e.perStick)} (وزن ${e.weightG ?? '—'} گرم)`)
+  L.push(`۷) هر متر = ${money(e.perMeter)} / شاخه ${e.lengthM} متری = ${money(e.perStick)} (وزن ${e.weightG ?? '—'} گرم)`)
   L.push(`۸) هر متر مربع = ${money(e.perMeterRaw)} ÷ ${e.widthM ?? '—'} متر = ${money(e.perSqm)}`)
   const bad = e.checks.filter(c => !c.ok)
   if (bad.length) { L.push('', 'هشدارها:'); for (const c of bad) L.push(`  - ${c.title}: ${c.detail}`) }
@@ -120,7 +120,7 @@ export function Calc({ catalog }: { catalog: Catalog }) {
           <div className="kpi"><span>قیمت تمام‌شده هر کیلو</span><b>{money(e.costPerKg)}</b></div>
           <div className="kpi"><span>قیمت فروش هر کیلو</span><b>{money(e.salePerKg)}</b></div>
           <div className="kpi"><span>قیمت هر متر</span><b>{money(e.perMeter)}</b></div>
-          <div className="kpi" style={{ ['--k' as string]: 'var(--accent)' }}><span>قیمت شاخه ۳ متری</span><b>{money(e.perStick)}</b></div>
+          <div className="kpi" style={{ ['--k' as string]: 'var(--accent)' }}><span>قیمت شاخه ({faNum(e.lengthM)} متری)</span><b>{money(e.perStick)}</b></div>
         </div>
       </div>
 
@@ -199,13 +199,18 @@ export function Calc({ catalog }: { catalog: Catalog }) {
             calc={<N>{money(e.costPerKg)} × (۱ + {pct(e.marginPct)}٪)</N>}
             result={<>قیمت فروش هر کیلو: <N>{money(e.salePerKg)}</N> تومان (<N>{money(e.profitPerKg)}</N> از آن سود است)</>} />
 
-          <Step n={9} title="قیمت هر متر و هر شاخه ۳ متری"
-            what="قیمت یک کیلو را در وزن یک شاخه ۳ متری ضرب می‌کنیم (وزن را از گرم به کیلو برمی‌گردانیم). قیمت هر متر یک‌سوم آن است. آخر هم عدد را به مبلغ گرد نزدیک می‌کنیم."
-            calc={e.weightG == null ? undefined : <N>{money(e.salePerKg)} × {kg(e.weightG / 1000)} کیلو = {money(e.perStickRaw)}</N>}
+          <Step n={9} title="قیمت هر شاخه و هر متر"
+            what={<>قیمت یک کیلو را در وزن یک شاخه ضرب می‌کنیم (وزن را از گرم به کیلو برمی‌گردانیم). این قیمت شاخه است. قیمت هر متر برابر قیمت شاخه تقسیم بر طول شاخه است (این محصول <N>{faNum(e.lengthM)}</N> متری است). آخر هم گرد می‌کنیم.</>}
+            calc={e.weightG == null ? undefined : (
+              <>
+                <div><N>{money(e.salePerKg)} × {kg(e.weightG / 1000)} کیلو = {money(e.perStickRaw)}</N></div>
+                <div><N>{money(e.perStickRaw)} ÷ {faNum(e.lengthM)} متر = {money(e.perMeterRaw)}</N></div>
+              </>
+            )}
             result={e.weightG == null
               ? <span className="over">وزن محصول وارد نشده؛ پس قیمت شاخه و متر حساب نمی‌شود.</span>
-              : <>هر شاخه ۳ متری: <N>{money(e.perStick)}</N> تومان · هر متر: <N>{money(e.perMeter)}</N> تومان (گرد شده به مضرب <N>{money(e.roundStep)}</N>)</>}
-            note="شاخه و متر هر کدام جدا از عدد دقیق گرد می‌شوند. برای همین ممکن است سه برابرِ قیمت متر، یک گامِ گرد کردن (مثلاً ۱۰۰ تومان) با قیمت شاخه فرق کند. این خطا نیست." />
+              : <>هر شاخه {faNum(e.lengthM)} متری: <N>{money(e.perStick)}</N> تومان · هر متر: <N>{money(e.perMeter)}</N> تومان (گرد شده به مضرب <N>{money(e.roundStep)}</N>)</>}
+            note="شاخه و متر هر کدام جدا از عدد دقیق گرد می‌شوند. برای همین ممکن است قیمت متر × طول شاخه، یک گامِ گرد کردن (مثلاً ۱۰۰ تومان) با قیمت شاخه فرق کند. این خطا نیست." />
 
           <Step n={10} title="قیمت هر متر مربع"
             what="هر متر از این محصول فقط به اندازه‌ی عرضش سطح را می‌پوشاند. پس عرض را به متر درمی‌آوریم (میلی‌متر ÷ ۱۰۰۰) و قیمت هر متر را بر آن تقسیم می‌کنیم."

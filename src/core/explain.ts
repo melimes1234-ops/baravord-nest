@@ -1,4 +1,4 @@
-import { priceProduct, productItems, roundTo, widthMeters } from './costing'
+import { priceProduct, productItems, roundTo, stickLength, widthMeters } from './costing'
 import { flatten, sumKg } from './flatten'
 import type { Catalog, Id, Product, Tariff } from './types'
 
@@ -50,6 +50,8 @@ export interface Explain {
   profitPerKg: number
   salePerKg: number
   weightG: number | null
+  /** length of one stick in metres */
+  lengthM: number
   roundStep: number
   perMeterRaw: number | null
   perStickRaw: number | null
@@ -91,7 +93,8 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
   const salePerKg = costPerKg * (1 + tariff.marginPct / 100)
   const w = product.weightPer3mG
   const perStickRaw = w == null ? null : (salePerKg * w) / 1000
-  const perMeterRaw = w == null ? null : (salePerKg * w) / 3000
+  const lengthM = stickLength(product)
+  const perMeterRaw = w == null ? null : (salePerKg * w) / (1000 * lengthM)
   const perStick = perStickRaw == null ? null : roundTo(perStickRaw, cfg.roundTo)
   const perMeter = perMeterRaw == null ? null : roundTo(perMeterRaw, cfg.roundTo)
   const widthM = widthMeters(product)
@@ -112,8 +115,8 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
       ? { ok: true, level: 'ok', title: 'قیمت صفر مشکوک نیست', detail: 'فقط ضایعات می‌تواند رایگان باشد.' }
       : { ok: false, level: 'warn', title: 'ماده‌ای با قیمت صفر', detail: `${zeroPriced.join('، ')} قیمت صفر دارد. اگر عمدی نیست، اصلاح کنید.` },
     w == null
-      ? { ok: false, level: 'error', title: 'وزن شاخه ۳ متری وارد نشده', detail: 'بدون وزن، قیمت هر متر و هر شاخه حساب نمی‌شود.' }
-      : { ok: true, level: 'ok', title: 'وزن محصول وارد شده', detail: `${w} گرم برای ۳ متر (${(w / 3).toFixed(0)} گرم برای هر متر).` },
+      ? { ok: false, level: 'error', title: 'وزن شاخه وارد نشده', detail: 'بدون وزن، قیمت هر متر و هر شاخه حساب نمی‌شود.' }
+      : { ok: true, level: 'ok', title: 'وزن محصول وارد شده', detail: `${w} گرم برای شاخه ${lengthM} متری (${(w / lengthM).toFixed(0)} گرم برای هر متر).` },
     widthM != null
       ? { ok: true, level: 'ok', title: 'عرض محصول وارد شده', detail: `${product.widthMm} میلی‌متر. قیمت متر مربع از روی همین عرض حساب می‌شود.` }
       : { ok: false, level: 'warn', title: 'عرض محصول وارد نشده', detail: 'بدون عرض، قیمت هر متر مربع حساب نمی‌شود. عرض را در تب «محصولات» بنویسید.' },
@@ -138,22 +141,22 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
     product, colorId, colorName: colorId ? catalog.colors[colorId]?.name ?? null : null, tariff, items, rows, totalKg, materialCost, materialPerKg,
     wastePct: cfg.wastePct, afterWastePerKg, wasteExtraPerKg: afterWastePerKg - materialPerKg, monthlyCostTotal, monthlyProductionKg: cfg.monthlyProductionKg,
     overheadPerKg, perBatchCostTotal, batchKg: cfg.batchKg, extrasPerKg, costPerKg, marginPct: tariff.marginPct, profitPerKg: salePerKg - costPerKg, salePerKg,
-    weightG: w, roundStep: cfg.roundTo, perMeterRaw, perStickRaw, perMeter, perStick, widthM, perSqmRaw, perSqm, missingPrices, checks,
+    weightG: w, lengthM, roundStep: cfg.roundTo, perMeterRaw, perStickRaw, perMeter, perStick, widthM, perSqmRaw, perSqm, missingPrices, checks,
   }
 }
 
 /** One CSV row per product with every intermediate number, to review in Excel. Plain digits, UTF-8 with BOM. */
 export function calcCsv(catalog: Catalog, colorId: Id | null, tariff: Tariff): string {
   const head = [
-    'محصول', 'کد', 'وزن ۳ متر (گرم)', 'وزن پارت (کیلو)', 'هزینه مواد هر کیلو', 'ضایعات هر کیلو', 'سربار هر کیلو', 'کرایه و انبارداری هر کیلو',
-    'قیمت تمام‌شده هر کیلو', 'درصد سود', 'قیمت فروش هر کیلو', 'قیمت هر متر', 'قیمت هر متر مربع', 'قیمت شاخه ۳ متری', 'مواد بدون قیمت',
+    'محصول', 'کد', 'طول شاخه (متر)', 'وزن شاخه (گرم)', 'وزن پارت (کیلو)', 'هزینه مواد هر کیلو', 'ضایعات هر کیلو', 'سربار هر کیلو', 'کرایه و انبارداری هر کیلو',
+    'قیمت تمام‌شده هر کیلو', 'درصد سود', 'قیمت فروش هر کیلو', 'قیمت هر متر', 'قیمت هر متر مربع', 'قیمت شاخه', 'مواد بدون قیمت',
   ]
   const n = (v: number | null) => (v == null ? '' : String(Math.round(v * 100) / 100))
   const esc = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s)
   const lines = Object.values(catalog.products).map(p => {
     const e = explainPrice(p, p.colorable ? colorId : null, tariff, catalog)
     return [
-      p.name, p.code, p.weightPer3mG == null ? '' : String(p.weightPer3mG), n(e.totalKg), n(e.materialPerKg), n(e.wasteExtraPerKg), n(e.overheadPerKg), n(e.extrasPerKg),
+      p.name, p.code, String(e.lengthM), p.weightPer3mG == null ? '' : String(p.weightPer3mG), n(e.totalKg), n(e.materialPerKg), n(e.wasteExtraPerKg), n(e.overheadPerKg), n(e.extrasPerKg),
       n(e.costPerKg), String(e.marginPct), n(e.salePerKg), n(e.perMeter), n(e.perSqm), n(e.perStick), e.missingPrices.join(' | '),
     ].map(esc).join(',')
   })

@@ -31,7 +31,7 @@ export function SupabaseUsers() {
       <div className="card">
         <h2>کاربران و نقش‌ها</h2>
         {err && <div className="alert err">{err}</div>}
-        <div className="tablewrap">
+        <div className="tablewrap scroll-box">
           <table>
             <thead><tr><th>ایمیل</th><th>نقش</th><th>ساخته‌شده</th></tr></thead>
             <tbody>
@@ -56,7 +56,7 @@ export function SupabaseUsers() {
       </div>
       <div className="card">
         <h2>گزارش تغییرات (۲۰۰ مورد آخر)</h2>
-        <div className="tablewrap">
+        <div className="tablewrap scroll-box">
           <table>
             <thead><tr><th>زمان</th><th>کاربر</th><th>عمل</th><th>جزئیات</th></tr></thead>
             <tbody>
