@@ -117,7 +117,7 @@ export default function App() {
           </button>
         ))}
       </nav>
-      <main data-tab={TAB_KEY[current]}>
+      <main key={current} data-tab={TAB_KEY[current]}>
         {DEMO && <div className="alert">نسخه نمایشی: بدون سرور و بدون ورود کاربران. داده‌ها فقط در همین مرورگر می‌مانند و با کسی به اشتراک گذاشته نمی‌شوند.</div>}
         {error && <div className="alert err" onClick={clearError}>{error} (برای بستن بزنید)</div>}
         {current === 'شروع کار' && <Guide catalog={catalog} movements={state.movements} batches={state.batches} role={DEMO ? 'admin' : user.role} demo={DEMO} go={t => setTab(t as Tab)} />}

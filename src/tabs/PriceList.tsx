@@ -1,10 +1,11 @@
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  colorSwatch, extrasPerKg, faNum, flatten, stickLength, formatKg, formatToman, overheadPerKg, priceProduct, productItems, toFa,
+  colorSwatch, explainPrice, extrasPerKg, faNum, flatten, stickLength, formatKg, formatToman, overheadPerKg, priceProduct, productItems, toFa,
   type Catalog, type Product, type Tariff,
 } from '../core'
 import { DEMO } from '../demo'
-import { InfoTip, NumInput, Swatch, Tag } from '../ui'
+import { InfoTip, Kpi, NumInput, Swatch, Tag } from '../ui'
+import { kpiTip } from './KpiTips'
 
 /** 'FD142' -> 'FD'. Products of one series share a colour in the list. */
 const seriesOf = (p: Product): string => {
@@ -14,6 +15,34 @@ const seriesOf = (p: Product): string => {
 const seriesTitle = (s: string) => (s === 'other' ? 'سایر محصولات' : `سری ${s}`)
 
 const CUSTOM = 'custom'
+
+const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+/** Opens and closes smoothly. Overflow is only released once it is fully open, so tooltips are not cut off. */
+function Panel({ closing, onClosed, children }: { closing: boolean; onClosed: () => void; children: ReactNode }) {
+  const [on, setOn] = useState(false)
+  const [settled, setSettled] = useState(reducedMotion())
+  useEffect(() => {
+    const r = requestAnimationFrame(() => setOn(true))
+    return () => cancelAnimationFrame(r)
+  }, [])
+  useEffect(() => {
+    if (closing) setSettled(false)
+  }, [closing])
+  const show = on && !closing
+  return (
+    <div
+      className={`collapse${show ? ' on' : ''}${settled ? ' settled' : ''}`}
+      onTransitionEnd={e => {
+        if (e.target !== e.currentTarget || e.propertyName !== 'grid-template-rows') return
+        if (closing) onClosed()
+        else setSettled(true)
+      }}
+    >
+      <div className="collapse-in">{children}</div>
+    </div>
+  )
+}
 
 const SQM_TIP = (
   <>
@@ -29,6 +58,18 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
   const [customPct, setCustomPct] = useState<number | null>(20)
   const [colorId, setColorId] = useState<string>(colors[0]?.id ?? '')
   const [open, setOpen] = useState<string | null>(null)
+  const [closing, setClosing] = useState(false)
+  const toggle = (id: string) => {
+    if (open === id && !closing) {
+      if (reducedMotion()) setOpen(null)
+      else setClosing(true)
+      return
+    }
+    setClosing(false)
+    setOpen(id)
+    // once it has opened, scroll so the whole panel is visible below the sticky header
+    setTimeout(() => document.getElementById(`panel-${id}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), reducedMotion() ? 0 : 300)
+  }
   const [query, setQuery] = useState('')
   // Which cost parts count in the shown prices. Only changes this view: nothing is saved.
   const [incl, setIncl] = useState({ waste: true, overhead: true, extras: true, profit: true })
@@ -153,12 +194,13 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
                 </tr>
                 {g.rows.map(({ p, price }) => {
                   const bad = price.cost.missingPrices.length > 0
-                  const isOpen = open === p.id
+                  const isOpen = open === p.id && !closing
+                  const mounted = open === p.id
                   return (
                     <Fragment key={p.id}>
                       <tr
                         className={`prod ${g.series}${isOpen ? ' open' : ''}${bad ? ' bad' : ''}`}
-                        onClick={() => setOpen(isOpen ? null : p.id)}
+                        onClick={() => toggle(p.id)}
                         aria-expanded={isOpen}
                       >
                         <td className="prodcell">
@@ -181,10 +223,12 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
                           {!bad && p.weightPer3mG != null && <Tag kind="ok">کامل</Tag>}
                         </td>
                       </tr>
-                      {isOpen && (
-                        <tr className="panel">
+                      {mounted && (
+                        <tr className="panel" id={`panel-${p.id}`}>
                           <td colSpan={7}>
-                            <Breakdown catalog={view} product={p} colorId={p.colorable ? colorId || null : null} tariff={tariff} />
+                            <Panel closing={closing} onClosed={() => { setOpen(null); setClosing(false) }}>
+                              <Breakdown catalog={view} product={p} colorId={p.colorable ? colorId || null : null} tariff={tariff} />
+                            </Panel>
                           </td>
                         </tr>
                       )}
@@ -204,6 +248,7 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
 function Breakdown({ catalog, product, colorId, tariff }: { catalog: Catalog; product: Product; colorId: string | null; tariff: Tariff }) {
   const flat = flatten(productItems(product, colorId, catalog), catalog)
   const price = priceProduct(product, colorId, tariff, catalog)
+  const ex = explainPrice(product, colorId, tariff, catalog)
   const c = price.cost
   const waste = c.materialPerKg / (1 - catalog.config.wastePct / 100) - c.materialPerKg
   const profit = price.salePerKg - c.costPerKg
@@ -219,11 +264,11 @@ function Breakdown({ catalog, product, colorId, tariff }: { catalog: Catalog; pr
   return (
     <div className="panel-in">
       <div className="kpis" style={{ marginBottom: 0 }}>
-        <div className="kpi" style={{ ['--k' as string]: 'var(--muted)' }}><span>قیمت تمام‌شده هر کیلو</span><b>{formatToman(c.costPerKg)}</b></div>
-        <div className="kpi"><span>قیمت فروش هر کیلو</span><b>{formatToman(price.salePerKg)}</b></div>
-        <div className="kpi"><span>قیمت هر متر</span><b>{formatToman(price.perMeter)}</b></div>
-        <div className="kpi"><span>قیمت هر متر مربع</span><b>{formatToman(price.perSqm)}</b></div>
-        <div className="kpi" style={{ ['--k' as string]: 'var(--accent)' }}><span>قیمت شاخه ({faNum(stickLength(product))} متری)</span><b>{formatToman(price.perStick)}</b></div>
+        <Kpi label="قیمت تمام‌شده هر کیلو" tip={kpiTip('cost', ex)} accent="var(--muted)">{formatToman(c.costPerKg)}</Kpi>
+        <Kpi label="قیمت فروش هر کیلو" tip={kpiTip('sale', ex)}>{formatToman(price.salePerKg)}</Kpi>
+        <Kpi label="قیمت هر متر" tip={kpiTip('meter', ex)}>{formatToman(price.perMeter)}</Kpi>
+        <Kpi label="قیمت هر متر مربع" tip={kpiTip('sqm', ex)}>{formatToman(price.perSqm)}</Kpi>
+        <Kpi label={`قیمت شاخه (${faNum(stickLength(product))} متری)`} tip={kpiTip('stick', ex)} accent="var(--accent)">{formatToman(price.perStick)}</Kpi>
       </div>
 
       <div>

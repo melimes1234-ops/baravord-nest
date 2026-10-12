@@ -1,7 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { calcCsv, explainPrice, faNum, formatKg, formatToman, toFa, type Catalog, type Check, type Explain } from '../core'
 import { DEMO } from '../demo'
-import { InfoTip, Tag } from '../ui'
+import { InfoTip, Kpi, Tag } from '../ui'
+import { kpiTip } from './KpiTips'
 
 const money = (n: number | null) => formatToman(n)
 const kg = (n: number) => formatKg(n, 3)
@@ -117,10 +118,11 @@ export function Calc({ catalog }: { catalog: Catalog }) {
         </div>
         {showText && <textarea className="copybox" readOnly value={text} rows={12} onFocus={ev => ev.currentTarget.select()} aria-label="متن برای کپی" />}
         <div className="kpis" style={{ marginBottom: 0 }}>
-          <div className="kpi"><span>قیمت تمام‌شده هر کیلو</span><b>{money(e.costPerKg)}</b></div>
-          <div className="kpi"><span>قیمت فروش هر کیلو</span><b>{money(e.salePerKg)}</b></div>
-          <div className="kpi"><span>قیمت هر متر</span><b>{money(e.perMeter)}</b></div>
-          <div className="kpi" style={{ ['--k' as string]: 'var(--accent)' }}><span>قیمت شاخه ({faNum(e.lengthM)} متری)</span><b>{money(e.perStick)}</b></div>
+          <Kpi label="قیمت تمام‌شده هر کیلو" tip={kpiTip('cost', e)}>{money(e.costPerKg)}</Kpi>
+          <Kpi label="قیمت فروش هر کیلو" tip={kpiTip('sale', e)}>{money(e.salePerKg)}</Kpi>
+          <Kpi label="قیمت هر متر" tip={kpiTip('meter', e)}>{money(e.perMeter)}</Kpi>
+          <Kpi label="قیمت هر متر مربع" tip={kpiTip('sqm', e)}>{money(e.perSqm)}</Kpi>
+          <Kpi label={`قیمت شاخه (${faNum(e.lengthM)} متری)`} tip={kpiTip('stick', e)} accent="var(--accent)">{money(e.perStick)}</Kpi>
         </div>
       </div>
 

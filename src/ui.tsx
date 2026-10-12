@@ -172,3 +172,15 @@ export function LockIcon({ size = 18 }: { size?: number }) {
     </svg>
   )
 }
+
+/** A figure card. Hover, focus or tap shows what it is and how it was calculated. */
+export function Kpi(props: { label: string; children: ReactNode; tip?: ReactNode; accent?: string }) {
+  const { label, children, tip, accent } = props
+  return (
+    <div className={`kpi${tip ? ' has-tip' : ''}`} tabIndex={tip ? 0 : undefined} style={accent ? ({ ['--k' as string]: accent } as React.CSSProperties) : undefined}>
+      <span>{label}</span>
+      <b>{children}</b>
+      {tip && <span className="kpi-pop" role="tooltip">{tip}</span>}
+    </div>
+  )
+}

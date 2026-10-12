@@ -132,8 +132,8 @@ label.check input { min-width: 0; }
 .summary { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; background: color-mix(in srgb, var(--accent) 12%, var(--card)); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); }
 .summary b { font-size: 16px; }
 .price-table { table-layout: fixed; }
-.price-table th.n, .price-table td.n { width: 112px; }
-.price-table th.status, .price-table td.status { width: 128px; }
+.price-table > thead > tr > th.n, .price-table > tbody > tr > td.n { width: 112px; }
+.price-table > thead > tr > th.status, .price-table > tbody > tr > td.status { width: 128px; }
 tr.group td { --s: var(--s-other); background: color-mix(in srgb, var(--s) 16%, var(--card)); color: var(--s); font-weight: 700; border-bottom: 2px solid var(--s); padding-block: 7px; }
 tr.group.FC td { --s: var(--s-FC); } tr.group.FD td { --s: var(--s-FD); } tr.group.FB td { --s: var(--s-FB); } tr.group.FT td { --s: var(--s-FT); }
 tr.prod { cursor: pointer; }
@@ -162,9 +162,8 @@ td.prodcell { white-space: normal; min-width: 150px; }
 @media (max-width: 640px) {
   .hide-sm { display: none; }
   .only-sm { display: block; margin-top: 3px; }
-  .price-table th.n, .price-table td.n { width: 28%; }
-  .panel-in th.n, .panel-in td.n { width: auto; }
-  .price-table th, .price-table td { padding: 9px 8px; }
+  .price-table > thead > tr > th.n, .price-table > tbody > tr > td.n { width: 28%; }
+  .price-table > thead > tr > th, .price-table > tbody > tr > td { padding: 9px 8px; }
   .panel-in td:first-child { white-space: normal; }
   .legend { flex-direction: column; }
 }
@@ -234,6 +233,41 @@ td input.num[readonly], td input.num:disabled { background: transparent; border-
 
 /* ---- price-list header stays visible while the list scrolls ---- */
 .tablewrap.sticky-head { overflow: visible; }
-.sticky-head th { position: sticky; top: var(--nav-h, 50px); z-index: 1; box-shadow: 0 1px 0 var(--line), 0 2px 6px rgba(0, 0, 0, .08); }
+.sticky-head > table > thead > tr > th { position: sticky; top: var(--nav-h, 50px); z-index: 1; box-shadow: 0 1px 0 var(--line), 0 2px 6px rgba(0, 0, 0, .08); }
 .tablewrap.scroll-box { max-height: 72vh; overflow: auto; }
-.scroll-box th { position: sticky; top: 0; z-index: 1; box-shadow: 0 1px 0 var(--line); }
+.scroll-box > table > thead > tr > th { position: sticky; top: 0; z-index: 1; box-shadow: 0 1px 0 var(--line); }
+
+/* ---- smooth open / close ---- */
+tr.panel { scroll-margin-top: calc(var(--nav-h, 50px) + 46px); }
+.panel-in { border-bottom: 3px solid var(--accent); }
+tr.panel > td { border-bottom: 0; }
+.collapse { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .28s ease, opacity .22s ease; }
+.collapse.on { grid-template-rows: 1fr; opacity: 1; }
+.collapse > .collapse-in { min-height: 0; overflow: hidden; }
+.collapse.settled > .collapse-in { overflow: visible; }
+tr.prod .chev { transition: transform .2s ease; }
+tr.prod td { transition: background-color .2s ease; }
+@keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+main { animation: pageIn .2s ease both; }
+@keyframes tipIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.tip-pop, .kpi-pop { animation: tipIn .14s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .collapse, tr.prod .chev, tr.prod td { transition: none; }
+  main, .tip-pop, .kpi-pop { animation: none; }
+}
+
+/* ---- figure cards that explain themselves ---- */
+.kpi.has-tip { position: relative; cursor: help; }
+.kpi.has-tip:hover, .kpi.has-tip:focus { border-color: var(--k, var(--accent)); outline: none; }
+.kpi.has-tip > span:first-child::after { content: ' ⓘ'; color: var(--accent); font-size: 12px; }
+.kpi-pop { display: none; position: absolute; z-index: 30; top: calc(100% + 8px); inset-inline-start: 0; width: min(350px, calc(100vw - 40px)); background: var(--card); color: var(--ink); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; line-height: 1.9; font-weight: 400; box-shadow: 0 6px 24px rgba(0, 0, 0, .25); white-space: normal; text-align: right; cursor: default; }
+.kpi.has-tip:nth-child(n + 3) > .kpi-pop { inset-inline-start: auto; inset-inline-end: 0; }
+.kpi.has-tip:hover > .kpi-pop, .kpi.has-tip:focus > .kpi-pop, .kpi.has-tip:focus-within > .kpi-pop { display: block; }
+.kpi-pop p, .tip-pop p { margin: 0 0 6px; } .kpi-pop p:last-child { margin: 0; }
+.kpi-pop .kpi-pop-title, .tip-more { color: var(--muted); font-size: 12.5px; }
+.kpi-pop .over { color: var(--err); }
+/* the explanation popup must not inherit the figure card's label/number styling */
+.kpi > .kpi-pop { font-size: 13.5px; color: var(--ink); display: none; }
+.kpi.has-tip:hover > .kpi-pop, .kpi.has-tip:focus > .kpi-pop, .kpi.has-tip:focus-within > .kpi-pop { display: block; }
+.kpi-pop b { display: inline; font-size: inherit; font-variant-numeric: normal; }
+.kpi-pop .num-inline { font-size: 14px; }
