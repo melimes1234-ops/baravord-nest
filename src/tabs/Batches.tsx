@@ -5,10 +5,7 @@ import {
   type Batch, type Catalog, type ItemRef,
 } from '../core'
 import type { AppState, Update } from '../store'
-import { DeltaBadge, Kpi, NumInput, Tag } from '../ui'
-
-/** Numbers read left-to-right even inside Persian text. */
-const N = ({ children }: { children: React.ReactNode }) => <bdi dir="ltr" className="num-inline">{children}</bdi>
+import { Bill, DeltaBadge, Kpi, NumInput, Tag } from '../ui'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -101,17 +98,17 @@ export function Batches({ state, update }: { state: AppState; update: Update }) 
             }}>افزودن</button>
           </div>
 
-          <h2 style={{ marginTop: 16 }}>مقایسه با فرمول استاندارد</h2>
+          <h2 style={{ marginTop: 16 }}>مقایسه با فرمول اصلی</h2>
           <div className="kpis">
-            <Kpi label="وزن واقعی" tip={<><p><b>وزن واقعی</b>: جمع وزن همه‌ی مواد این پارت، بعد از باز کردن نیمه‌ساخته‌ها (مثل PRP) به مواد خامشان.</p><p>این همان وزنی است که از انبار کم می‌شود.</p></>}>{formatKg(report.actual.totalKg)} کیلو</Kpi>
-            <Kpi label="قیمت تمام‌شده هر کیلو" tip={<><p><b>قیمت تمام‌شده‌ی هر کیلو</b> برای همین پارت، با مقدارهای واقعی‌ای که وارد کرده‌اید.</p><p>مواد (با ضایعات) + سربار + کرایه و انبارداری</p><p><N>{formatToman(report.actual.materialPerKg / (1 - catalog.config.wastePct / 100))} + {formatToman(report.actual.overheadPerKg)} + {formatToman(report.actual.extrasPerKg)} = {formatToman(report.actual.costPerKg)}</N></p><p className="tip-more">قیمت مواد همان قیمتی است که هنگام شروع پارت ثبت شد؛ تغییر بعدی قیمت‌ها روی این پارت اثر ندارد.</p></>}>{formatToman(report.actual.costPerKg)}</Kpi>
-            <Kpi label="هزینه کل پارت" tip={<><p><b>هزینه‌ی کل پارت</b> = قیمت تمام‌شده‌ی هر کیلو × وزن واقعی.</p><p><N>{formatToman(report.actual.costPerKg)} × {formatKg(report.actual.totalKg)} کیلو = {formatToman(report.actual.costPerKg * report.actual.totalKg)}</N></p></>}>{formatToman(report.actual.costPerKg * report.actual.totalKg)}</Kpi>
-            <Kpi label="هزینه اضافه/کمتر نسبت به استاندارد" tip={<><p><b>اختلاف با فرمول استاندارد</b>: هزینه‌ی مواد این پارت منهای هزینه‌ی مواد همان پارت اگر دقیقاً طبق فرمول ساخته می‌شد. عدد مثبت یعنی گران‌تر شده.</p><p><N>{formatToman(report.actual.materialCost)} − {formatToman(report.standard.materialCost)} = {formatToman(report.extraCost)}</N></p></>}><span className={report.extraCost > 0 ? 'over' : ''}>{formatToman(report.extraCost)}</span></Kpi>
+            <Kpi label="وزن واقعی" tip={<Bill intro="جمع وزن همه‌ی موادی که در این پارت می‌ریزید. ماده‌های ترکیبی (مثل PRP) هم به مواد اصلی‌شان باز شده‌اند. همین مقدار از انبار کم می‌شود." rows={[{ label: 'وزن این پارت', value: `${formatKg(report.actual.totalKg)} کیلو` }]} />}>{formatKg(report.actual.totalKg)} کیلو</Kpi>
+            <Kpi label="خرج ساخت هر کیلو" tip={<Bill intro="پولی که برای ساختن یک کیلو از این پارت خرج می‌شود، با مقدارهای واقعی‌ای که نوشته‌اید." rows={[{ label: 'مواد (با دورریز)', value: `${formatToman(report.actual.materialPerKg / (1 - catalog.config.wastePct / 100))} تومان` }, { label: 'هزینه‌های ثابت کارخانه', value: `${formatToman(report.actual.overheadPerKg)} تومان` }, { label: 'کرایه و انبارداری', value: `${formatToman(report.actual.extrasPerKg)} تومان` }]} total={{ label: 'خرج ساخت یک کیلو', value: `${formatToman(report.actual.costPerKg)} تومان` }} note="قیمت مواد همان قیمتی است که هنگام شروع پارت بود. اگر بعداً قیمت‌ها عوض شود، این پارت تغییر نمی‌کند." />}>{formatToman(report.actual.costPerKg)}</Kpi>
+            <Kpi label="خرج کل پارت" tip={<Bill intro="خرج ساخت یک کیلو را در وزن کل پارت می‌زنیم." rows={[{ label: 'خرج ساخت یک کیلو', value: `${formatToman(report.actual.costPerKg)} تومان` }, { label: 'وزن این پارت', value: `${formatKg(report.actual.totalKg)} کیلو` }]} total={{ label: 'خرج کل پارت', value: `${formatToman(report.actual.costPerKg * report.actual.totalKg)} تومان` }} />}>{formatToman(report.actual.costPerKg * report.actual.totalKg)}</Kpi>
+            <Kpi label="فرق خرج با فرمول" tip={<Bill intro="اگر پارت دقیقاً طبق فرمول ساخته می‌شد، مواد چقدر خرج داشت؟ فرقش با خرج واقعی همین عدد است. عدد مثبت یعنی گران‌تر شده، منفی یعنی ارزان‌تر." rows={[{ label: 'خرج مواد، با مقدارهای واقعی', value: `${formatToman(report.actual.materialCost)} تومان` }, { label: 'خرج مواد، طبق فرمول', value: `${formatToman(report.standard.materialCost)} تومان` }]} total={{ label: 'فرق', value: `${formatToman(report.extraCost)} تومان` }} />}><span className={report.extraCost > 0 ? 'over' : ''}>{formatToman(report.extraCost)}</span></Kpi>
           </div>
-          {report.actual.missingPrices.length > 0 && <div className="alert err">قیمت این مواد وارد نشده و در هزینه نیامده: {report.actual.missingPrices.map(id => catalog.materials[id]?.name).join('، ')}</div>}
+          {report.actual.missingPrices.length > 0 && <div className="alert err">قیمت این مواد نوشته نشده و در خرج نیامده: {report.actual.missingPrices.map(id => catalog.materials[id]?.name).join('، ')}</div>}
           {report.exceeded.map(l => (
             <div className="alert" key={l.materialId}>
-              انحراف {catalog.materials[l.materialId]?.name}: {l.diffPct == null ? 'ماده خارج از فرمول' : `${toFa(l.diffPct.toFixed(1))}٪`} (حد مجاز {toFa(l.tolerancePct)}٪)، اختلاف هزینه {formatToman(l.diffCost)} تومان
+              {catalog.materials[l.materialId]?.name}: {l.diffPct == null ? 'این ماده در فرمول نبود' : `${toFa(Math.abs(l.diffPct).toFixed(1)).replace('.', '٫')}٪ ${l.diffPct > 0 ? 'بیشتر' : 'کمتر'} از فرمول است`} (حد مجاز {toFa(l.tolerancePct)}٪). این کار پارت را {formatToman(Math.abs(l.diffCost))} تومان {l.diffCost > 0 ? 'گران‌تر' : 'ارزان‌تر'} می‌کند.
             </div>
           ))}
           {shortages.length > 0 && <div className="alert err">موجودی انبار کافی نیست: {shortages.map(s => `${catalog.materials[s.materialId]?.name} (${formatKg(s.missingKg)} کیلو کمبود)`).join('، ')}</div>}

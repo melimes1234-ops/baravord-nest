@@ -46,9 +46,9 @@ function Panel({ closing, onClosed, children }: { closing: boolean; onClosed: ()
 
 const SQM_TIP = (
   <>
-    <p><b>قیمت متر مربع</b> = قیمت هر متر ÷ عرض محصول (به متر). مثلاً عرض ۱۴۰ میلی‌متر یعنی تقسیم بر ۰٫۱۴.</p>
-    <p>عرض از ستون «عرض» در تب «محصولات» می‌آید. اگر عرض پوششی واقعی فرق دارد (مثلاً به‌خاطر قفل و بست بین تخته‌ها)، همان عدد را آن‌جا عوض کنید.</p>
-    <p>برای محصولات توخالی یا مکعبی (مثل Off، IMP و Coffin) قیمت متر مربع با سطح پوشش یکی نیست. برنامه آن را حساب می‌کند ولی خودتان تشخیص بدهید کجا به کار می‌آید.</p>
+    <p><b>قیمت یک متر مربع</b>: برای پوشاندن یک متر مربع چند متر از این محصول لازم است؟ مثلاً اگر عرضش ۱۴ سانتی‌متر است، حدود ۷ متر. قیمت یک متر را در همان تعداد حساب می‌کنیم.</p>
+    <p>عرض محصول را از تب «محصولات» برمی‌داریم. اگر عرضِ واقعی پوشش فرق دارد (مثلاً چون تخته‌ها داخل هم می‌روند)، همان‌جا درستش کنید.</p>
+    <p>برای محصولات توخالی یا مکعبی (مثل Off، IMP و Coffin) قیمت متر مربع معنی خاصی ندارد.</p>
   </>
 )
 
@@ -94,7 +94,7 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
   )
   const tariff: Tariff | undefined = fullTariff && (incl.profit ? fullTariff : { ...fullTariff, marginPct: 0 })
   const excluded = [
-    !incl.waste && 'ضایعات', !incl.overhead && 'سربار کارخانه', !incl.extras && 'کرایه و انبارداری', !incl.profit && 'سود',
+    !incl.waste && 'دورریز مواد', !incl.overhead && 'هزینه‌های ثابت کارخانه', !incl.extras && 'کرایه و انبارداری', !incl.profit && 'سود',
   ].filter(Boolean) as string[]
 
   const groups = useMemo(() => {
@@ -158,14 +158,14 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
       <span className="field-label">چه چیزهایی در قیمت حساب شود؟</span>
       <div className="parts" role="group" aria-label="اجزای قیمت">
         <label className="part on locked-part"><input type="checkbox" checked readOnly disabled /> مواد اولیه <em>همیشه</em></label>
-        <label className={`part${incl.waste ? ' on' : ''}`}><input type="checkbox" checked={incl.waste} onChange={e => setIncl({ ...incl, waste: e.target.checked })} /> ضایعات <em>{toFa(catalog.config.wastePct)}٪</em></label>
-        <label className={`part${incl.overhead ? ' on' : ''}`}><input type="checkbox" checked={incl.overhead} onChange={e => setIncl({ ...incl, overhead: e.target.checked })} /> سربار کارخانه <em>{formatToman(oh)} در هر کیلو</em></label>
-        <label className={`part${incl.extras ? ' on' : ''}`}><input type="checkbox" checked={incl.extras} onChange={e => setIncl({ ...incl, extras: e.target.checked })} /> کرایه و انبارداری <em>{formatToman(ex)} در هر کیلو</em></label>
+        <label className={`part${incl.waste ? ' on' : ''}`}><input type="checkbox" checked={incl.waste} onChange={e => setIncl({ ...incl, waste: e.target.checked })} /> دورریز مواد <em>{toFa(catalog.config.wastePct)}٪</em></label>
+        <label className={`part${incl.overhead ? ' on' : ''}`}><input type="checkbox" checked={incl.overhead} onChange={e => setIncl({ ...incl, overhead: e.target.checked })} /> هزینه‌های ثابت کارخانه <em>{formatToman(oh)} برای هر کیلو</em></label>
+        <label className={`part${incl.extras ? ' on' : ''}`}><input type="checkbox" checked={incl.extras} onChange={e => setIncl({ ...incl, extras: e.target.checked })} /> کرایه و انبارداری <em>{formatToman(ex)} برای هر کیلو</em></label>
         <label className={`part${incl.profit ? ' on' : ''}`}><input type="checkbox" checked={incl.profit} onChange={e => setIncl({ ...incl, profit: e.target.checked })} /> سود <em>{toFa(fullTariff.marginPct)}٪</em></label>
       </div>
       {!allIn && (
         <div className="alert">
-          <b>این قیمت‌ها کامل نیستند.</b> در این نمایش حساب نشده: {excluded.join('، ')}. فقط برای دیدن اثر همین بخش‌هاست و چیزی ذخیره نمی‌شود.{' '}
+          <b>این قیمت‌ها کامل نیستند.</b> این‌ها در قیمت نیامده‌اند: {excluded.join('، ')}. این فقط برای دیدن اثر همین بخش‌هاست و چیزی ذخیره نمی‌شود.{' '}
           <button className="btn ghost" onClick={() => setIncl({ waste: true, overhead: true, extras: true, profit: true })}>همه حساب شود</button>
         </div>
       )}
@@ -173,8 +173,8 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
       <div className="summary">
         {color && <Swatch hex={colorSwatch(color, catalog)} large />}
         <span>قیمت‌ها برای رنگ <b>{color?.name ?? '—'}</b> و تعرفه <b>{fullTariff.name}</b> ({incl.profit ? `${toFa(fullTariff.marginPct)}٪ سود` : 'بدون سود'}){!allIn && <> · <b className="over">ناقص</b></>}</span>
-        <span className="muted">صفحه کابینت رنگ ندارد و همیشه یک قیمت دارد.</span>
-        <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>قیمت متر مربع چطور حساب می‌شود؟ <InfoTip>{SQM_TIP}</InfoTip></span>
+        <span className="muted">صفحه‌ی کابینت رنگ ندارد و فقط یک قیمت دارد.</span>
+        <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>قیمت متر مربع یعنی چه؟ <InfoTip>{SQM_TIP}</InfoTip></span>
       </div>
 
       <div className="tablewrap sticky-head">
@@ -240,7 +240,7 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
           </tbody>
         </table>
       </div>
-      <p className="muted">روی هر محصول بزنید تا ببینید قیمتش از چه چیزهایی ساخته شده. قیمت‌ها به تومان و گرد‌شده به مضرب {toFa(catalog.config.roundTo)} هستند. قیمت متر مربع از عرض محصول حساب می‌شود (قیمت هر متر ÷ عرض به متر). نوار رنگی کنار هر محصول نشان‌دهنده‌ی سری آن است و نوار قرمز یعنی قیمت ناقص.</p>
+      <p className="muted">روی هر محصول بزنید تا ببینید قیمتش از چه چیزهایی ساخته شده. قیمت‌ها به تومان‌اند و به نزدیک‌ترین {toFa(catalog.config.roundTo)} تومان رسانده شده‌اند. نوار رنگی کنار هر محصول نشان می‌دهد از کدام سری است؛ نوار قرمز یعنی قیمتش ناقص است. برای دیدن اینکه هر عدد چطور درآمده، موس را روی ⓘ کنار آن ببرید.</p>
     </div>
   )
 }
@@ -254,8 +254,8 @@ function Breakdown({ catalog, product, colorId, tariff }: { catalog: Catalog; pr
   const profit = price.salePerKg - c.costPerKg
   const parts = [
     { key: 'materials', label: 'مواد', v: c.materialPerKg },
-    { key: 'waste', label: 'ضایعات', v: waste },
-    { key: 'overhead', label: 'سربار', v: c.overheadPerKg },
+    { key: 'waste', label: 'دورریز', v: waste },
+    { key: 'overhead', label: 'هزینه‌های ثابت', v: c.overheadPerKg },
     { key: 'extras', label: 'کرایه و انبارداری', v: c.extrasPerKg },
     { key: 'profit', label: `سود (${toFa(tariff.marginPct)}٪)`, v: profit },
   ]

@@ -24,9 +24,9 @@ export function flatten(
       continue
     }
     const id = item.ref.id
-    if (stack.includes(id)) throw new Error(`چرخه در فرمول‌ها: ${[...stack, id].join(' ← ')}`)
+    if (stack.includes(id)) throw new Error(`فرمول‌ها به هم گره خورده‌اند (هر کدام به دیگری وابسته است): ${[...stack, id].join(' ← ')}`)
     const recipe = catalog.recipes[id]
-    if (!recipe) throw new Error(`فرمول پیدا نشد: ${id}`)
+    if (!recipe) throw new Error(`این فرمول پیدا نشد: ${id}`)
     const total = sumKg(recipe.items)
     if (total <= 0) continue
     flatten(recipe.items, catalog, [...stack, id], (scale * item.qtyKg) / total, out)

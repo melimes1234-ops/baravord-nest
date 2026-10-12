@@ -46,9 +46,9 @@ function entries(catalog: Catalog): Entry[] {
 
 const LOCK_TEXT = (
   <>
-    <p><b>چرا قفل است؟</b> فرمول‌های استاندارد پایه‌ی قیمت همه‌ی محصولات‌اند. یک تغییر کوچک در آن‌ها قیمت کل لیست را عوض می‌کند، پس فعلاً فقط قابل مشاهده‌اند.</p>
-    <p><b>برای آزمایش و بررسی:</b> دکمه‌ی «فرمول جدید» یا «کپی برای آزمایش» را بزنید. فرمول جدید را آزاد ویرایش کنید (کیلو، گرم یا درصد)، هزینه‌اش را همان لحظه ببینید و با «آزمایش اثر روی قیمت» بسنجید که اگر جای فرمول استاندارد بنشیند قیمت‌ها چه می‌شوند.</p>
-    <p>فرمول جدید روی قیمت‌های فعلی اثری ندارد، مگر اینکه آن را عملاً به یک محصول بدهید (تب «محصولات»).</p>
+    <p><b>چرا قفل است؟</b> قیمت همه‌ی محصولات از روی این فرمول‌ها ساخته می‌شود. یک تغییر کوچک، قیمت کل لیست را عوض می‌کند. برای همین فعلاً فقط می‌توانید ببینید.</p>
+    <p><b>می‌خواهید چیزی را امتحان کنید؟</b> دکمه‌ی «فرمول جدید» یا «کپی برای آزمایش» را بزنید. فرمول جدید را هر طور خواستید تغییر بدهید و هزینه‌اش را همان لحظه ببینید. با بخش «آزمایش اثر روی قیمت» می‌فهمید اگر آن فرمول جای فرمول اصلی بود، قیمت‌ها چه می‌شد.</p>
+    <p>تا خودتان فرمول جدید را به یک محصول ندهید (در تب «محصولات»)، قیمت‌های فعلی هیچ تغییری نمی‌کند.</p>
   </>
 )
 
@@ -80,8 +80,8 @@ export function Recipes({ catalog, update }: { catalog: Catalog; update: Update 
           </label>
           <button className="btn" style={{ marginTop: 18 }} onClick={() => setCreating(c => !c)}>+ فرمول جدید</button>
           <InfoTip>
-            <p><b>فرمول جدید</b> راه فعلی برای آزمایش و بررسی است. می‌توانید از صفر شروع کنید یا از روی یک فرمول موجود کپی بگیرید و تغییر بدهید.</p>
-            <p>فرمول‌های استاندارد قفل‌اند تا اشتباهی قیمت همه‌ی محصولات عوض نشود.</p>
+            <p><b>فرمول جدید</b> برای امتحان کردن است. می‌توانید از صفر شروع کنید یا از یک فرمول موجود کپی بگیرید و تغییرش بدهید.</p>
+            <p>فرمول‌های اصلی قفل‌اند تا اشتباهی قیمت همه‌ی محصولات عوض نشود.</p>
           </InfoTip>
         </div>
         {creating && (
@@ -106,7 +106,7 @@ function NewFormula(props: { all: Entry[]; update: Update; onCreated: (k: string
   const [type, setType] = useState<'semi' | 'base' | 'color'>('base')
   const [err, setErr] = useState('')
   const src = all.find(e => key(e) === source)
-  const kindShown = src ? (src.kind === 'color' ? 'رنگ' : src.semi ? 'نیمه‌ساخته' : 'پایه محصول') : null
+  const kindShown = src ? (src.kind === 'color' ? 'رنگ' : src.semi ? 'ماده‌ی ترکیبی' : 'فرمول خودِ محصول') : null
 
   const create = () => {
     const n = name.trim()
@@ -138,8 +138,8 @@ function NewFormula(props: { all: Entry[]; update: Update; onCreated: (k: string
         ) : (
           <label>نوع
             <select value={type} onChange={e => setType(e.target.value as 'semi' | 'base' | 'color')}>
-              <option value="base">پایه محصول</option>
-              <option value="semi">نیمه‌ساخته (مثل PRP)</option>
+              <option value="base">فرمول خودِ محصول</option>
+              <option value="semi">ماده‌ی ترکیبی (مثل PRP)</option>
               <option value="color">رنگ</option>
             </select>
           </label>
@@ -149,7 +149,7 @@ function NewFormula(props: { all: Entry[]; update: Update; onCreated: (k: string
       </div>
       {err && <div className="alert err">{err}</div>}
       <p className="muted" style={{ margin: 0 }}>
-        نیمه‌ساخته را می‌توان داخل فرمول‌های دیگر مصرف کرد. پایه محصول فرمول خود یک محصول است. رنگ روی هر ۱۰۰ کیلو اضافه می‌شود.
+        ماده‌ی ترکیبی (مثل PRP) را می‌شود داخل فرمول‌های دیگر به کار برد. «فرمول خودِ محصول» مال یک محصول است. «رنگ» روی هر ۱۰۰ کیلو اضافه می‌شود.
       </p>
     </div>
   )
@@ -177,7 +177,7 @@ function FormulaView(props: {
     })
   }
   const nameOf = (i: RecipeItem) =>
-    i.ref.kind === 'material' ? catalog.materials[i.ref.id]?.name ?? i.ref.id : `${catalog.recipes[i.ref.id]?.name ?? i.ref.id} (نیمه‌ساخته)`
+    i.ref.kind === 'material' ? catalog.materials[i.ref.id]?.name ?? i.ref.id : `${catalog.recipes[i.ref.id]?.name ?? i.ref.id} (ماده‌ی ترکیبی)`
 
   const shown = (i: RecipeItem) => (unit === 'g' ? i.qtyKg * 1000 : unit === 'pct' ? (total > 0 ? (i.qtyKg / total) * 100 : 0) : i.qtyKg)
   const setShown = (idx: number, v: number) => {
@@ -194,7 +194,7 @@ function FormulaView(props: {
   const addOptions = [
     ...Object.values(catalog.materials).map(m => ({ k: `material:${m.id}`, label: m.name })),
     ...(entry.kind === 'recipe'
-      ? Object.values(catalog.recipes).filter(r => !dependsOn(catalog, r.id, entry.id)).map(r => ({ k: `recipe:${r.id}`, label: `${r.name} (نیمه‌ساخته)` }))
+      ? Object.values(catalog.recipes).filter(r => !dependsOn(catalog, r.id, entry.id)).map(r => ({ k: `recipe:${r.id}`, label: `${r.name} (ماده‌ی ترکیبی)` }))
       : []),
   ].filter(o => !entry.items.some(i => `${i.ref.kind}:${i.ref.id}` === o.k))
 
@@ -260,7 +260,7 @@ function FormulaView(props: {
         </div>
         {!locked && (
           <>
-            <button className="btn ghost" onClick={() => edit(items => normalizeTo(items, 100))} disabled={total <= 0}>نرمال روی ۱۰۰ کیلو</button>
+            <button className="btn ghost" onClick={() => edit(items => normalizeTo(items, 100))} disabled={total <= 0}>جمع را ۱۰۰ کیلو کن</button>
             <button className="btn ghost" onClick={duplicate}>کپی</button>
             {confirmDel ? (
               <>
@@ -279,7 +279,7 @@ function FormulaView(props: {
       <div className="tablewrap">
         <table>
           <thead>
-            <tr><th>جزء</th><th className="n">مقدار ({unitLabel})</th><th className="n">سهم از وزن</th><th>سهم از هزینه</th><th className="n">هزینه</th>{!locked && <th />}</tr>
+            <tr><th>جزء</th><th className="n">مقدار ({unitLabel})</th><th className="n">چقدر از وزن</th><th>چقدر از خرج</th><th className="n">هزینه</th>{!locked && <th />}</tr>
           </thead>
           <tbody>
             {entry.items.map((it, idx) => {
@@ -307,7 +307,7 @@ function FormulaView(props: {
                 </tr>
               )
             })}
-            {entry.items.length === 0 && <tr><td colSpan={6} className="muted">این فرمول هنوز جزئی ندارد. از پایین یک ماده اضافه کنید.</td></tr>}
+            {entry.items.length === 0 && <tr><td colSpan={6} className="muted">این فرمول هنوز هیچ ماده‌ای ندارد. از پایین یک ماده اضافه کنید.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -315,7 +315,7 @@ function FormulaView(props: {
       {!locked && (
         <div className="row" style={{ marginTop: 12 }}>
           <select id="add-item" defaultValue="" aria-label="افزودن جزء">
-            <option value="" disabled>افزودن ماده یا نیمه‌ساخته…</option>
+            <option value="" disabled>افزودن ماده یا ماده‌ی ترکیبی…</option>
             {addOptions.map(o => <option key={o.k} value={o.k}>{o.label}</option>)}
           </select>
           <button className="btn" onClick={() => {
@@ -331,14 +331,14 @@ function FormulaView(props: {
       {fc.rows.length > 0 && total > 0 && (
         <div style={{ marginTop: 14, display: 'grid', gap: 14 }}>
           <div>
-            <span className="field-label">ترکیب وزنی</span>
+            <span className="field-label">هر ماده چند درصدِ وزن است</span>
             <div className="bar" role="img" aria-label="سهم وزنی هر جزء">
               {parts.map(p => <i key={p.id} style={{ width: `${(p.kg / total) * 100}%`, background: colorOf(p.id) }} title={`${p.label}: ${formatKg(p.kg)} کیلو`} />)}
             </div>
             <div className="legend">{parts.map(p => <span key={p.id}><em style={{ background: colorOf(p.id) }} />{p.label}</span>)}</div>
           </div>
           <div>
-            <span className="field-label">کدام ماده بیشترین هزینه را می‌برد؟</span>
+            <span className="field-label">کدام ماده بیشترین پول را می‌برد؟</span>
             <div className="bar" role="img" aria-label="سهم هزینه‌ی هر جزء">
               {parts.map(p => <i key={p.id} style={{ width: `${(p.cost / costTotal) * 100}%`, background: colorOf(p.id) }} title={`${p.label}: ${formatToman(p.cost)}`} />)}
             </div>
@@ -348,8 +348,8 @@ function FormulaView(props: {
 
       <div className="kpis" style={{ marginTop: 14 }}>
         <div className="kpi"><span>وزن کل</span><b>{formatKg(total)} کیلو</b></div>
-        <div className="kpi"><span>هزینه مواد هر کیلو</span><b>{formatToman(fc.perKg)}{fc.incomplete && ' *'}</b></div>
-        <div className="kpi"><span>هزینه کل این فرمول</span><b>{formatToman(fc.totalCost)}{fc.incomplete && ' *'}</b></div>
+        <div className="kpi"><span>مواد یک کیلو چقدر خرج دارد</span><b>{formatToman(fc.perKg)}{fc.incomplete && ' *'}</b></div>
+        <div className="kpi"><span>خرج کل این فرمول</span><b>{formatToman(fc.totalCost)}{fc.incomplete && ' *'}</b></div>
         {source && sourceCost && sourceCost.perKg > 0 && (
           <div className="kpi">
             <span>نسبت به «{source.name}»</span>
@@ -359,7 +359,7 @@ function FormulaView(props: {
           </div>
         )}
       </div>
-      {fc.incomplete && <p className="muted">* قیمت بعضی مواد وارد نشده و در هزینه نیامده است.</p>}
+      {fc.incomplete && <p className="muted">* قیمت بعضی مواد نوشته نشده و در حساب نیامده.</p>}
       {usage && (usage.products.length > 0 || usage.recipes.length > 0) && (
         <p className="muted">
           این فرمول استفاده شده در: {usage.products.length > 0 && `${toFa(usage.products.length)} محصول`}
@@ -403,9 +403,9 @@ function FormulaTest({ catalog, entry, all }: { catalog: Catalog; entry: Entry; 
 
   return (
     <div className="card">
-      <h2>آزمایش اثر روی قیمت <InfoTip><p>این بخش فقط محاسبه می‌کند و هیچ چیزی را تغییر نمی‌دهد. نشان می‌دهد اگر این فرمول جای فرمول انتخاب‌شده می‌نشست، قیمت‌ها چه می‌شد.</p><p>برای استفاده‌ی واقعی، در تب «محصولات» فرمول پایه‌ی یک محصول را روی فرمول جدید بگذارید (فقط برای همان محصول).</p></InfoTip></h2>
+      <h2>آزمایش اثر روی قیمت <InfoTip><p>این بخش فقط حساب می‌کند و هیچ چیز را عوض نمی‌کند. نشان می‌دهد اگر این فرمول جای فرمول دیگر بود، قیمت‌ها چه می‌شد.</p><p>اگر خواستید واقعاً از آن استفاده کنید، در تب «محصولات» فرمول یک محصول را روی آن بگذارید (فقط برای همان محصول).</p></InfoTip></h2>
       <div className="row">
-        <label>جایگزین کدام فرمول شود؟
+        <label>جای کدام فرمول بنشیند؟
           <select value={targetId} onChange={e => setTargetId(e.target.value)}>
             {targets.map(t => <option key={t.id} value={t.id}>{t.name}{t.custom ? ' (آزمایشی)' : ''}</option>)}
           </select>
@@ -426,8 +426,8 @@ function FormulaTest({ catalog, entry, all }: { catalog: Catalog; entry: Entry; 
       {result && result.now && result.next && (
         <>
           <div className="kpis">
-            <div className="kpi"><span>قیمت شاخه {result.p.name} (فعلی)</span><b>{formatToman(result.now.perStick)}</b></div>
-            <div className="kpi" style={{ ['--k' as string]: 'var(--accent)' }}><span>با فرمول آزمایشی</span><b>{formatToman(result.next.perStick)}</b></div>
+            <div className="kpi"><span>قیمت شاخه {result.p.name} (الان)</span><b>{formatToman(result.now.perStick)}</b></div>
+            <div className="kpi" style={{ ['--k' as string]: 'var(--accent)' }}><span>اگر این فرمول بود</span><b>{formatToman(result.next.perStick)}</b></div>
             <div className="kpi">
               <span>تغییر</span>
               <b className={d != null && d > 0 ? 'over' : ''}>{d == null ? '—' : `${d >= 0 ? '▲' : '▼'} ${fa(Math.abs(d), 1)}٪`}</b>
@@ -435,9 +435,9 @@ function FormulaTest({ catalog, entry, all }: { catalog: Catalog; entry: Entry; 
           </div>
           <p className="muted">
             {result.diffs.length === 0
-              ? 'با این جایگزینی قیمت هیچ محصولی تغییر نمی‌کند.'
-              : `قیمت ${toFa(result.diffs.length)} محصول تغییر می‌کند (قیمت هر کیلو: ${Math.min(...result.diffs).toFixed(1) === Math.max(...result.diffs).toFixed(1) ? signed(result.diffs[0]) : `از ${signed(Math.min(...result.diffs))} تا ${signed(Math.max(...result.diffs))}`}).`}
-            {' '}مقایسه با تعرفه «{tariff.name}» انجام شده است.
+              ? 'با این جایگزینی قیمت هیچ محصولی عوض نمی‌شود.'
+              : `قیمت ${toFa(result.diffs.length)} محصول عوض می‌شود (قیمت هر کیلو: ${Math.min(...result.diffs).toFixed(1) === Math.max(...result.diffs).toFixed(1) ? signed(result.diffs[0]) : `از ${signed(Math.min(...result.diffs))} تا ${signed(Math.max(...result.diffs))}`}).`}
+            {' '}حساب با تعرفه «{tariff.name}» انجام شده است.
           </p>
         </>
       )}

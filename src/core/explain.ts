@@ -70,7 +70,7 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
   const items: ExplainItem[] = used.map(i =>
     i.ref.kind === 'material'
       ? { label: catalog.materials[i.ref.id]?.name ?? i.ref.id, kg: i.qtyKg }
-      : { label: `${catalog.recipes[i.ref.id]?.name ?? i.ref.id} (نیمه‌ساخته)`, kg: i.qtyKg, recipeTotalKg: sumKg(catalog.recipes[i.ref.id]?.items ?? []) },
+      : { label: `${catalog.recipes[i.ref.id]?.name ?? i.ref.id} (ماده‌ی ترکیبی)`, kg: i.qtyKg, recipeTotalKg: sumKg(catalog.recipes[i.ref.id]?.items ?? []) },
   )
   const flat = flatten(used, catalog)
   const rows: ExplainRow[] = Object.entries(flat)
@@ -109,32 +109,32 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
 
   const checks: Check[] = [
     missingPrices.length === 0
-      ? { ok: true, level: 'ok', title: 'همه‌ی مواد قیمت دارند', detail: `${rows.length} ماده‌ی خام در این پارت استفاده می‌شود.` }
-      : { ok: false, level: 'error', title: 'قیمت بعضی مواد وارد نشده', detail: `${missingPrices.join('، ')}. تا قیمتشان را وارد نکنید، هزینه‌شان صفر حساب می‌شود و قیمت محصول کمتر از واقعی درمی‌آید.` },
+      ? { ok: true, level: 'ok', title: 'همه‌ی مواد قیمت دارند', detail: `${rows.length} ماده در این پارت هست و برای همه‌شان قیمت نوشته شده.` }
+      : { ok: false, level: 'error', title: 'قیمت بعضی مواد نوشته نشده', detail: `${missingPrices.join('، ')}. قیمتشان را در تب «مواد» بنویسید. تا آن موقع قیمت محصول کمتر از واقعی درمی‌آید.` },
     zeroPriced.length === 0
-      ? { ok: true, level: 'ok', title: 'قیمت صفر مشکوک نیست', detail: 'فقط ضایعات می‌تواند رایگان باشد.' }
-      : { ok: false, level: 'warn', title: 'ماده‌ای با قیمت صفر', detail: `${zeroPriced.join('، ')} قیمت صفر دارد. اگر عمدی نیست، اصلاح کنید.` },
+      ? { ok: true, level: 'ok', title: 'قیمت صفر مشکوکی نیست', detail: 'فقط دورریز مواد می‌تواند رایگان باشد.' }
+      : { ok: false, level: 'warn', title: 'قیمت یک ماده صفر است', detail: `${zeroPriced.join('، ')} قیمت صفر دارد. اگر عمدی نیست، درستش کنید.` },
     w == null
-      ? { ok: false, level: 'error', title: 'وزن شاخه وارد نشده', detail: 'بدون وزن، قیمت هر متر و هر شاخه حساب نمی‌شود.' }
-      : { ok: true, level: 'ok', title: 'وزن محصول وارد شده', detail: `${w} گرم برای شاخه ${lengthM} متری (${(w / lengthM).toFixed(0)} گرم برای هر متر).` },
+      ? { ok: false, level: 'error', title: 'وزن شاخه را ننوشته‌اید', detail: 'بدون وزن، قیمت شاخه و متر معلوم نمی‌شود. وزن را در تب «محصولات» بنویسید.' }
+      : { ok: true, level: 'ok', title: 'وزن شاخه نوشته شده', detail: `هر شاخه ${lengthM} متری ${w} گرم وزن دارد.` },
     widthM != null
-      ? { ok: true, level: 'ok', title: 'عرض محصول وارد شده', detail: `${product.widthMm} میلی‌متر. قیمت متر مربع از روی همین عرض حساب می‌شود.` }
-      : { ok: false, level: 'warn', title: 'عرض محصول وارد نشده', detail: 'بدون عرض، قیمت هر متر مربع حساب نمی‌شود. عرض را در تب «محصولات» بنویسید.' },
+      ? { ok: true, level: 'ok', title: 'عرض محصول نوشته شده', detail: `${product.widthMm} میلی‌متر. قیمت متر مربع از روی همین حساب می‌شود.` }
+      : { ok: false, level: 'warn', title: 'عرض محصول را ننوشته‌اید', detail: 'بدون عرض، قیمت متر مربع معلوم نمی‌شود. عرض را در تب «محصولات» بنویسید.' },
     monthlyCostTotal > 0 && cfg.monthlyProductionKg > 0
-      ? { ok: true, level: 'ok', title: 'سربار کارخانه وارد شده', detail: 'هزینه‌ی ماهانه و کیلوی تولید وارد شده است.' }
-      : { ok: false, level: 'warn', title: 'سربار صفر است', detail: 'هزینه‌های ماهانه یا کیلوی تولید ماه را وارد نکرده‌اید، پس برق، حقوق و مانند آن در قیمت نیامده است.' },
+      ? { ok: true, level: 'ok', title: 'هزینه‌های ثابت کارخانه نوشته شده', detail: 'هزینه‌های ماهانه و کیلوی تولید این ماه وارد شده است.' }
+      : { ok: false, level: 'warn', title: 'هزینه‌های ثابت کارخانه نوشته نشده', detail: 'برق، حقوق، اجاره و مانند آن هنوز وارد نشده و در قیمت نیست. در تب «هزینه‌ها» بنویسید.' },
     totalKg >= 95 && totalKg <= 105
-      ? { ok: true, level: 'ok', title: 'وزن پارت نزدیک ۱۰۰ کیلو است', detail: `مجموع فرمول (پایه + رنگ) ${totalKg.toFixed(2)} کیلو است.` }
-      : { ok: false, level: 'warn', title: 'وزن پارت از ۱۰۰ کیلو دور است', detail: `مجموع فرمول ${totalKg.toFixed(2)} کیلو است. فرمول‌ها باید برای ۱۰۰ کیلو باشند؛ احتمالاً یکی از مقدارها اشتباه است.` },
+      ? { ok: true, level: 'ok', title: 'وزن پارت حدود ۱۰۰ کیلو است', detail: `جمع فرمول (خود محصول و رنگ) ${totalKg.toFixed(2)} کیلو می‌شود.` }
+      : { ok: false, level: 'warn', title: 'وزن پارت با ۱۰۰ کیلو فرق زیادی دارد', detail: `فرمول‌ها باید روی ۱۰۰ کیلو نوشته شده باشند. الان ${totalKg.toFixed(2)} کیلو می‌شود؛ احتمالاً یکی از مقدارها اشتباه است.` },
     cfg.wastePct >= 0 && cfg.wastePct <= 30
-      ? { ok: true, level: 'ok', title: 'درصد ضایعات منطقی است', detail: `${cfg.wastePct}٪` }
-      : { ok: false, level: 'warn', title: 'درصد ضایعات غیرعادی است', detail: `${cfg.wastePct}٪ خیلی زیاد است.` },
+      ? { ok: true, level: 'ok', title: 'درصد دورریز معقول است', detail: `${cfg.wastePct}٪ از مواد دورریز می‌شود.` }
+      : { ok: false, level: 'warn', title: 'درصد دورریز زیاد است', detail: `${cfg.wastePct}٪ خیلی زیاد است. مطمئن هستید؟` },
     tariff.marginPct >= 0
-      ? { ok: true, level: 'ok', title: 'درصد سود منفی نیست', detail: `${tariff.marginPct}٪` }
-      : { ok: false, level: 'error', title: 'درصد سود منفی است', detail: 'قیمت فروش کمتر از تمام‌شده می‌شود.' },
+      ? { ok: true, level: 'ok', title: 'سود منفی نیست', detail: `سود این تعرفه ${tariff.marginPct}٪ است.` }
+      : { ok: false, level: 'error', title: 'سود منفی است', detail: 'یعنی با ضرر می‌فروشید.' },
     engineMatches
-      ? { ok: true, level: 'ok', title: 'محاسبه‌ی مستقل با موتور قیمت یکی است', detail: 'همین قدم‌ها را یک بار دیگر جدا از لیست قیمت حساب کردیم و جواب یکی شد.' }
-      : { ok: false, level: 'error', title: 'اختلاف با لیست قیمت', detail: 'عدد این صفحه با لیست قیمت فرق دارد. این یعنی اشکال از خود برنامه است. لطفاً خبر بدهید.' },
+      ? { ok: true, level: 'ok', title: 'یک بار دیگر هم حساب کردیم و جواب یکی شد', detail: 'محاسبه را جدا از لیست قیمت تکرار کردیم و همان جواب درآمد.' }
+      : { ok: false, level: 'error', title: 'عدد این صفحه با لیست قیمت فرق دارد', detail: 'این یعنی اشکال از خود برنامه است. لطفاً خبر بدهید.' },
   ]
 
   return {

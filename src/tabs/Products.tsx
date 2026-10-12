@@ -49,19 +49,19 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
         <h2>محصولات و وزن ({Object.keys(catalog.products).length} محصول)</h2>
         <div className="row">
           <div>
-            <span className="field-label">وزن را برای چه مقداری وارد می‌کنید؟</span>
+            <span className="field-label">وزن را برای چه مقداری می‌نویسید؟</span>
             <div className="seg" role="group" aria-label="مقدار وزن">
               <button aria-pressed={per === 'stick'} onClick={() => setPer('stick')}>کل شاخه</button>
               <button aria-pressed={per === 'meter'} onClick={() => setPer('meter')}>۱ متر</button>
             </div>
           </div>
-          <span className="muted">در هر دو حالت یک عدد ذخیره می‌شود (وزن شاخه = وزن ۱ متر × طول شاخه)، پس محاسبات هیچ فرقی نمی‌کند.</span>
+          <span className="muted">وزن را برای کل شاخه یا برای ۱ متر بنویسید؛ در قیمت فرقی نمی‌کند.</span>
           <InfoTip>
-            <p><b>طول شاخه:</b> هر محصول طول شاخه‌ی خودش را دارد. معمولاً ۳ متر است و صفحه‌ی کابینت ۴٫۱ متر. قیمت هر متر = قیمت شاخه ÷ طول شاخه.</p>
-            <p><b>وزن:</b> می‌توانید وزن را برای کل شاخه یا برای ۱ متر وارد کنید. محاسبات فرقی نمی‌کند، چون همیشه وزن کل شاخه ذخیره می‌شود.</p>
-            <p>اگر وزن ۱ متری گرد نباشد (مثلاً ۱۰۳۶٫۶۷)، در طول شاخه ضرب می‌شود و ممکن است وزن شاخه چند صدم گرم فرق کند. در قیمت اثری ندارد.</p>
-            <p><b>عرض:</b> برای قیمت متر مربع استفاده می‌شود (قیمت هر متر ÷ عرض به متر). اگر عرض پوششی واقعی با عرض اسمی فرق دارد، همین‌جا عوضش کنید.</p>
-            <p>برای محصولات توخالی یا مکعبی (مثل Off، IMP و Coffin) قیمت متر مربع با سطح پوشش یکی نیست.</p>
+            <p><b>طول شاخه:</b> هر محصول طول خودش را دارد. معمولاً ۳ متر است و صفحه‌ی کابینت ۴٫۱ متر. قیمت یک متر را از تقسیم قیمت شاخه بر همین طول درمی‌آوریم.</p>
+            <p><b>وزن:</b> می‌توانید وزن کل شاخه را بنویسید یا وزن ۱ متر را. برنامه خودش همیشه وزن کل شاخه را نگه می‌دارد، پس قیمت فرقی نمی‌کند.</p>
+            <p>اگر وزن ۱ متر عدد گرد نباشد (مثلاً ۱۰۳۶٫۶۷)، ممکن است وزن شاخه چند صدم گرم فرق کند. در قیمت اثری ندارد.</p>
+            <p><b>عرض:</b> برای حساب قیمت متر مربع لازم است. اگر عرضِ واقعی پوشش با عرض نوشته‌شده فرق دارد، همین‌جا درستش کنید.</p>
+            <p>برای محصولات توخالی یا مکعبی (مثل Off، IMP و Coffin) قیمت متر مربع معنی خاصی ندارد.</p>
           </InfoTip>
         </div>
         <div className="tablewrap scroll-box">
@@ -85,7 +85,7 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
                     </td>
                     <td><input type="checkbox" checked={p.colorable} onChange={e => update(s => { s.catalog.products[p.id].colorable = e.target.checked })} aria-label="رنگ‌پذیر" style={{ minWidth: 0 }} /></td>
                     <td>
-                      {p.weightPer3mG == null && p.colorable && <><Tag kind="err">وزن وارد نشده</Tag>{' '}</>}
+                      {p.weightPer3mG == null && p.colorable && <><Tag kind="err">وزن نوشته نشده</Tag>{' '}</>}
                       {confirmDel === p.id ? (
                         <>
                           <button className="btn danger" onClick={() => { update(s => { delete s.catalog.products[p.id] }); setConfirmDel(null) }}>حذف شود</button>{' '}
@@ -102,7 +102,7 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
           </table>
         </div>
         <p className="muted">
-          با حذف یک محصول، فقط از لیست قیمت و پارت‌های جدید برداشته می‌شود. پارت‌هایی که قبلاً با آن ثبت شده‌اند و موجودی انبار دست نمی‌خورند.
+          با حذف یک محصول، فقط از لیست قیمت و از پارت‌های جدید کم می‌شود. پارت‌های قبلی و موجودی انبار همان‌طور می‌مانند.
         </p>
       </div>
 
@@ -124,7 +124,7 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
           <button className="btn" onClick={add}>افزودن محصول</button>
         </div>
         {err && <div className="alert err">{err}</div>}
-        <p className="muted">محصول جدید بلافاصله در لیست قیمت می‌آید. اگر وزن را خالی بگذارید، قیمت هر متر و شاخه حساب نمی‌شود تا وزن را وارد کنید.</p>
+        <p className="muted">محصول جدید همان لحظه در لیست قیمت می‌آید. تا وزنش را ننویسید، قیمت شاخه و متر معلوم نمی‌شود.</p>
       </div>
     </>
   )

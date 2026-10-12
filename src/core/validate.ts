@@ -14,7 +14,7 @@ export function validateCatalog(c: Catalog): Issue[] {
 
   for (const p of Object.values(c.products)) {
     if (p.weightPer3mG == null) {
-      issues.push({ level: 'warn', where: p.name, message: 'وزن شاخه ۳ متری وارد نشده؛ قیمت هر متر محاسبه نمی‌شود' })
+      issues.push({ level: 'warn', where: p.name, message: 'وزن شاخه نوشته نشده؛ قیمت شاخه و متر معلوم نمی‌شود' })
     }
     const base = c.recipes[p.baseRecipeId]
     if (!base) {
@@ -33,13 +33,13 @@ export function validateCatalog(c: Catalog): Issue[] {
   }
   for (const id of used) {
     const m = c.materials[id]
-    if (!m) issues.push({ level: 'error', where: id, message: 'ماده در لیست مواد نیست' })
-    else if (m.pricePerKg == null) issues.push({ level: 'warn', where: m.name, message: 'قیمت ماده وارد نشده' })
+    if (!m) issues.push({ level: 'error', where: id, message: 'این ماده در لیست مواد نیست' })
+    else if (m.pricePerKg == null) issues.push({ level: 'warn', where: m.name, message: 'قیمت ماده نوشته نشده' })
   }
   if (c.config.monthlyCosts.length === 0) {
-    issues.push({ level: 'warn', where: 'هزینه‌ها', message: 'هزینه‌های ماهانه وارد نشده؛ سربار صفر حساب می‌شود' })
+    issues.push({ level: 'warn', where: 'هزینه‌ها', message: 'هزینه‌های ثابت کارخانه نوشته نشده؛ در قیمت نیامده' })
   } else if (c.config.monthlyProductionKg <= 0) {
-    issues.push({ level: 'error', where: 'هزینه‌ها', message: 'کیلوی تولید ماهانه وارد نشده' })
+    issues.push({ level: 'error', where: 'هزینه‌ها', message: 'کیلوی تولید این ماه نوشته نشده' })
   }
   return issues
 }

@@ -28,7 +28,7 @@ describe('recipe costing', () => {
   it('detects cycles', () => {
     const c = cat()
     c.recipes.prp.items.push({ ref: { kind: 'recipe', id: 'wpc-profile' }, qtyKg: 1 })
-    expect(() => flatten(c.recipes['wpc-profile'].items, c)).toThrow(/چرخه/)
+    expect(() => flatten(c.recipes['wpc-profile'].items, c)).toThrow(/به هم گره خورده/)
   })
 
   it('changing a material price changes PRP and every product using it', () => {
@@ -188,8 +188,8 @@ describe('validation and formatting', () => {
   it('reports missing prices, weights and overhead', () => {
     const msgs = validateCatalog(cat()).map(i => i.message).join('|')
     expect(msgs).toMatch(/وزن شاخه/)
-    expect(msgs).toMatch(/قیمت ماده وارد نشده/)
-    expect(msgs).toMatch(/هزینه‌های ماهانه/)
+    expect(msgs).toMatch(/قیمت ماده نوشته نشده/)
+    expect(msgs).toMatch(/هزینه‌های ثابت کارخانه/)
   })
 
   it('parses Persian digits and separators', () => {
@@ -298,7 +298,7 @@ describe('calculation explanation', () => {
           expect(e.perStick).toBe(eng.perStick)
           expect(e.perMeter).toBe(eng.perMeter)
           expect(e.salePerKg).toBeCloseTo(eng.salePerKg, 6)
-          expect(e.checks.find(k => k.title.startsWith('محاسبه‌ی مستقل'))?.ok).toBe(true)
+          expect(e.checks.find(k => k.title.startsWith('یک بار دیگر هم حساب کردیم'))?.ok).toBe(true)
         }
       }
     }
@@ -321,7 +321,7 @@ describe('calculation explanation', () => {
     const c = cat()
     const bad = explainPrice(c.products['t-once'], 'n3', c.tariffs[0], c)
     const titles = bad.checks.filter(k => !k.ok).map(k => k.title)
-    expect(titles).toEqual(expect.arrayContaining(['قیمت بعضی مواد وارد نشده', 'وزن شاخه وارد نشده', 'سربار صفر است']))
+    expect(titles).toEqual(expect.arrayContaining(['قیمت بعضی مواد نوشته نشده', 'وزن شاخه را ننوشته‌اید', 'هزینه‌های ثابت کارخانه نوشته نشده']))
     const c2 = full()
     expect(explainPrice(c2.products.flex, 'n1', c2.tariffs[0], c2).checks.every(k => k.ok)).toBe(true)
   })
@@ -354,7 +354,7 @@ describe('price per square metre', () => {
     expect(e.perSqm).toBe(priceProduct(c.products.flex, 'n1', c.tariffs[0], c).perSqm)
     expect(e.widthM).toBeCloseTo(0.14, 9)
     c.products.flex.widthMm = undefined
-    expect(explainPrice(c.products.flex, 'n1', c.tariffs[0], c).checks.some(k => !k.ok && k.title === 'عرض محصول وارد نشده')).toBe(true)
+    expect(explainPrice(c.products.flex, 'n1', c.tariffs[0], c).checks.some(k => !k.ok && k.title === 'عرض محصول را ننوشته‌اید')).toBe(true)
   })
 })
 

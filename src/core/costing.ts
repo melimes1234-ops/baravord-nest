@@ -19,7 +19,7 @@ export function overheadPerKg(config: Config): { value: number; warning?: string
   const total = config.monthlyCosts.reduce((s, c) => s + c.amount, 0)
   if (total === 0) return { value: 0 }
   if (config.monthlyProductionKg <= 0) {
-    return { value: 0, warning: 'کیلوی تولید ماهانه وارد نشده؛ سربار حساب نشد' }
+    return { value: 0, warning: 'کیلوی تولید این ماه نوشته نشده؛ هزینه‌های ثابت کارخانه حساب نشد' }
   }
   return { value: total / config.monthlyProductionKg }
 }
@@ -45,7 +45,7 @@ export function costFlat(
   }
   const warnings: string[] = []
   const wasteFactor = 1 - config.wastePct / 100
-  if (wasteFactor <= 0) throw new Error('درصد ضایعات باید کمتر از ۱۰۰ باشد')
+  if (wasteFactor <= 0) throw new Error('درصد دورریز باید کمتر از ۱۰۰ باشد')
   const materialPerKg = kg > 0 ? materialCost / kg : 0
   const oh = overheadPerKg(config)
   if (oh.warning) warnings.push(oh.warning)

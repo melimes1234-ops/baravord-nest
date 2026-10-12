@@ -9,11 +9,11 @@ export function Materials({ catalog, update }: { catalog: Catalog; update: Updat
   const [name, setName] = useState('')
   return (
     <div className="card">
-      <h2>مواد اولیه و قیمت هر کیلو</h2>
+      <h2>مواد اولیه: هر کیلو چند تومان است؟</h2>
       <div className="row">
         <label style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <input type="checkbox" checked={rial} onChange={e => setRial(e.target.checked)} style={{ minWidth: 0 }} />
-          قیمت را به ریال وارد می‌کنم (تقسیم بر ۱۰ و ذخیره به تومان)
+          قیمت‌ها را به ریال می‌نویسم (برنامه خودش به تومان تبدیل می‌کند)
         </label>
       </div>
       <div className="tablewrap scroll-box">
@@ -32,7 +32,7 @@ export function Materials({ catalog, update }: { catalog: Catalog; update: Updat
                   />
                 </td>
                 <td className="n">{formatToman(m.pricePerKg)}</td>
-                <td>{m.pricePerKg == null && <Tag kind="err">قیمت وارد نشده</Tag>}</td>
+                <td>{m.pricePerKg == null && <Tag kind="err">قیمت نوشته نشده</Tag>}</td>
               </tr>
             ))}
           </tbody>

@@ -1,80 +1,79 @@
 import type { ReactNode } from 'react'
 import { faNum, formatKg, formatToman, toFa, type Explain } from '../core'
+import { Bill } from '../ui'
 
-const m = formatToman
-/** Numbers read left-to-right even inside Persian text. */
-const N = ({ children }: { children: ReactNode }) => <bdi dir="ltr" className="num-inline">{children}</bdi>
-const more = <p className="tip-more">همه‌ی قدم‌ها را در تب «محاسبات» ببینید.</p>
+const t = (n: number | null) => `${formatToman(n)} تومان`
 
 export type KpiKind = 'cost' | 'sale' | 'stick' | 'meter' | 'sqm'
 
-/** What the number is, and how it was calculated, with this product's real numbers. */
+/** What the number is, in plain words, with this product's real numbers. */
 export function kpiTip(kind: KpiKind, e: Explain): ReactNode {
   switch (kind) {
     case 'cost':
       return (
-        <>
-          <p><b>قیمت تمام‌شده‌ی هر کیلو</b>: پولی که کارخانه برای ساختن یک کیلو از این محصول خرج می‌کند.</p>
-          <p>مواد (با ضایعات) + سربار کارخانه + کرایه و انبارداری</p>
-          <p><N>{m(e.afterWastePerKg)} + {m(e.overheadPerKg)} + {m(e.extrasPerKg)} = {m(e.costPerKg)}</N></p>
-          {more}
-        </>
+        <Bill
+          intro="این همان پولی است که کارخانه برای ساختن یک کیلو از این محصول خرج می‌کند."
+          rows={[
+            { label: 'مواد (با دورریز)', value: t(e.afterWastePerKg) },
+            { label: 'هزینه‌های ثابت کارخانه (برق، حقوق ...)', value: t(e.overheadPerKg) },
+            { label: 'کرایه و انبارداری', value: t(e.extrasPerKg) },
+          ]}
+          total={{ label: 'خرج ساخت یک کیلو', value: t(e.costPerKg) }}
+          note={e.overheadPerKg === 0 ? 'هزینه‌های ثابت کارخانه هنوز نوشته نشده، برای همین صفر حساب شده.' : undefined}
+        />
       )
     case 'sale':
       return (
-        <>
-          <p><b>قیمت فروش هر کیلو</b>: قیمت تمام‌شده به‌اضافه‌ی سود تعرفه «{e.tariff.name}».</p>
-          <p>قیمت تمام‌شده × (۱ + درصد سود)</p>
-          <p><N>{m(e.costPerKg)} × (۱ + {toFa(e.marginPct)}٪) = {m(e.salePerKg)}</N></p>
-          {more}
-        </>
+        <Bill
+          intro="قیمت فروش یعنی خرج ساخت، به‌اضافه‌ی سود."
+          rows={[
+            { label: 'خرج ساخت یک کیلو', value: t(e.costPerKg) },
+            { label: `سود (${toFa(e.marginPct)}٪ از آن)`, value: t(e.profitPerKg) },
+          ]}
+          total={{ label: 'قیمت فروش یک کیلو', value: t(e.salePerKg) }}
+        />
       )
     case 'stick':
+      if (e.weightG == null)
+        return <Bill intro="قیمت یک شاخه." rows={[]} note={<span className="bad">وزن این محصول را هنوز ننوشته‌اید. در تب «محصولات» وزنش را بنویسید.</span>} />
       return (
-        <>
-          <p><b>قیمت یک شاخه</b> ({faNum(e.lengthM)} متری).</p>
-          {e.weightG == null ? (
-            <p className="over">وزن این محصول وارد نشده، پس قیمت شاخه حساب نمی‌شود.</p>
-          ) : (
-            <>
-              <p>قیمت فروش هر کیلو × وزن شاخه (به کیلو)</p>
-              <p><N>{m(e.salePerKg)} × {formatKg(e.weightG / 1000)} کیلو = {m(e.perStickRaw)}</N></p>
-              <p>بعد به مضرب <N>{m(e.roundStep)}</N> گرد می‌شود: <N>{m(e.perStick)}</N></p>
-            </>
-          )}
-          {more}
-        </>
+        <Bill
+          intro="قیمت یک شاخه را از روی وزنش حساب می‌کنیم: هر کیلو چند تومان است، شاخه چند کیلو وزن دارد."
+          rows={[
+            { label: 'قیمت یک کیلو', value: t(e.salePerKg) },
+            { label: 'وزن یک شاخه', value: `${formatKg(e.weightG / 1000)} کیلو` },
+          ]}
+          total={{ label: `قیمت یک شاخه ${faNum(e.lengthM)} متری`, value: t(e.perStick) }}
+          note={`عدد را به نزدیک‌ترین ${formatToman(e.roundStep)} تومان رسانده‌ایم.`}
+        />
       )
     case 'meter':
+      if (e.weightG == null || e.perStickRaw == null)
+        return <Bill intro="قیمت یک متر." rows={[]} note={<span className="bad">وزن این محصول را هنوز ننوشته‌اید. در تب «محصولات» وزنش را بنویسید.</span>} />
       return (
-        <>
-          <p><b>قیمت هر متر</b>: قیمت شاخه تقسیم بر طول شاخه.</p>
-          {e.weightG == null || e.perStickRaw == null ? (
-            <p className="over">وزن این محصول وارد نشده، پس قیمت متر حساب نمی‌شود.</p>
-          ) : (
-            <>
-              <p><N>{m(e.perStickRaw)} ÷ {faNum(e.lengthM)} متر = {m(e.perMeterRaw)}</N></p>
-              <p>بعد به مضرب <N>{m(e.roundStep)}</N> گرد می‌شود: <N>{m(e.perMeter)}</N></p>
-            </>
-          )}
-          {more}
-        </>
+        <Bill
+          intro="قیمت یک شاخه را بین متر‌هایش تقسیم می‌کنیم."
+          rows={[
+            { label: 'قیمت یک شاخه', value: t(e.perStickRaw) },
+            { label: 'طول شاخه', value: `${faNum(e.lengthM)} متر` },
+          ]}
+          total={{ label: 'قیمت یک متر', value: t(e.perMeter) }}
+          note={`عدد را به نزدیک‌ترین ${formatToman(e.roundStep)} تومان رسانده‌ایم.`}
+        />
       )
     case 'sqm':
+      if (e.widthM == null || e.perMeterRaw == null)
+        return <Bill intro="قیمت یک متر مربع." rows={[]} note={<span className="bad">برای این قیمت، هم وزن و هم عرض محصول لازم است. عرض را در تب «محصولات» بنویسید.</span>} />
       return (
-        <>
-          <p><b>قیمت هر متر مربع</b>: هر متر از محصول فقط به اندازه‌ی عرضش سطح را می‌پوشاند.</p>
-          {e.widthM == null || e.perMeterRaw == null ? (
-            <p className="over">برای این قیمت، هم وزن و هم عرض محصول لازم است. عرض را در تب «محصولات» بنویسید.</p>
-          ) : (
-            <>
-              <p>قیمت هر متر ÷ عرض (به متر)</p>
-              <p><N>{m(e.perMeterRaw)} ÷ {formatKg(e.widthM)} متر = {m(e.perSqmRaw)}</N></p>
-              <p>بعد به مضرب <N>{m(e.roundStep)}</N> گرد می‌شود: <N>{m(e.perSqm)}</N></p>
-            </>
-          )}
-          {more}
-        </>
+        <Bill
+          intro="برای پوشاندن یک متر مربع، چند متر از این محصول لازم است؟ هرچه محصول باریک‌تر باشد، متر بیشتری می‌خواهد."
+          rows={[
+            { label: 'عرض محصول', value: `${formatKg(e.widthM)} متر` },
+            { label: 'متر لازم برای یک متر مربع', value: `${faNum(Math.round((1 / e.widthM) * 100) / 100)} متر` },
+            { label: 'قیمت یک متر', value: t(e.perMeterRaw) },
+          ]}
+          total={{ label: 'قیمت یک متر مربع', value: t(e.perSqm) }}
+        />
       )
   }
 }

@@ -184,3 +184,45 @@ export function Kpi(props: { label: string; children: ReactNode; tip?: ReactNode
     </div>
   )
 }
+
+/** "۹٬۴۷۶ تومان": the number stays left-to-right, the unit is read after it in Persian order. */
+function BillValue({ v }: { v: ReactNode }) {
+  if (typeof v === 'string') {
+    const m = v.match(/^([-−\d۰-۹٬٫.,]+)\s+(\S.*)$/)
+    if (m) return <><bdi dir="ltr">{m[1]}</bdi> {m[2]}</>
+  }
+  return <bdi dir="ltr">{v}</bdi>
+}
+
+/**
+ * A tiny bill: a one-sentence explanation, labelled numbers, and a highlighted total.
+ * Used instead of formulas so nobody has to read maths.
+ */
+export function Bill(props: {
+  intro?: ReactNode
+  rows: { label: string; value: ReactNode }[]
+  total?: { label: string; value: ReactNode }
+  note?: ReactNode
+}) {
+  const { intro, rows, total, note } = props
+  return (
+    <div className="bill">
+      {intro && <p className="bill-intro">{intro}</p>}
+      <dl className="bill-rows">
+        {rows.map(r => (
+          <div key={r.label}>
+            <dt>{r.label}</dt>
+            <dd><BillValue v={r.value} /></dd>
+          </div>
+        ))}
+      </dl>
+      {total && (
+        <div className="bill-total">
+          <span>{total.label}</span>
+          <b><BillValue v={total.value} /></b>
+        </div>
+      )}
+      {note && <p className="bill-note">{note}</p>}
+    </div>
+  )
+}

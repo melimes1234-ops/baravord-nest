@@ -1,25 +1,21 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { calcCsv, explainPrice, faNum, formatKg, formatToman, toFa, type Catalog, type Check, type Explain } from '../core'
 import { DEMO } from '../demo'
-import { InfoTip, Kpi, Tag } from '../ui'
+import { Bill, InfoTip, Kpi, Tag } from '../ui'
 import { kpiTip } from './KpiTips'
 
 const money = (n: number | null) => formatToman(n)
 const kg = (n: number) => formatKg(n, 3)
-const pct = (n: number) => toFa(String(Math.round(n * 100) / 100)).replace('.', '٫')
-/** Numbers read left-to-right even inside Persian text. */
-const N = ({ children }: { children: ReactNode }) => <bdi dir="ltr" className="num-inline">{children}</bdi>
+const t = (n: number | null) => `${money(n)} تومان`
 
-function Step(props: { n: number; title: string; what: ReactNode; calc?: ReactNode; result: ReactNode; note?: ReactNode; children?: ReactNode }) {
+function Step(props: { n: number; title: string; what: ReactNode; note?: ReactNode; children?: ReactNode }) {
   return (
     <li className="calc-step">
       <span className="step-num" aria-hidden="true">{toFa(props.n)}</span>
       <div className="step-body">
         <b>{props.title}</b>
-        <div className="calc-line"><span className="calc-tag">چه کار می‌کنیم؟</span> {props.what}</div>
-        {props.calc && <div className="calc-line"><span className="calc-tag">با عددها</span> {props.calc}</div>}
+        <p className="calc-what">{props.what}</p>
         {props.children}
-        <div className="calc-result"><span>جواب</span> {props.result}</div>
         {props.note && <div className="calc-note">{props.note}</div>}
       </div>
     </li>
@@ -33,10 +29,10 @@ function summaryText(e: Explain): string {
   L.push('مواد خام در پارت:')
   for (const r of e.rows) L.push(`  ${r.name}: ${kg(r.kg)} کیلو × ${r.pricePerKg == null ? 'بدون قیمت' : money(r.pricePerKg)} = ${r.cost == null ? '—' : money(r.cost)}`)
   L.push(`۱) هزینه مواد هر کیلو = ${money(e.materialCost)} ÷ ${kg(e.totalKg)} = ${money(e.materialPerKg)}`)
-  L.push(`۲) با ضایعات ${e.wastePct}٪ = ${money(e.materialPerKg)} ÷ (۱ − ${e.wastePct / 100}) = ${money(e.afterWastePerKg)}`)
-  L.push(`۳) سربار هر کیلو = ${money(e.monthlyCostTotal)} ÷ ${money(e.monthlyProductionKg)} = ${money(e.overheadPerKg)}`)
-  L.push(`۴) کرایه و انبارداری هر کیلو = ${money(e.perBatchCostTotal)} ÷ ${kg(e.batchKg)} = ${money(e.extrasPerKg)}`)
-  L.push(`۵) قیمت تمام‌شده هر کیلو = ${money(e.costPerKg)}`)
+  L.push(`۲) با دورریز ${e.wastePct}٪ = ${money(e.materialPerKg)} ÷ (۱ − ${e.wastePct / 100}) = ${money(e.afterWastePerKg)}`)
+  L.push(`۳) هزینه‌های ثابت کارخانه برای هر کیلو = ${money(e.monthlyCostTotal)} ÷ ${money(e.monthlyProductionKg)} = ${money(e.overheadPerKg)}`)
+  L.push(`۴) کرایه و انبارداری برای هر کیلو = ${money(e.perBatchCostTotal)} ÷ ${kg(e.batchKg)} = ${money(e.extrasPerKg)}`)
+  L.push(`۵) خرج ساخت یک کیلو (قیمت تمام‌شده) = ${money(e.costPerKg)}`)
   L.push(`۶) قیمت فروش هر کیلو = ${money(e.costPerKg)} × (۱ + ${e.marginPct / 100}) = ${money(e.salePerKg)}`)
   L.push(`۷) هر متر = ${money(e.perMeter)} / شاخه ${e.lengthM} متری = ${money(e.perStick)} (وزن ${e.weightG ?? '—'} گرم)`)
   L.push(`۸) هر متر مربع = ${money(e.perMeterRaw)} ÷ ${e.widthM ?? '—'} متر = ${money(e.perSqm)}`)
@@ -90,10 +86,10 @@ export function Calc({ catalog }: { catalog: Catalog }) {
   return (
     <>
       <div className="card">
-        <h2>محاسبات <InfoTip><p>اینجا می‌بینید قیمت هر محصول قدم‌به‌قدم چطور حساب می‌شود.</p><p>اگر عددی غلط به نظر رسید، «کپی خلاصه‌ی محاسبه» را بزنید و برای ما بفرستید.</p></InfoTip></h2>
+        <h2>محاسبات <InfoTip><p>اینجا می‌بینید قیمت هر محصول مرحله‌به‌مرحله چطور درمی‌آید.</p><p>اگر عددی به نظرتان درست نبود، دکمه‌ی «کپی خلاصه‌ی محاسبه» را بزنید و برای ما بفرستید.</p></InfoTip></h2>
         <p style={{ margin: '0 0 12px' }}>
           قیمت هر محصول در ۱۰ قدم ساخته می‌شود. محصول، رنگ و تعرفه را انتخاب کنید و از بالا به پایین بخوانید.
-          هر قدم می‌گوید چه کار می‌کنیم، با چه عددهایی، و جوابش چیست.
+          هر قدم می‌گوید چه کار می‌کنیم و عددهای واقعی را مثل یک صورت‌حساب نشان می‌دهد.
         </p>
         <div className="row">
           <label>محصول
@@ -139,29 +135,37 @@ export function Calc({ catalog }: { catalog: Catalog }) {
       </div>
 
       <div className="card">
-        <h2>قدم‌های محاسبه</h2>
+        <h2>قدم‌ها</h2>
         <ol className="steps calc-steps">
-          <Step n={1} title="اجزای فرمول"
-            what="هر محصول از دو فرمول ساخته می‌شود: فرمول پایه و فرمول رنگ. این دو را کنار هم می‌گذاریم."
-            result={<>وزن این پارت <N>{kg(e.totalKg)}</N> کیلو است</>}>
+          <Step n={1} title="از چه چیزهایی ساخته می‌شود؟"
+            what="هر محصول از دو فرمول ساخته می‌شود: فرمول خودش و فرمول رنگ. این دو را کنار هم می‌گذاریم.">
             <div className="tablewrap"><table>
-              <thead><tr><th>جزء</th><th className="n">کیلو</th></tr></thead>
-              <tbody>{e.items.map((i, k) => <tr key={k}><td>{i.label}</td><td className="n">{kg(i.kg)}</td></tr>)}</tbody>
+              <thead><tr><th>ماده</th><th className="n">کیلو</th></tr></thead>
+              <tbody>
+                {e.items.map((i, k) => <tr key={k}><td>{i.label}</td><td className="n">{kg(i.kg)}</td></tr>)}
+                <tr><td><b>جمع (وزن این پارت)</b></td><td className="n"><b>{kg(e.totalKg)}</b></td></tr>
+              </tbody>
             </table></div>
           </Step>
 
-          <Step n={2} title="تبدیل به مواد خام و هزینه‌ی هر ماده"
-            what="جزءهایی که خودشان از چند ماده ساخته شده‌اند (مثل PRP) را به ماده‌های خامشان باز می‌کنیم. بعد وزن هر ماده را در قیمت یک کیلوی آن ضرب می‌کنیم."
-            calc={sub.length > 0 ? sub.map(i => <div key={i.label}>{i.label}: <N>{kg(i.kg)}</N> کیلو از <N>{kg(i.recipeTotalKg!)}</N> کیلویِ فرمولش را برمی‌داریم، یعنی <N>{toFa((i.kg / i.recipeTotalKg!).toFixed(3)).replace('.', '٫')}</N> از هر ماده‌ی آن فرمول</div>) : undefined}
-            result={<>پول کل مواد این پارت: <N>{money(e.materialCost)}</N> تومان</>}
-            note={e.missingPrices.length > 0 ? <span className="over">بدون قیمت (در هزینه نیامده): {e.missingPrices.join('، ')}</span> : undefined}>
+          <Step n={2} title="هر ماده چقدر خرج دارد؟"
+            what={sub.length > 0
+              ? 'بعضی چیزها خودشان از چند ماده ساخته شده‌اند (مثل PRP). آن‌ها را به ماده‌های اصلی‌شان باز می‌کنیم. بعد برای هر ماده می‌بینیم چند کیلو لازم است و کیلویی چند تومان است.'
+              : 'برای هر ماده می‌بینیم چند کیلو لازم است و کیلویی چند تومان است.'}
+            note={e.missingPrices.length > 0 ? <span className="bad">قیمت این مواد نوشته نشده و در حساب نیامده: {e.missingPrices.join('، ')}</span> : undefined}>
+            {sub.map(i => (
+              <p key={i.label} className="calc-aside">
+                {i.label}: در این پارت {kg(i.kg)} کیلو داریم. این ماده خودش در پارت‌های {kg(i.recipeTotalKg!)} کیلویی ساخته می‌شود،
+                پس از هر ماده‌ی آن حدود {toFa((i.kg / i.recipeTotalKg!).toFixed(2)).replace('.', '٫')} برابر وزنش را برمی‌داریم.
+              </p>
+            ))}
             <div className="tablewrap"><table>
-              <thead><tr><th>ماده‌ی خام</th><th className="n">کیلو</th><th className="n">قیمت هر کیلو</th><th className="n">هزینه</th></tr></thead>
+              <thead><tr><th>ماده</th><th className="n">چند کیلو</th><th className="n">قیمت یک کیلو</th><th className="n">خرج</th></tr></thead>
               <tbody>
                 {e.rows.map(r => (
                   <tr key={r.materialId}>
                     <td>{r.name}</td><td className="n">{kg(r.kg)}</td>
-                    <td className="n">{r.pricePerKg == null ? <Tag kind="err">بدون قیمت</Tag> : money(r.pricePerKg)}</td>
+                    <td className="n">{r.pricePerKg == null ? <Tag kind="err">نوشته نشده</Tag> : money(r.pricePerKg)}</td>
                     <td className="n">{r.cost == null ? '—' : money(r.cost)}</td>
                   </tr>
                 ))}
@@ -170,60 +174,85 @@ export function Calc({ catalog }: { catalog: Catalog }) {
             </table></div>
           </Step>
 
-          <Step n={3} title="هزینه‌ی مواد برای هر کیلو"
-            what="پول کل مواد را بر وزن پارت تقسیم می‌کنیم تا معلوم شود مواد یک کیلو چقدر خرج دارد."
-            calc={<N>{money(e.materialCost)} ÷ {kg(e.totalKg)}</N>}
-            result={<>مواد هر کیلو: <N>{money(e.materialPerKg)}</N> تومان</>} />
+          <Step n={3} title="مواد یک کیلو چقدر خرج دارد؟"
+            what="پول همه‌ی مواد را بین وزن پارت پخش می‌کنیم تا معلوم شود مواد یک کیلو چند تومان می‌شود.">
+            <Bill
+              rows={[{ label: 'پول همه‌ی مواد', value: t(e.materialCost) }, { label: 'وزن پارت', value: `${kg(e.totalKg)} کیلو` }]}
+              total={{ label: 'مواد یک کیلو', value: t(e.materialPerKg) }} />
+          </Step>
 
-          <Step n={4} title="سهم ضایعات"
-            what="در تولید کمی از مواد ضایع می‌شود. این ضرر را روی محصول سالم می‌اندازیم. برای همین قیمت را بر «۱ منهای درصد ضایعات» تقسیم می‌کنیم."
-            calc={<N>{money(e.materialPerKg)} ÷ (۱ − {pct(e.wastePct)}٪)</N>}
-            result={<>مواد هر کیلو با ضایعات: <N>{money(e.afterWastePerKg)}</N> تومان (<N>{money(e.wasteExtraPerKg)}</N> بیشتر از قبل)</>} />
+          <Step n={4} title="دورریز مواد (ضایعات)"
+            what={`در تولید کمی از مواد دورریز می‌شود (الان ${toFa(e.wastePct)}٪). پول این دورریز را روی محصولِ سالم می‌گذاریم.`}>
+            <Bill
+              rows={[{ label: 'مواد یک کیلو', value: t(e.materialPerKg) }, { label: 'اضافه برای دورریز', value: t(e.wasteExtraPerKg) }]}
+              total={{ label: 'مواد یک کیلو، با دورریز', value: t(e.afterWastePerKg) }} />
+          </Step>
 
-          <Step n={5} title="سربار کارخانه"
-            what="هزینه‌های ثابت کارخانه در ماه (برق، حقوق، اجاره و مانند آن) را بین همه‌ی کیلوهایی که همان ماه تولید شده پخش می‌کنیم."
-            calc={<N>{money(e.monthlyCostTotal)} ÷ {money(e.monthlyProductionKg)} کیلو</N>}
-            result={<>سهم هر کیلو از هزینه‌های کارخانه: <N>{money(e.overheadPerKg)}</N> تومان</>}
-            note={e.overheadPerKg === 0 ? <span className="over">سربار صفر است، چون هزینه‌ی ماهانه یا کیلوی تولید وارد نشده.</span> : undefined} />
+          <Step n={5} title="هزینه‌های ثابت کارخانه"
+            what="برق، حقوق، اجاره و مانند آن هر ماه پرداخت می‌شود، چه چیزی بسازیم چه نسازیم. آن را بین همه‌ی کیلوهایی که همان ماه ساخته‌ایم پخش می‌کنیم."
+            note={e.overheadPerKg === 0 ? <span className="bad">این هنوز صفر است، چون هزینه‌های ماهانه یا کیلوی تولید ماه را ننوشته‌اید.</span> : undefined}>
+            <Bill
+              rows={[{ label: 'هزینه‌های ثابت یک ماه', value: t(e.monthlyCostTotal) }, { label: 'کیلوی ساخته‌شده در ماه', value: `${money(e.monthlyProductionKg)} کیلو` }]}
+              total={{ label: 'سهم هر کیلو', value: t(e.overheadPerKg) }} />
+          </Step>
 
-          <Step n={6} title="کرایه، انبارداری و باسکول"
-            what="هزینه‌هایی که برای هر پارت یک بار پرداخت می‌شود (کرایه، انبارداری، باسکول) را بر وزن پارت تقسیم می‌کنیم."
-            calc={<N>{money(e.perBatchCostTotal)} ÷ {kg(e.batchKg)} کیلو</N>}
-            result={<>سهم هر کیلو از این هزینه‌ها: <N>{money(e.extrasPerKg)}</N> تومان</>} />
+          <Step n={6} title="کرایه و انبارداری"
+            what="هزینه‌هایی که برای هر پارت یک بار پرداخت می‌شود (کرایه، انبارداری، باسکول) را بین وزن پارت پخش می‌کنیم.">
+            <Bill
+              rows={[{ label: 'هزینه‌ی یک پارت', value: t(e.perBatchCostTotal) }, { label: 'وزن یک پارت', value: `${kg(e.batchKg)} کیلو` }]}
+              total={{ label: 'سهم هر کیلو', value: t(e.extrasPerKg) }} />
+          </Step>
 
-          <Step n={7} title="قیمت تمام‌شده‌ی هر کیلو"
-            what="سه عدد قبلی را جمع می‌کنیم. این همان پولی است که کارخانه برای ساختن یک کیلو خرج می‌کند."
-            calc={<N>{money(e.afterWastePerKg)} + {money(e.overheadPerKg)} + {money(e.extrasPerKg)}</N>}
-            result={<>قیمت تمام‌شده‌ی هر کیلو: <N>{money(e.costPerKg)}</N> تومان</>} />
+          <Step n={7} title="خرج ساخت یک کیلو (قیمت تمام‌شده)"
+            what="سه عدد قبلی را جمع می‌کنیم. این همان پولی است که کارخانه برای ساختن یک کیلو خرج می‌کند.">
+            <Bill
+              rows={[
+                { label: 'مواد (با دورریز)', value: t(e.afterWastePerKg) },
+                { label: 'هزینه‌های ثابت کارخانه', value: t(e.overheadPerKg) },
+                { label: 'کرایه و انبارداری', value: t(e.extrasPerKg) },
+              ]}
+              total={{ label: 'خرج ساخت یک کیلو', value: t(e.costPerKg) }} />
+          </Step>
 
-          <Step n={8} title="سود و قیمت فروش هر کیلو"
-            what="درصد سود را روی قیمت تمام‌شده اضافه می‌کنیم."
-            calc={<N>{money(e.costPerKg)} × (۱ + {pct(e.marginPct)}٪)</N>}
-            result={<>قیمت فروش هر کیلو: <N>{money(e.salePerKg)}</N> تومان (<N>{money(e.profitPerKg)}</N> از آن سود است)</>} />
+          <Step n={8} title="سود و قیمت فروش یک کیلو"
+            what="سود را روی خرج ساخت می‌گذاریم.">
+            <Bill
+              rows={[{ label: 'خرج ساخت یک کیلو', value: t(e.costPerKg) }, { label: `سود (${toFa(e.marginPct)}٪ از آن)`, value: t(e.profitPerKg) }]}
+              total={{ label: 'قیمت فروش یک کیلو', value: t(e.salePerKg) }} />
+          </Step>
 
-          <Step n={9} title="قیمت هر شاخه و هر متر"
-            what={<>قیمت یک کیلو را در وزن یک شاخه ضرب می‌کنیم (وزن را از گرم به کیلو برمی‌گردانیم). این قیمت شاخه است. قیمت هر متر برابر قیمت شاخه تقسیم بر طول شاخه است (این محصول <N>{faNum(e.lengthM)}</N> متری است). آخر هم گرد می‌کنیم.</>}
-            calc={e.weightG == null ? undefined : (
-              <>
-                <div><N>{money(e.salePerKg)} × {kg(e.weightG / 1000)} کیلو = {money(e.perStickRaw)}</N></div>
-                <div><N>{money(e.perStickRaw)} ÷ {faNum(e.lengthM)} متر = {money(e.perMeterRaw)}</N></div>
-              </>
+          <Step n={9} title="قیمت یک شاخه و یک متر"
+            what={`قیمت یک شاخه از روی وزنش درمی‌آید: هر کیلو چند تومان است و شاخه چند کیلو وزن دارد. بعد قیمت شاخه را بین متر‌هایش (${faNum(e.lengthM)} متر) تقسیم می‌کنیم تا قیمت یک متر دربیاید.`}
+            note={e.weightG != null ? `هر دو عدد را به نزدیک‌ترین ${money(e.roundStep)} تومان رسانده‌ایم. چون هر کدام جدا گرد می‌شوند، ممکن است قیمت متر ضرب‌در طول شاخه، چند ده تومان با قیمت شاخه فرق کند. این خطا نیست.` : undefined}>
+            {e.weightG == null || e.perStickRaw == null ? (
+              <p className="bad">وزن این محصول را هنوز ننوشته‌اید، پس قیمت شاخه و متر معلوم نمی‌شود. در تب «محصولات» وزنش را بنویسید.</p>
+            ) : (
+              <Bill
+                rows={[
+                  { label: 'قیمت یک کیلو', value: t(e.salePerKg) },
+                  { label: 'وزن یک شاخه', value: `${kg(e.weightG / 1000)} کیلو` },
+                  { label: 'قیمت یک شاخه', value: t(e.perStick) },
+                  { label: 'طول شاخه', value: `${faNum(e.lengthM)} متر` },
+                ]}
+                total={{ label: 'قیمت یک متر', value: t(e.perMeter) }} />
             )}
-            result={e.weightG == null
-              ? <span className="over">وزن محصول وارد نشده؛ پس قیمت شاخه و متر حساب نمی‌شود.</span>
-              : <>هر شاخه {faNum(e.lengthM)} متری: <N>{money(e.perStick)}</N> تومان · هر متر: <N>{money(e.perMeter)}</N> تومان (گرد شده به مضرب <N>{money(e.roundStep)}</N>)</>}
-            note="شاخه و متر هر کدام جدا از عدد دقیق گرد می‌شوند. برای همین ممکن است قیمت متر × طول شاخه، یک گامِ گرد کردن (مثلاً ۱۰۰ تومان) با قیمت شاخه فرق کند. این خطا نیست." />
+          </Step>
 
-          <Step n={10} title="قیمت هر متر مربع"
-            what="هر متر از این محصول فقط به اندازه‌ی عرضش سطح را می‌پوشاند. پس عرض را به متر درمی‌آوریم (میلی‌متر ÷ ۱۰۰۰) و قیمت هر متر را بر آن تقسیم می‌کنیم."
-            calc={e.widthM == null || e.perMeterRaw == null ? undefined : <N>{money(e.perMeterRaw)} ÷ {kg(e.widthM)} متر = {money(e.perSqmRaw)}</N>}
-            result={e.perSqm == null
-              ? <span className="over">برای قیمت متر مربع، هم وزن و هم عرض محصول لازم است.</span>
-              : <>هر متر مربع: <N>{money(e.perSqm)}</N> تومان (برای عرض <N>{toFa(String(e.product.widthMm))}</N> میلی‌متر)</>}
-            note={<>
-              عرض از تب «محصولات» می‌آید؛ اگر عرض پوششی واقعی فرق دارد همان‌جا عوضش کنید.
-              برای محصولات توخالی یا مکعبی (مثل Off، IMP و Coffin) قیمت متر مربع با سطح پوشش یکی نیست.
-            </>} />
+          <Step n={10} title="قیمت یک متر مربع"
+            what="برای پوشاندن یک متر مربع، چند متر از این محصول لازم است؟ هرچه محصول باریک‌تر باشد، متر بیشتری می‌خواهد. پس قیمت یک متر را در همین تعداد متر حساب می‌کنیم."
+            note="برای محصولات توخالی یا مکعبی (مثل Off، IMP و Coffin) قیمت متر مربع با سطح پوشش یکی نیست.">
+            {e.widthM == null || e.perMeterRaw == null ? (
+              <p className="bad">برای این قیمت، هم وزن و هم عرض محصول لازم است. عرض و وزن را در تب «محصولات» بنویسید.</p>
+            ) : (
+              <Bill
+                rows={[
+                  { label: 'عرض محصول', value: `${kg(e.widthM)} متر` },
+                  { label: 'متر لازم برای یک متر مربع', value: `${faNum(Math.round((1 / e.widthM) * 100) / 100)} متر` },
+                  { label: 'قیمت یک متر', value: t(e.perMeterRaw) },
+                ]}
+                total={{ label: 'قیمت یک متر مربع', value: t(e.perSqm) }} />
+            )}
+          </Step>
         </ol>
       </div>
     </>

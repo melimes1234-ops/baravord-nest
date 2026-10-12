@@ -3,14 +3,11 @@ import { formatKg, formatToman, fromJalaliDate, stockLevels, toFa, toJalaliDate,
 import type { Update } from '../store'
 import { InfoTip, NumInput } from '../ui'
 
-/** Numbers read left-to-right even inside Persian text. */
-const N = ({ children }: { children: React.ReactNode }) => <bdi dir="ltr" className="num-inline">{children}</bdi>
-
 export function Stock({ catalog, movements, update, readOnly }: { catalog: Catalog; movements: Movement[]; update: Update; readOnly?: boolean }) {
   const levels = stockLevels(movements)
   // a live example from the first material that has a purchase price
   const exId = Object.keys(levels).find(id => levels[id].avgPrice != null && levels[id].qtyKg > 0)
-  const example = exId ? `مثلاً ${catalog.materials[exId]?.name}: ${formatKg(levels[exId].qtyKg)} کیلو × ${formatToman(levels[exId].avgPrice)} = ${formatToman(levels[exId].qtyKg * levels[exId].avgPrice!)}` : null
+  const example = exId ? `مثلاً ${formatKg(levels[exId].qtyKg)} کیلو ${catalog.materials[exId]?.name} که کیلویی ${formatToman(levels[exId].avgPrice)} تومان خریده‌ایم، روی هم ${formatToman(levels[exId].qtyKg * levels[exId].avgPrice!)} تومان ارزش دارد.` : null
   const [materialId, setMaterialId] = useState(Object.keys(catalog.materials)[0])
   const [kg, setKg] = useState<number | null>(null)
   const [price, setPrice] = useState<number | null>(null)
@@ -31,6 +28,7 @@ export function Stock({ catalog, movements, update, readOnly }: { catalog: Catal
     <>
       {!readOnly && <div className="card">
         <h2>ثبت ورود به انبار (خرید یا ضایعات برگشتی)</h2>
+        <p className="muted" style={{ marginTop: -4 }}>«ضایعات برگشتی» یعنی دورریزی که دوباره در تولید به کار می‌رود.</p>
         <div className="row">
           <label>ماده<select value={materialId} onChange={e => setMaterialId(e.target.value)}>{Object.values(catalog.materials).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
           <label>مقدار (کیلو)<NumInput unit="کیلو" value={kg} onChange={setKg} /></label>
@@ -40,14 +38,14 @@ export function Stock({ catalog, movements, update, readOnly }: { catalog: Catal
           <button className="btn ghost" onClick={() => add('waste_in')}>ضایعات برگشتی</button>
         </div>
         {error && <div className="alert err">{error}</div>}
-        <p className="muted">با ثبت خرید با قیمت، سرور قیمت ماده را با میانگین موزون موجودی به‌روز می‌کند. مصرف تولید خودکار از فرمول واقعی هر پارت کم می‌شود.</p>
+        <p className="muted">وقتی خرید را با قیمت ثبت می‌کنید، قیمت آن ماده در برنامه خودش با میانگین خریدها به‌روز می‌شود. مصرف هر پارت هم خودکار از موجودی کم می‌شود.</p>
       </div>}
       <div className="card">
         <h2>باقی‌مانده مواد <InfoTip>
-          <p><b>موجودی</b> = جمع همه‌ی ورودها (خرید و ضایعات برگشتی) منهای مصرف پارت‌ها و تعدیل‌ها.</p>
-          <p><b>میانگین قیمت</b> = میانگین موزون قیمت خریدها. هر خرید جدید طبق مقدارش در میانگین اثر می‌گذارد؛ مصرف میانگین را عوض نمی‌کند.</p>
-          <p><b>ارزش موجودی</b> = موجودی × میانگین قیمت.</p>
-          {example && <p><N>{example}</N></p>}
+          <p><b>موجودی</b>: هرچه وارد انبار شده (خرید و ضایعات برگشتی) منهای هرچه در پارت‌ها مصرف شده.</p>
+          <p><b>میانگین قیمت</b>: میانگین قیمتِ خریدها. خریدی که بیشتر بوده، بیشتر اثر دارد. مصرف کردن، میانگین را عوض نمی‌کند.</p>
+          <p><b>ارزش موجودی</b>: موجودی را در میانگین قیمت می‌زنیم.</p>
+          {example && <p>{example}</p>}
         </InfoTip></h2>
         <div className="tablewrap scroll-box">
           <table>

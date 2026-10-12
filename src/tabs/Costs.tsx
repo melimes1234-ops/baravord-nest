@@ -30,27 +30,27 @@ export function Costs({ catalog, update }: { catalog: Catalog; update: Update })
   const oh = overheadPerKg(c)
   return (
     <>
-      <Lines title="هزینه‌های ماهانه (برق، حقوق، اجاره، استهلاک ...)" lines={c.monthlyCosts} onChange={l => update(s => { s.catalog.config.monthlyCosts = l })} />
+      <Lines title="هزینه‌های ثابتِ هر ماه (برق، حقوق، اجاره و مانند آن)" lines={c.monthlyCosts} onChange={l => update(s => { s.catalog.config.monthlyCosts = l })} />
       <div className="card">
         <div className="row">
-          <label>کیلوی تولید این ماه<NumInput unit="کیلو" value={c.monthlyProductionKg} onChange={v => update(s => { s.catalog.config.monthlyProductionKg = v ?? 0 })} /></label>
-          <div className="kpi"><span className="muted">سربار هر کیلو</span><b>{formatToman(oh.value)} تومان</b></div>
-          <div className="kpi"><span className="muted">سربار هر ۱۰۰ کیلو</span><b>{formatToman(oh.value * 100)} تومان</b></div>
+          <label>چند کیلو در این ماه ساخته‌اید؟<NumInput unit="کیلو" value={c.monthlyProductionKg} onChange={v => update(s => { s.catalog.config.monthlyProductionKg = v ?? 0 })} /></label>
+          <div className="kpi"><span className="muted">سهم هر کیلو از این هزینه‌ها</span><b>{formatToman(oh.value)} تومان</b></div>
+          <div className="kpi"><span className="muted">سهم هر ۱۰۰ کیلو</span><b>{formatToman(oh.value * 100)} تومان</b></div>
         </div>
         {oh.warning && <div className="alert">{oh.warning}</div>}
       </div>
-      <Lines title="هزینه‌های هر پارت (کرایه، انبارداری، باسکول)" lines={c.perBatchCosts} onChange={l => update(s => { s.catalog.config.perBatchCosts = l })} />
+      <Lines title="هزینه‌هایی که برای هر پارت پرداخت می‌شود (کرایه، انبارداری، باسکول)" lines={c.perBatchCosts} onChange={l => update(s => { s.catalog.config.perBatchCosts = l })} />
       <div className="card">
         <div className="row">
-          <label>وزن پارت استاندارد (کیلو)<NumInput unit="کیلو" value={c.batchKg} onChange={v => update(s => { s.catalog.config.batchKg = v ?? 100 })} /></label>
-          <div className="kpi"><span className="muted">کرایه و انبارداری هر کیلو</span><b>{formatToman(extrasPerKg(c))} تومان</b></div>
-          <label>درصد ضایعات تولید<NumInput unit="٪" value={c.wastePct} decimals={2} onChange={v => update(s => { s.catalog.config.wastePct = Math.min(Math.max(v ?? 0, 0), 99) })} /></label>
-          <label>گرد کردن قیمت به مضرب (تومان)<NumInput unit="تومان" money value={c.roundTo} onChange={v => update(s => { s.catalog.config.roundTo = v ?? 1 })} /></label>
-          <label>حد مجاز انحراف مواد در پارت (٪)<NumInput unit="٪" value={c.defaultTolerancePct} decimals={2} onChange={v => update(s => { s.catalog.config.defaultTolerancePct = v ?? 5 })} /></label>
+          <label>یک پارت معمولی چند کیلو است؟<NumInput unit="کیلو" value={c.batchKg} onChange={v => update(s => { s.catalog.config.batchKg = v ?? 100 })} /></label>
+          <div className="kpi"><span className="muted">سهم هر کیلو از کرایه و انبارداری</span><b>{formatToman(extrasPerKg(c))} تومان</b></div>
+          <label>چند درصد مواد دورریز می‌شود؟<NumInput unit="٪" value={c.wastePct} decimals={2} onChange={v => update(s => { s.catalog.config.wastePct = Math.min(Math.max(v ?? 0, 0), 99) })} /></label>
+          <label>قیمت‌ها به نزدیک‌ترین … تومان برسند<NumInput unit="تومان" money value={c.roundTo} onChange={v => update(s => { s.catalog.config.roundTo = v ?? 1 })} /></label>
+          <label>اگر مقدار یک ماده در پارت از فرمول بیشتر از … درصد فرق کند، هشدار بده<NumInput unit="٪" value={c.defaultTolerancePct} decimals={2} onChange={v => update(s => { s.catalog.config.defaultTolerancePct = v ?? 5 })} /></label>
         </div>
       </div>
       <div className="card">
-        <h2>تعرفه‌ها (درصد سود روی قیمت تمام‌شده)</h2>
+        <h2>تعرفه‌ها: چند درصد سود می‌خواهید؟</h2>
         <div className="tablewrap">
           <table>
             <tbody>
