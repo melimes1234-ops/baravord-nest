@@ -80,16 +80,6 @@ function buildSeed(): Catalog {
     baseRecipeId: 'wpc-profile',
     colorable: true,
   }))
-  products.push({
-    id: 'cabinet',
-    name: 'صفحه کابینت',
-    code: 'CAB',
-    usages: [],
-    weightPer3mG: null,
-    stickLengthM: 4.1,
-    baseRecipeId: 'cabinet',
-    colorable: false,
-  })
   const colors: Color[] = colorDefs.map(([id, name, items]) => ({ id, name, items }))
 
   return {
@@ -104,12 +94,6 @@ function buildSeed(): Catalog {
         id: 'wpc-profile',
         name: 'پروفیل WPC (پایه)',
         items: [m('wood', 60), r('prp', 33), m('wax', 2), m('graft', 3)],
-      },
-      cabinet: {
-        id: 'cabinet',
-        name: 'صفحه کابینت',
-        // The waste quantity (10 or 15 kg) is unclear on the sheet.
-        items: [m('wood', 72), m('pp-recycled', 24), m('wax', 2), m('graft', 1), m('waste', 10)],
       },
     },
     colors: Object.fromEntries(colors.map(c => [c.id, c])),

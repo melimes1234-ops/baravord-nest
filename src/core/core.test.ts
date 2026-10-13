@@ -80,7 +80,8 @@ describe('product pricing', () => {
 
   it('uncolourable product ignores colour', () => {
     const c = cat()
-    expect(productItems(c.products.cabinet, 'n1', c)).toHaveLength(c.recipes.cabinet.items.length)
+    c.products.flex.colorable = false
+    expect(productItems(c.products.flex, 'n1', c)).toHaveLength(c.recipes['wpc-profile'].items.length)
   })
 })
 
@@ -240,7 +241,6 @@ describe('formula tools', () => {
     expect(f.rows.find(r => r.item.ref.id === 'prp')!.cost).toBeCloseTo(33 * prp, 6)
     expect(f.totalCost).toBeCloseTo(60 * 20_500 + 33 * prp + 2 * 250_000 + 3 * 290_000, 4)
     expect(f.incomplete).toBe(false)
-    expect(formulaCost(c.recipes.cabinet.items, c).incomplete).toBe(true) // polymer price missing
   })
 
   it('normalize scales to 100 kg and keeps the proportions', () => {
@@ -263,7 +263,6 @@ describe('formula tools', () => {
     const c = cat()
     expect(recipeUsage('prp', c).recipes.map(r => r.id)).toEqual(['wpc-profile'])
     expect(recipeUsage('wpc-profile', c).products.length).toBe(23)
-    expect(recipeUsage('cabinet', c).recipes).toHaveLength(0)
   })
 
   it('replacing a formula in a copy changes prices there and never in the original', () => {
@@ -358,37 +357,34 @@ describe('price per square metre', () => {
   })
 })
 
-describe('stick length (the cabinet sheet is 4.10 m, not 3 m)', () => {
-  it('per metre = stick price / its own length; a normal product still uses 3 m', () => {
+describe('stick length', () => {
+  it('per metre = stick price / its own length; a product without a length uses 3 m', () => {
     const c = cat()
     c.config.roundTo = 1
-    c.materials['pp-recycled'].pricePerKg = 100_000
-    c.products.cabinet.weightPer3mG = 20_000
-    const cab = priceProduct(c.products.cabinet, null, c.tariffs[0], c)
-    expect(stickLength(c.products.cabinet)).toBe(4.1)
-    expect(cab.perStick).toBe(Math.round((cab.salePerKg * 20_000) / 1000))
-    expect(cab.perMeter).toBe(Math.round((cab.salePerKg * 20_000) / 4100))
-    expect(stickLength(c.products.flex)).toBe(3)
-    const flex = priceProduct(c.products.flex, 'n1', c.tariffs[0], c)
-    expect(flex.perMeter).toBe(Math.round((flex.salePerKg * 7500) / 3000))
+    c.products.flex.stickLengthM = 4.1
+    c.products.flex.weightPer3mG = 20_000
+    const long = priceProduct(c.products.flex, 'n1', c.tariffs[0], c)
+    expect(stickLength(c.products.flex)).toBe(4.1)
+    expect(long.perStick).toBe(Math.round((long.salePerKg * 20_000) / 1000))
+    expect(long.perMeter).toBe(Math.round((long.salePerKg * 20_000) / 4100))
+    const other = Object.values(c.products).find(p => p.id !== 'flex' && p.colorable)!
+    expect(stickLength(other)).toBe(3)
   })
 
-  it('older saved catalogs without the field still treat the cabinet as 4.10 m, and an explicit length wins', () => {
+  it('an explicit length always wins', () => {
     const c = cat()
-    delete c.products.cabinet.stickLengthM
-    expect(stickLength(c.products.cabinet)).toBe(4.1)
-    c.products.cabinet.stickLengthM = 5
-    expect(stickLength(c.products.cabinet)).toBe(5)
     c.products.flex.stickLengthM = 6
     expect(stickLength(c.products.flex)).toBe(6)
+    delete c.products.flex.stickLengthM
+    expect(stickLength(c.products.flex)).toBe(3)
   })
 
   it('the explanation uses the same length and still equals the engine', () => {
     const c = cat()
-    c.materials['pp-recycled'].pricePerKg = 100_000
-    c.products.cabinet.weightPer3mG = 20_000
-    const e = explainPrice(c.products.cabinet, null, c.tariffs[0], c)
-    const eng = priceProduct(c.products.cabinet, null, c.tariffs[0], c)
+    c.products.flex.stickLengthM = 4.1
+    c.products.flex.weightPer3mG = 20_000
+    const e = explainPrice(c.products.flex, 'n1', c.tariffs[0], c)
+    const eng = priceProduct(c.products.flex, 'n1', c.tariffs[0], c)
     expect(e.lengthM).toBe(4.1)
     expect(e.perMeter).toBe(eng.perMeter)
     expect(e.perStick).toBe(eng.perStick)

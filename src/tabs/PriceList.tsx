@@ -173,7 +173,6 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
       <div className="summary">
         {color && <Swatch hex={colorSwatch(color, catalog)} large />}
         <span>قیمت‌ها برای رنگ <b>{color?.name ?? '—'}</b> و تعرفه <b>{fullTariff.name}</b> ({incl.profit ? `${toFa(fullTariff.marginPct)}٪ سود` : 'بدون سود'}){!allIn && <> · <b className="over">ناقص</b></>}</span>
-        <span className="muted">صفحه‌ی کابینت رنگ ندارد و فقط یک قیمت دارد.</span>
         <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>قیمت متر مربع یعنی چه؟ <InfoTip>{SQM_TIP}</InfoTip></span>
       </div>
 

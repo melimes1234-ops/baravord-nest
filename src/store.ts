@@ -28,10 +28,21 @@ export function useSession() {
   const dirtyCatalog = useRef<Catalog | null>(null)
   // the catalog as the server has it, to describe what an edit changed
   const savedCatalog = useRef<Catalog | null>(null)
+  const flushRef = useRef<() => void>(() => {})
 
   const apply = useCallback((s: ServerState) => {
     version.current = s.version
     savedCatalog.current = s.catalog
+    // The cabinet sheet was removed from the system: take it out of catalogs created before that (admin saves it).
+    if (s.user.role === 'admin' && (s.catalog.products.cabinet || s.catalog.recipes.cabinet)) {
+      const cleaned = structuredClone(s.catalog)
+      delete cleaned.products.cabinet
+      if (!Object.values(cleaned.products).some(p => p.baseRecipeId === 'cabinet')) delete cleaned.recipes.cabinet
+      s = { ...s, catalog: cleaned }
+      dirtyCatalog.current = cleaned
+      clearTimeout(saveTimer.current)
+      saveTimer.current = setTimeout(() => flushRef.current(), 300)
+    }
     setSession({ status: 'ready', user: s.user, state: { catalog: s.catalog, movements: s.movements, batches: s.batches, goods: s.goods ?? [] } })
   }, [])
 
@@ -77,6 +88,8 @@ export function useSession() {
       await refresh() // show what the server really has
     }
   }, [refresh])
+
+  useEffect(() => { flushRef.current = () => void flushCatalog() }, [flushCatalog])
 
   // Side effects (network) must not run inside a setState updater: React may call it twice.
   const current = useRef<Session>(session)
