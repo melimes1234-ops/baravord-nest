@@ -60,7 +60,22 @@ export default function App() {
   }
   const [tab, setTab] = useState<Tab>(() => (guideHidden() ? 'لیست قیمت' : 'شروع کار'))
 
-  if (session.status === 'loading') return <main><p className="muted">در حال بارگذاری…</p>{error && <div className="alert err">{error}</div>}</main>
+  if (session.status === 'loading') {
+    return (
+      <main>
+        {error ? (
+          <div className="card">
+            <h2>برنامه باز نشد</h2>
+            <div className="alert err">{error}</div>
+            <div className="row" style={{ marginBottom: 0 }}>
+              <button className="btn" onClick={() => { clearError(); void impl.refresh() }}>تلاش دوباره</button>
+              <button className="btn ghost" onClick={() => void logout()}>خروج و ورود دوباره</button>
+            </div>
+          </div>
+        ) : <p className="muted">در حال بارگذاری…</p>}
+      </main>
+    )
+  }
   if (session.status === 'anonymous') return <Login onLogin={login} />
 
   const { user, state } = session

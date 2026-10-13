@@ -218,10 +218,14 @@ end $$;
 
 create or replace function public.get_state() returns jsonb
 language plpgsql stable security definer set search_path = public, pg_temp as $$
-declare r text := public.app_role(); v_cat jsonb; v_ver integer;
+declare r text := public.app_role(); v_cat jsonb; v_ver integer; v_goods jsonb := '[]'::jsonb;
 begin
   if r is null then raise exception 'ابتدا وارد شوید' using errcode = '28000'; end if;
   select value, version into v_cat, v_ver from public.app_config where key = 'catalog';
+  -- the goods table is newer: an older project that has not run 1-tables.sql yet still opens normally
+  if to_regclass('public.goods') is not null then
+    execute 'select coalesce(jsonb_agg(data order by date, created_at, id), ''[]''::jsonb) from public.goods' into v_goods;
+  end if;
   -- catalog is null until an admin signs in for the first time and the app creates it (init_catalog)
   return jsonb_build_object('role', r, 'email', (select email from public.profiles where id = auth.uid()),
     'catalog', v_cat, 'version', coalesce(v_ver, 0),
@@ -233,7 +237,7 @@ begin
         || case when note is not null then jsonb_build_object('note', note) else '{}'::jsonb end
         order by date, created_at, id) from public.movements), '[]'::jsonb),
     'batches', coalesce((select jsonb_agg(data order by date desc, created_at desc) from public.batches), '[]'::jsonb),
-    'goods', coalesce((select jsonb_agg(data order by date, created_at, id) from public.goods), '[]'::jsonb));
+    'goods', v_goods);
 end $$;
 
 -- First-run setup: the admin's app uploads the starting catalog. Does nothing if one already exists.
