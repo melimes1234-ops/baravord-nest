@@ -149,17 +149,20 @@ export function TextInput(props: {
 export function InfoTip({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const id = useId()
+  const lastPointer = useRef('')
   return (
-    <span className="tip" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <span className="tip" onPointerEnter={e => e.pointerType === 'mouse' && setOpen(true)} onPointerLeave={e => e.pointerType === 'mouse' && setOpen(false)}>
       <button
         type="button"
         className="tip-btn"
         aria-label="توضیح"
         aria-expanded={open}
         aria-describedby={open ? id : undefined}
-        onClick={() => setOpen(o => !o)}
+        onPointerDown={e => { lastPointer.current = e.pointerType }}
+        // a mouse click only confirms what hovering already did; a finger or the keyboard toggles
+        onClick={() => setOpen(o => (lastPointer.current === 'mouse' ? true : !o))}
         onBlur={() => setOpen(false)}
-        onKeyDown={e => e.key === 'Escape' && setOpen(false)}
+        onKeyDown={e => { lastPointer.current = ''; if (e.key === 'Escape') setOpen(false) }}
       >
         !
       </button>

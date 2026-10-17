@@ -248,8 +248,9 @@ tr.panel > td { border-bottom: 0; }
 .collapse.settled > .collapse-in { overflow: visible; }
 tr.prod .chev { transition: transform .2s ease; }
 tr.prod td { transition: background-color .2s ease; }
-@keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-main { animation: pageIn .2s ease both; }
+/* opacity only: an animated transform on <main> would make every position:fixed popup inside it relative to <main> instead of the screen */
+@keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+main { animation: pageIn .2s ease backwards; }
 @keyframes tipIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 .tip-pop, .kpi-pop { animation: tipIn .14s ease both; }
 @media (prefers-reduced-motion: reduce) {
@@ -340,3 +341,80 @@ main { animation: pageIn .2s ease both; }
 .check-row .btn.link { margin: 4px 0 0; }
 .alert.gaps ul { margin: 6px 0 0; padding-inline-start: 20px; line-height: 1.9; }
 .alert.gaps.soft { background: color-mix(in srgb, var(--accent) 8%, var(--card)); border-color: var(--line); }
+
+/* ---- phone layout ---- */
+.menu-btn, .bottombar, .drawer { display: none; }
+.hdr-actions { display: contents; }
+
+.drawer { position: fixed; inset: 0; z-index: 60; }
+.drawer-back { position: absolute; inset: 0; background: rgba(0, 0, 0, .45); animation: fadeIn .18s ease; }
+.drawer-panel { position: absolute; inset-block: 0; inset-inline-start: 0; width: min(320px, 86vw); background: var(--card); box-shadow: 0 0 30px rgba(0, 0, 0, .35); display: flex; flex-direction: column; animation: drawerIn .22s ease; padding-bottom: env(safe-area-inset-bottom); }
+.drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 16px; background: var(--brand); color: var(--brand-ink); }
+.drawer-head .btn { background: transparent; color: var(--brand-ink); border-color: rgba(255, 255, 255, .6); }
+.drawer-list { list-style: none; margin: 0; padding: 8px; overflow-y: auto; flex: 1; }
+.drawer-list button { --tab: var(--brand); width: 100%; display: flex; align-items: center; gap: 12px; border: 0; background: transparent; color: var(--ink); text-align: start; font-size: 16px; padding: 12px 12px; border-radius: 10px; cursor: pointer; }
+.drawer-list button i, .bottombar button i { width: 10px; height: 10px; border-radius: 50%; background: var(--tab); flex: none; }
+.drawer-list button.on { background: var(--tab); color: var(--on-accent); font-weight: 700; }
+.drawer-list button.on i { background: var(--on-accent); }
+.drawer-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.drawer-actions .btn { color: var(--ink); border-color: var(--line); background: transparent; padding: 8px 14px; font-size: 14px; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes drawerIn { from { transform: translateX(-100%); } to { transform: none; } }
+[dir="rtl"] .drawer-panel { animation-name: drawerInRtl; }
+@keyframes drawerInRtl { from { transform: translateX(-100%); } to { transform: none; } }
+
+@media (max-width: 760px) {
+  .topnav { display: none; }
+  header { position: sticky; top: 0; z-index: 20; padding: 8px 12px; padding-top: calc(8px + env(safe-area-inset-top)); flex-wrap: nowrap; }
+  header h1 { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header .who, .hdr-actions { display: none; }
+  .menu-btn { display: inline-flex; align-items: center; background: transparent; color: var(--brand-ink); border: 1px solid rgba(255, 255, 255, .6); padding: 6px 12px; font-size: 14px; flex: none; }
+  .drawer { display: block; }
+  .bottombar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; inset-inline: 0; top: auto; bottom: 0; gap: 0; overflow: visible; padding: 0; z-index: 30; background: var(--card); border-top: 1px solid var(--line); box-shadow: 0 -2px 10px rgba(0, 0, 0, .12); padding-bottom: env(safe-area-inset-bottom); }
+  .bottombar button { --tab: var(--brand); position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 56px; border: 0; background: transparent; color: var(--muted); font-size: 11.5px; padding: 6px 2px; cursor: pointer; }
+  .bottombar button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bottombar button::before { display: none; }
+  .bottombar button:hover { background: transparent; }
+  .bottombar button.on { background: transparent; color: var(--tab); font-weight: 800; }
+  .bottombar button.on::after { content: ''; position: absolute; top: 0; inset-inline: 20%; height: 3px; border-radius: 0 0 3px 3px; background: var(--tab); }
+  .bottombar .badge { position: absolute; top: 4px; inset-inline-end: 22%; background: var(--err); color: #fff; font-size: 10px; min-width: 16px; height: 16px; line-height: 16px; border-radius: 8px; text-align: center; }
+  main { padding: 10px 10px calc(76px + env(safe-area-inset-bottom)); }
+  .card { padding: 12px; margin-bottom: 12px; border-radius: 10px; }
+  .card h2 { font-size: 16px; }
+
+  /* 16px inputs: phones zoom the whole page in when a smaller field gets the cursor */
+  input, select, textarea { font-size: 16px; padding: 9px 10px; }
+  input.num { width: 124px; }
+  .btn { padding: 9px 14px; font-size: 14.5px; }
+  .btn.big { width: 100%; padding: 13px; font-size: 16px; }
+  .row { gap: 10px; }
+  .row > label, .row > .lbl { flex: 1 1 100%; }
+  .row > label input:not([type="checkbox"]), .row > label select, .row > label .unit-wrap { width: 100%; max-width: none; }
+  label[style*="max-width"] { max-width: none !important; }
+  .unit-wrap { display: flex; }
+  .unit-wrap input.num { flex: 1; width: auto; }
+  .kpi { flex: 1 1 calc(50% - 6px); min-width: 0; }
+  .kpi b { font-size: 16px; }
+  .seg { flex-wrap: wrap; }
+  .chips { gap: 6px; }
+  .tablewrap.scroll-box { max-height: none; }
+  table { font-size: 13.5px; }
+  th, td { padding: 8px 8px; }
+  td input:not(.num):not([type="checkbox"]) { min-width: 110px; }
+  .kpi-pop { position: fixed; inset-inline: 12px; top: auto; bottom: calc(72px + env(safe-area-inset-bottom)); width: auto; max-height: 60vh; overflow: auto; }
+  .tip-pop { position: fixed; inset-inline: 12px; top: auto; bottom: calc(72px + env(safe-area-inset-bottom)); width: auto; max-height: 60vh; overflow: auto; }
+  .cal { position: fixed; inset-inline: 12px; top: auto; bottom: calc(72px + env(safe-area-inset-bottom)); width: auto; max-width: none; margin: 0 auto; }
+  .cal-day { height: 40px; }
+
+  /* step-by-step forms */
+  .wiz { padding: 12px; }
+  .wiz-dots button { width: 32px; height: 32px; }
+  .picks { gap: 8px; }
+  .pick { flex: 1 1 calc(50% - 8px); min-width: 0; padding: 12px; }
+  .wiz .row .btn { flex: 1; }
+  .summary { line-height: 1.9; }
+  .audit-detail { white-space: normal; min-width: 180px; }
+  .alert.gaps .btn.link { display: inline-block; margin-top: 4px; }
+}
+@media (max-width: 380px) { .bottombar button { font-size: 10.5px; } .pick { flex-basis: 100%; } }
+@media print { .bottombar, .drawer, .menu-btn { display: none !important; } main { padding-bottom: 0; } }

@@ -1,9 +1,10 @@
-import { useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { toFa, validateCatalog } from './core'
 import type { Role } from './api'
 import { backend } from './backends'
 import { supabase } from './backends/supabase'
 import { Login } from './Login'
+import { BottomBar, Drawer } from './MobileNav'
 import { DEMO, useDemoSession } from './demo'
 import { applyTheme, initialTheme, type Theme } from './theme'
 import { useSession } from './store'
@@ -36,6 +37,22 @@ const ALLOWED: Record<Role, readonly Tab[]> = {
 }
 const ROLE_LABEL: Record<Role, string> = { admin: 'ادمین', operator: 'اپراتور', viewer: 'مشاهده‌گر' }
 
+const KEY_TO_TAB = Object.fromEntries(Object.entries(TAB_KEY).map(([t, k]) => [k, t])) as Record<string, Tab>
+const TAB_STORE = 'wpc-tab'
+
+/** The section to open: the one in the address (#/prices), else the one used last, else null. */
+function savedTab(): Tab | null {
+  const hash = KEY_TO_TAB[location.hash.replace(/^#\/?/, '')]
+  if (hash) return hash
+  try {
+    const stored = localStorage.getItem(TAB_STORE)
+    if (stored && KEY_TO_TAB[stored]) return KEY_TO_TAB[stored]
+  } catch {
+    // storage blocked: just start at the default
+  }
+  return null
+}
+
 const useSessionImpl = DEMO ? useDemoSession : useSession
 
 export default function App() {
@@ -45,8 +62,10 @@ export default function App() {
   // The top menu is sticky; table headers that stick under it need its real height.
   useLayoutEffect(() => {
     const set = () => {
-      const nav = document.querySelector('nav')
-      if (nav) document.documentElement.style.setProperty('--nav-h', `${nav.getBoundingClientRect().height}px`)
+      // the sticky bar the table headers hang under: the tab strip on a computer, the header on a phone
+      const nav = document.querySelector<HTMLElement>('nav:not(.bottombar)')
+      const bar = nav && nav.offsetParent !== null ? nav : document.querySelector('header')
+      if (bar) document.documentElement.style.setProperty('--nav-h', `${bar.getBoundingClientRect().height}px`)
     }
     set()
     window.addEventListener('resize', set)
@@ -58,7 +77,20 @@ export default function App() {
     applyTheme(next)
     setTheme(next)
   }
-  const [tab, setTab] = useState<Tab>(() => (guideHidden() ? 'لیست قیمت' : 'شروع کار'))
+  const [tab, setTabState] = useState<Tab>(() => savedTab() ?? (guideHidden() ? 'لیست قیمت' : 'شروع کار'))
+  const [menuOpen, setMenuOpen] = useState(false)
+  // Remember the section: a refresh, a save or logging in again brings the person back to it, and the phone's back button steps through sections.
+  const setTab = (t: Tab) => {
+    setTabState(t)
+    try { localStorage.setItem(TAB_STORE, TAB_KEY[t]) } catch { /* storage blocked */ }
+    if (location.hash !== `#/${TAB_KEY[t]}`) history.pushState(null, '', `#/${TAB_KEY[t]}`)
+    window.scrollTo(0, 0)
+  }
+  useEffect(() => {
+    const onHash = () => { const t = KEY_TO_TAB[location.hash.replace(/^#\/?/, '')]; if (t) setTabState(t) }
+    window.addEventListener('popstate', onHash)
+    return () => window.removeEventListener('popstate', onHash)
+  }, [])
 
   if (session.status === 'loading') {
     return (
@@ -86,47 +118,53 @@ export default function App() {
   // Read-only roles get the edit handler removed so a stray click cannot be sent.
   const canEdit = user.role !== 'viewer'
 
+  const account = (
+    <>
+      <button className="btn ghost" onClick={toggleTheme}>
+        {theme === 'dark' ? 'حالت روشن' : 'حالت تیره'}
+      </button>
+      {DEMO ? (
+        <button
+          className="btn ghost"
+          onClick={() => {
+            if (!confirmReset) return setConfirmReset(true)
+            ;(impl as ReturnType<typeof useDemoSession>).reset()
+            setConfirmReset(false)
+          }}
+        >
+          {confirmReset ? 'مطمئنید؟ دوباره بزنید' : 'بازنشانی داده‌ها'}
+        </button>
+      ) : (
+        <>
+          {backend.kind === 'supabase' && (
+            <button
+              className="btn ghost"
+             
+              onClick={async () => {
+                const p = prompt('رمز عبور جدید (حداقل ۸ نویسه):')
+                if (!p) return
+                const { error: e } = await supabase().auth.updateUser({ password: p })
+                alert(e ? e.message : 'رمز عبور تغییر کرد.')
+              }}
+            >
+              تغییر رمز من
+            </button>
+          )}
+          <button className="btn ghost" onClick={() => void logout()}>خروج</button>
+        </>
+      )}
+    </>
+  )
+
   return (
     <>
       <header>
         <h1>برآورد قیمت و کنترل تولید WPC</h1>
         <span className="who">{user.username} ({ROLE_LABEL[user.role]})</span>
-        <button className="btn ghost" onClick={toggleTheme}>
-          {theme === 'dark' ? 'حالت روشن' : 'حالت تیره'}
-        </button>
-        {DEMO ? (
-          <button
-            className="btn ghost"
-           
-            onClick={() => {
-              if (!confirmReset) return setConfirmReset(true)
-              ;(impl as ReturnType<typeof useDemoSession>).reset()
-              setConfirmReset(false)
-            }}
-          >
-            {confirmReset ? 'مطمئنید؟ دوباره بزنید' : 'بازنشانی داده‌ها'}
-          </button>
-        ) : (
-          <>
-            {backend.kind === 'supabase' && (
-              <button
-                className="btn ghost"
-               
-                onClick={async () => {
-                  const p = prompt('رمز عبور جدید (حداقل ۸ نویسه):')
-                  if (!p) return
-                  const { error: e } = await supabase().auth.updateUser({ password: p })
-                  alert(e ? e.message : 'رمز عبور تغییر کرد.')
-                }}
-              >
-                تغییر رمز من
-              </button>
-            )}
-            <button className="btn ghost" onClick={() => void logout()}>خروج</button>
-          </>
-        )}
+        <button className="btn ghost menu-btn" onClick={() => setMenuOpen(true)} aria-label="باز کردن منو">☰ منو</button>
+        <div className="hdr-actions">{account}</div>
       </header>
-      <nav>
+      <nav className="topnav">
         {tabs.map(t => (
           <button key={t} className={t === current ? 'on' : ''} style={{ ['--tab' as string]: `var(--c-${TAB_KEY[t]})` }} onClick={() => setTab(t)}>
             {t}{t === 'هشدارها' && issueCount > 0 ? ` (${toFa(issueCount)})` : ''}
@@ -149,6 +187,10 @@ export default function App() {
         {current === 'هشدارها' && <Issues catalog={catalog} go={user.role === 'admin' || DEMO ? t => setTab(t as Tab) : undefined} />}
         {current === 'کاربران' && (backend.kind === 'supabase' ? <SupabaseUsers catalog={catalog} /> : <Users me={user} catalog={catalog} />)}
       </main>
+      <BottomBar tabs={tabs} current={current} tabKey={TAB_KEY} onSelect={setTab} issueCount={issueCount} onMore={() => setMenuOpen(true)} />
+      <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} tabs={tabs} current={current} tabKey={TAB_KEY} onSelect={setTab} issueCount={issueCount} who={`${user.username} (${ROLE_LABEL[user.role]})`}>
+        {account}
+      </Drawer>
     </>
   )
 }
