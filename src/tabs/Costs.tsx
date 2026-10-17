@@ -1,19 +1,26 @@
+import { useState } from 'react'
 import { formatToman, overheadPerKg, extrasPerKg, type Catalog, type CostLine } from '../core'
 import type { Update } from '../store'
 import { NumInput, TextInput } from '../ui'
 
 function Lines({ title, help, lines, onChange }: { title: string; help: string; lines: CostLine[]; onChange: (l: CostLine[]) => void }) {
+  // the row that was just added gets the cursor, so the name can be typed right away
+  const [focusIdx, setFocusIdx] = useState<number | null>(null)
+  const add = () => { setFocusIdx(lines.length); onChange([...lines, { name: '', amount: 0 }]) }
   return (
     <div className="card">
-      <h2>{title}</h2>
+      <div className="row" style={{ marginBottom: 4 }}>
+        <h2 style={{ margin: 0 }}>{title}</h2>
+        <button className="btn ghost" style={{ marginInlineStart: 'auto' }} onClick={add}>＋ افزودن ردیف</button>
+      </div>
       <p className="muted help">{help}</p>
       <div className="tablewrap">
         <table>
           <tbody>
-            {lines.length === 0 && <tr><td colSpan={3} className="muted">هنوز ردیفی نیست. دکمه‌ی «افزودن ردیف» را در پایین بزنید، بعد اسم هزینه و مبلغش را بنویسید.</td></tr>}
+            {lines.length === 0 && <tr><td colSpan={3} className="muted">هنوز ردیفی نیست. دکمه‌ی «افزودن ردیف» را (بالا یا پایین جدول) بزنید، بعد اسم هزینه و مبلغش را بنویسید.</td></tr>}
             {lines.map((l, i) => (
               <tr key={i}>
-                <td><input value={l.name} onChange={e => onChange(lines.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} /></td>
+                <td><input value={l.name} placeholder="نام هزینه را بنویسید…" autoFocus={i === focusIdx} onChange={e => onChange(lines.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} /></td>
                 <td className="n"><NumInput unit="تومان" money value={l.amount} onChange={v => onChange(lines.map((x, j) => (j === i ? { ...x, amount: v ?? 0 } : x)))} /></td>
                 <td><button className="btn danger" onClick={() => onChange(lines.filter((_, j) => j !== i))}>حذف</button></td>
               </tr>
@@ -22,7 +29,7 @@ function Lines({ title, help, lines, onChange }: { title: string; help: string; 
           </tbody>
         </table>
       </div>
-      <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => onChange([...lines, { name: 'مورد جدید', amount: 0 }])}>افزودن ردیف</button>
+      <button className="btn ghost" style={{ marginTop: 10 }} onClick={add}>＋ افزودن ردیف</button>
     </div>
   )
 }
@@ -30,6 +37,7 @@ function Lines({ title, help, lines, onChange }: { title: string; help: string; 
 export function Costs({ catalog, update }: { catalog: Catalog; update: Update }) {
   const c = catalog.config
   const oh = overheadPerKg(c)
+  const addTariff = () => update(s => { s.catalog.tariffs.push({ id: `t-${Date.now().toString(36)}`, name: 'تعرفه جدید', marginPct: 20 }) })
   return (
     <>
       <Lines title="هزینه‌های ثابتِ هر ماه (برق، حقوق، اجاره و مانند آن)" help="هر ماه این پول‌ها را می‌دهید، چه کار کنید چه نکنید. اسم هر هزینه و مبلغ یک ماهش را بنویسید. برنامه این مبلغ را بین کیلوهایی که در ماه می‌سازید پخش می‌کند تا ببیند روی هر کیلو چقدر می‌افتد." lines={c.monthlyCosts} onChange={l => update(s => { s.catalog.config.monthlyCosts = l })} />
@@ -56,7 +64,10 @@ export function Costs({ catalog, update }: { catalog: Catalog; update: Update })
         </div>
       </div>
       <div className="card">
-        <h2>تعرفه‌ها: چند درصد سود می‌خواهید؟</h2>
+        <div className="row" style={{ marginBottom: 4 }}>
+          <h2 style={{ margin: 0 }}>تعرفه‌ها: چند درصد سود می‌خواهید؟</h2>
+          <button className="btn ghost" style={{ marginInlineStart: 'auto' }} onClick={addTariff}>＋ افزودن تعرفه</button>
+        </div>
         <p className="muted help">هر تعرفه یک نوع فروش است (مثلاً عمده یا خرده) و درصد سودش را می‌نویسید. در «لیست قیمت» می‌توانید بین آن‌ها جابه‌جا شوید. سود روی قیمت تمام‌شده اضافه می‌شود.</p>
         <div className="tablewrap">
           <table>
@@ -71,7 +82,7 @@ export function Costs({ catalog, update }: { catalog: Catalog; update: Update })
             </tbody>
           </table>
         </div>
-        <button className="btn ghost" style={{ marginTop: 10 }} onClick={() => update(s => { s.catalog.tariffs.push({ id: `t-${Date.now().toString(36)}`, name: 'تعرفه جدید', marginPct: 20 }) })}>افزودن تعرفه</button>
+        <button className="btn ghost" style={{ marginTop: 10 }} onClick={addTariff}>＋ افزودن تعرفه</button>
       </div>
     </>
   )
