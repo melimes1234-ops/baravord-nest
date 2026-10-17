@@ -1,3 +1,4 @@
+import { PriceGaps } from './PriceGaps'
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   colorSwatch, explainPrice, extrasPerKg, faNum, flatten, stickLength, formatKg, formatToman, overheadPerKg, priceProduct, productItems, toFa,
@@ -52,7 +53,7 @@ const SQM_TIP = (
   </>
 )
 
-export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEditTariffs?: () => void }) {
+export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; onEditTariffs?: () => void; go?: (tab: string) => void }) {
   const colors = Object.values(catalog.colors)
   const [tariffId, setTariffId] = useState(catalog.tariffs[0]?.id)
   const [customPct, setCustomPct] = useState<number | null>(20)
@@ -117,6 +118,7 @@ export function PriceList({ catalog, onEditTariffs }: { catalog: Catalog; onEdit
 
   return (
     <div className="card">
+      <PriceGaps catalog={catalog} go={go} />
       <div className="row">
         <div>
           <span className="field-label">تعرفه (درصد سود)</span>
