@@ -29,13 +29,15 @@ export function useSession() {
   // the catalog as the server has it, to describe what an edit changed
   const savedCatalog = useRef<Catalog | null>(null)
   const flushRef = useRef<() => void>(() => {})
+  const migrated = useRef(false) // the clean-up of removed products is tried once per page load, never in a loop
 
   const apply = useCallback((s: ServerState) => {
     version.current = s.version
     savedCatalog.current = s.catalog
     // The cabinet sheet and the TOPS boards were removed from the system: take them out of catalogs created before that (admin saves it).
     const gone = (c: Catalog) => !!(c.products.cabinet || c.recipes.cabinet || c.recipes.tops || c.recipes.prpft || c.tariffs.some(t => t.id === 'tops') || Object.values(c.products).some(p => p.baseRecipeId === 'tops'))
-    if (s.user.role === 'admin' && gone(s.catalog)) {
+    if (s.user.role === 'admin' && !migrated.current && gone(s.catalog)) {
+      migrated.current = true
       const cleaned = structuredClone(s.catalog)
       delete cleaned.products.cabinet
       delete cleaned.recipes.cabinet

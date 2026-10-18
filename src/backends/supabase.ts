@@ -22,13 +22,20 @@ export function supabase(): SupabaseClient {
   if (!client) {
     const cfg = supabaseConfig()
     if (!cfg) throw new Error('Supabase تنظیم نشده است')
-    client = createClient(cfg.url, cfg.key, { auth: { persistSession: true, autoRefreshToken: true } })
+    client = createClient(cfg.url, cfg.key, {
+      auth: { persistSession: true, autoRefreshToken: true },
+      // a request that never answers must end with a visible error, not an endless «در حال بارگذاری…»
+      global: { fetch: (input, init) => fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(25_000) }) },
+    })
   }
   return client
 }
 
 /** Turns a Supabase/Postgres error into the app's error type (401 = sign in again). */
 function fail(error: { message: string; code?: string; status?: number }): never {
+  if (/abort|timed? ?out|failed to fetch|networkerror|load failed/i.test(error.message)) {
+    throw new ApiError(0, 'سرور (Supabase) جواب نداد یا اینترنت قطع شد. چند دقیقه صبر کنید و دوباره امتحان کنید. اگر تکرار شد، پروژه‌ی Supabase زیر فشار است (Project Settings ← Restart project).')
+  }
   const notSignedIn = error.code === '28000' || error.code === 'PGRST301' || error.status === 401
   if (notSignedIn) throw new ApiError(401, 'ابتدا وارد شوید')
   if (error.code === '42501') throw new ApiError(403, 'دسترسی لازم را ندارید')

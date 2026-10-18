@@ -56,6 +56,29 @@ function savedTab(): Tab | null {
 
 const useSessionImpl = DEMO ? useDemoSession : useSession
 
+/** «در حال بارگذاری…» that offers a way out when it takes too long. */
+function Loading({ onRetry, onLogout }: { onRetry: () => void; onLogout: () => void }) {
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), 10_000)
+    return () => clearTimeout(t)
+  }, [])
+  return (
+    <>
+      <p className="muted">در حال بارگذاری…</p>
+      {slow && (
+        <div className="alert">
+          بیشتر از معمول طول کشید. اینترنت یا سرور کند است. می‌توانید دوباره امتحان کنید یا خارج شوید و دوباره وارد شوید.
+          <div className="row" style={{ margin: '8px 0 0' }}>
+            <button className="btn" onClick={onRetry}>تلاش دوباره</button>
+            <button className="btn ghost" onClick={onLogout}>خروج و ورود دوباره</button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function App() {
   const impl = useSessionImpl()
   const { session, error, clearError, login, logout, update } = impl
@@ -107,7 +130,7 @@ export default function App() {
               <button className="btn ghost" onClick={() => void logout()}>خروج و ورود دوباره</button>
             </div>
           </div>
-        ) : <p className="muted">در حال بارگذاری…</p>}
+        ) : <Loading onRetry={() => { clearError(); void impl.refresh() }} onLogout={() => void logout()} />}
       </main>
     )
   }
