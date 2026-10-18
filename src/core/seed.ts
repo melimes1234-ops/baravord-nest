@@ -5,7 +5,7 @@ import type { Catalog, Color, Material, Product, Recipe, RecipeItem } from './ty
  * The workbook writes prices in Rial per kg; the app is in Toman, so every price here is the workbook value / 10.
  * Bump SEED_VERSION when this data changes, so an admin can be offered the new starting data.
  */
-export const SEED_VERSION = 2
+export const SEED_VERSION = 3
 
 const RIAL = 10
 const mat = (id: string, name: string, rialPerKg: number | null): Material => ({ id, name, pricePerKg: rialPerKg == null ? null : rialPerKg / RIAL })
@@ -101,24 +101,12 @@ function buildSeed(): Catalog {
     baseRecipeId: 'wpc-profile',
     colorable: true,
   }))
-  // TOPS boards: sold by the board; the weight of a whole board decides the price (workbook, 1402/09/25).
-  const tops: [string, string, number, number, number][] = [
-    ['TOPS 32 (4.1 m)', 'TOPS32-41', 32, 4.1, 49_000],
-    ['TOPS 50 (4.1 m)', 'TOPS50-41', 50, 4.1, 61_500],
-    ['TOPS 32 (3.6 m)', 'TOPS32-36', 32, 3.6, 41_400],
-    ['TOPS 50 (3.6 m)', 'TOPS50-36', 50, 3.6, 51_350],
-  ]
-  for (const [name, code, thicknessMm, lengthM, w] of tops) {
-    products.push({ id: code.toLowerCase(), name, code, widthMm: 600, thicknessMm, usages: [], weightPer3mG: w, stickLengthM: lengthM, baseRecipeId: 'tops', colorable: false })
-  }
   const colors: Color[] = colorDefs.map(([id, name, items]) => ({ id, name, items }))
 
   const recipes: Recipe[] = [
     { id: 'scf', name: 'اسکرپ آماده‌ی میکس (SC4 + SCH)', kind: 'semi', items: [m('sc4', SC4_KG), m('sch', SCH_KG)], overheadPerKg: SCRAP_EXTRA_RIAL / RIAL },
-    { id: 'prpft', name: 'PRP تاپس (PRPFT)', kind: 'semi', overheadPerKg: 20_000 / RIAL, items: [r('scf', 58), m('carbonate', 40.8), m('graft', 1), m('a060', 0.1), m('a2112', 0.1)] },
     { id: 'prpf', name: 'PRP پروفایل (PRPF)', kind: 'semi', overheadPerKg: 20_000 / RIAL, items: [r('scf', 56.5), m('carbonate', 40), m('graft', 1.5), m('a060', 0.25), m('a2112', 0.25), m('wax', 1.5)] },
     { id: 'wpc-profile', name: 'پروفیل WPC (پایه)', kind: 'base', overheadPerKg: 100_000 / RIAL, items: [r('prpf', 33), m('wood', 61), m('wax', 1.5), m('graft', 2)] },
-    { id: 'tops', name: 'تاپس (پایه)', kind: 'base', overheadPerKg: 30_000 / RIAL, items: [r('prpft', 30), m('wood', 77), m('wax', 1.5), m('graft', 1)] },
   ]
 
   return {
@@ -127,11 +115,8 @@ function buildSeed(): Catalog {
     recipes: Object.fromEntries(recipes.map(x => [x.id, x])),
     colors: Object.fromEntries(colors.map(c => [c.id, c])),
     products: Object.fromEntries(products.map(p => [p.id, p])),
-    // Profit used in the workbook: x1.2 for TOPS boards, x1.3 for profiles.
-    tariffs: [
-      { id: 'tops', name: 'سود ۲۰٪ (تاپس)', marginPct: 20 },
-      { id: 'profile', name: 'سود ۳۰٪ (پروفایل)', marginPct: 30 },
-    ],
+    // Profit used in the workbook for profiles: x1.3.
+    tariffs: [{ id: 'profile', name: 'سود ۳۰٪ (پروفایل)', marginPct: 30 }],
     config: {
       monthlyCosts: [],
       monthlyProductionKg: 0,

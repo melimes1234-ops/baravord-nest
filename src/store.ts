@@ -33,11 +33,16 @@ export function useSession() {
   const apply = useCallback((s: ServerState) => {
     version.current = s.version
     savedCatalog.current = s.catalog
-    // The cabinet sheet was removed from the system: take it out of catalogs created before that (admin saves it).
-    if (s.user.role === 'admin' && (s.catalog.products.cabinet || s.catalog.recipes.cabinet)) {
+    // The cabinet sheet and the TOPS boards were removed from the system: take them out of catalogs created before that (admin saves it).
+    const gone = (c: Catalog) => !!(c.products.cabinet || c.recipes.cabinet || c.recipes.tops || c.recipes.prpft || c.tariffs.some(t => t.id === 'tops') || Object.values(c.products).some(p => p.baseRecipeId === 'tops'))
+    if (s.user.role === 'admin' && gone(s.catalog)) {
       const cleaned = structuredClone(s.catalog)
       delete cleaned.products.cabinet
-      if (!Object.values(cleaned.products).some(p => p.baseRecipeId === 'cabinet')) delete cleaned.recipes.cabinet
+      delete cleaned.recipes.cabinet
+      for (const p of Object.values(cleaned.products)) if (p.baseRecipeId === 'tops') delete cleaned.products[p.id]
+      delete cleaned.recipes.tops
+      delete cleaned.recipes.prpft
+      if (cleaned.tariffs.length > 1) cleaned.tariffs = cleaned.tariffs.filter(t => t.id !== 'tops')
       s = { ...s, catalog: cleaned }
       dirtyCatalog.current = cleaned
       clearTimeout(saveTimer.current)
