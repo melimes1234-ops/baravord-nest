@@ -6,7 +6,7 @@
   --info: #1f5fa8; --info-bg: #e5eefb;
   /* one colour per section, so you always know where you are */
   --c-guide: #0f766e; --c-prices: #2e7d32; --c-materials: #a35a00; --c-recipes: #1f5fa8; --c-products: #6a3fb0;
-  --c-costs: #b4470f; --c-batches: #ad1457; --c-stock: #3949ab; --c-goods: #00897b; --c-issues: #b3261e; --c-users: #455a64; --c-calc: #6d4c41;
+  --c-costs: #b4470f; --c-batches: #ad1457; --c-stock: #3949ab; --c-goods: #00897b; --c-backup: #5d4037; --c-issues: #b3261e; --c-users: #455a64; --c-calc: #6d4c41;
   /* product series in the price list */
   --s-FC: #00796b; --s-FD: #1565c0; --s-FB: #b26a00; --s-FT: #7b3fa0; --s-other: #546e7a;
   --shadow: 0 1px 2px rgba(20, 40, 30, .06);
@@ -20,7 +20,7 @@
     --ok: #62d49b; --ok-bg: #16352a; --warn: #f2b658; --warn-bg: #3b2d12; --err: #ff9188; --err-bg: #3d2120;
     --info: #86b8f2; --info-bg: #1b2d44;
     --c-guide: #4fd1c5; --c-prices: #7bd88f; --c-materials: #f2b658; --c-recipes: #86b8f2; --c-products: #bba0f0;
-    --c-costs: #f59a63; --c-batches: #f48fb1; --c-stock: #a3acf2; --c-goods: #5fd3c4; --c-issues: #ff9188; --c-users: #b0c1ca; --c-calc: #bcaaa4;
+    --c-costs: #f59a63; --c-batches: #f48fb1; --c-stock: #a3acf2; --c-goods: #5fd3c4; --c-backup: #bcaaa4; --c-issues: #ff9188; --c-users: #b0c1ca; --c-calc: #bcaaa4;
     --s-FC: #4db6ac; --s-FD: #64b5f6; --s-FB: #ffb74d; --s-FT: #ce93d8; --s-other: #90a4ae;
     --shadow: none; color-scheme: dark;
   }
@@ -31,7 +31,7 @@
   --ok: #62d49b; --ok-bg: #16352a; --warn: #f2b658; --warn-bg: #3b2d12; --err: #ff9188; --err-bg: #3d2120;
   --info: #86b8f2; --info-bg: #1b2d44;
   --c-guide: #4fd1c5; --c-prices: #7bd88f; --c-materials: #f2b658; --c-recipes: #86b8f2; --c-products: #bba0f0;
-  --c-costs: #f59a63; --c-batches: #f48fb1; --c-stock: #a3acf2; --c-goods: #5fd3c4; --c-issues: #ff9188; --c-users: #b0c1ca; --c-calc: #bcaaa4;
+  --c-costs: #f59a63; --c-batches: #f48fb1; --c-stock: #a3acf2; --c-goods: #5fd3c4; --c-backup: #bcaaa4; --c-issues: #ff9188; --c-users: #b0c1ca; --c-calc: #bcaaa4;
   --s-FC: #4db6ac; --s-FD: #64b5f6; --s-FB: #ffb74d; --s-FT: #ce93d8; --s-other: #90a4ae;
   --shadow: none; color-scheme: dark;
 }
@@ -52,6 +52,7 @@ main[data-tab="costs"] { --accent: var(--c-costs); }
 main[data-tab="batches"] { --accent: var(--c-batches); }
 main[data-tab="stock"] { --accent: var(--c-stock); }
 main[data-tab="goods"] { --accent: var(--c-goods); }
+main[data-tab="backup"] { --accent: var(--c-backup); }
 main[data-tab="issues"] { --accent: var(--c-issues); }
 main[data-tab="users"] { --accent: var(--c-users); }
 main[data-tab="calc"] { --accent: var(--c-calc); }

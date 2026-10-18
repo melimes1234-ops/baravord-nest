@@ -8,6 +8,7 @@ import { BottomBar, Drawer } from './MobileNav'
 import { DEMO, useDemoSession } from './demo'
 import { applyTheme, initialTheme, type Theme } from './theme'
 import { useSession } from './store'
+import { Backup } from './tabs/Backup'
 import { Batches } from './tabs/Batches'
 import { Calc } from './tabs/Calc'
 import { Costs } from './tabs/Costs'
@@ -22,12 +23,12 @@ import { Stock } from './tabs/Stock'
 import { SupabaseUsers } from './tabs/SupabaseUsers'
 import { Users } from './tabs/Users'
 
-const ALL = ['شروع کار', 'لیست قیمت', 'محاسبات', 'مواد', 'فرمول‌ها', 'محصولات', 'هزینه‌ها', 'پارت تولید', 'محصول ساخته‌شده', 'انبار', 'هشدارها', 'کاربران'] as const
+const ALL = ['شروع کار', 'لیست قیمت', 'محاسبات', 'مواد', 'فرمول‌ها', 'محصولات', 'هزینه‌ها', 'پارت تولید', 'محصول ساخته‌شده', 'انبار', 'هشدارها', 'پشتیبان‌گیری', 'کاربران'] as const
 type Tab = (typeof ALL)[number]
 
 const TAB_KEY: Record<Tab, string> = {
   'شروع کار': 'guide', 'لیست قیمت': 'prices', 'محاسبات': 'calc', 'مواد': 'materials', 'فرمول‌ها': 'recipes', 'محصولات': 'products',
-  'هزینه‌ها': 'costs', 'پارت تولید': 'batches', 'محصول ساخته‌شده': 'goods', 'انبار': 'stock', 'هشدارها': 'issues', 'کاربران': 'users',
+  'هزینه‌ها': 'costs', 'پارت تولید': 'batches', 'محصول ساخته‌شده': 'goods', 'انبار': 'stock', 'هشدارها': 'issues', 'پشتیبان‌گیری': 'backup', 'کاربران': 'users',
 }
 
 const ALLOWED: Record<Role, readonly Tab[]> = {
@@ -185,6 +186,7 @@ export default function App() {
         {current === 'محصول ساخته‌شده' && <Goods state={state} update={update} readOnly={!canEdit} canDelete={user.role === 'admin' || DEMO} />}
         {current === 'انبار' && <Stock catalog={catalog} movements={state.movements} update={update} readOnly={!canEdit} />}
         {current === 'هشدارها' && <Issues catalog={catalog} go={user.role === 'admin' || DEMO ? t => setTab(t as Tab) : undefined} />}
+        {current === 'پشتیبان‌گیری' && <Backup state={state} update={update} user={user.username} />}
         {current === 'کاربران' && (backend.kind === 'supabase' ? <SupabaseUsers catalog={catalog} /> : <Users me={user} catalog={catalog} />)}
       </main>
       <BottomBar tabs={tabs} current={current} tabKey={TAB_KEY} onSelect={setTab} issueCount={issueCount} onMore={() => setMenuOpen(true)} />
