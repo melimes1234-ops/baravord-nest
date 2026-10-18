@@ -16,7 +16,10 @@ export function catalogChanges(prev: Catalog, next: Catalog, max = 12): string[]
     const a = prev.materials[id]
     const b = next.materials[id]
     if (!a) out.push(`ماده‌ی جدید: «${b.name}»`)
-    else if (a.pricePerKg !== b.pricePerKg) out.push(`قیمت «${b.name}» از ${num(a.pricePerKg)} به ${num(b.pricePerKg)} تومان`)
+    else {
+      if (a.name !== b.name) out.push(`اسم ماده از «${a.name}» به «${b.name}» عوض شد`)
+      if (a.pricePerKg !== b.pricePerKg) out.push(`قیمت «${b.name}» از ${num(a.pricePerKg)} به ${num(b.pricePerKg)} تومان`)
+    }
   }
   for (const id of Object.keys(prev.materials)) if (!next.materials[id]) out.push(`ماده حذف شد: «${prev.materials[id].name}»`)
 

@@ -202,7 +202,7 @@ export default function App() {
         {current === 'شروع کار' && <Guide catalog={catalog} movements={state.movements} batches={state.batches} role={DEMO ? 'admin' : user.role} demo={DEMO} go={t => setTab(t as Tab)} />}
         {current === 'لیست قیمت' && <PriceList catalog={catalog} go={user.role === 'admin' || DEMO ? t => setTab(t as Tab) : undefined} onEditTariffs={user.role === 'admin' || DEMO ? () => setTab('هزینه‌ها') : undefined} />}
         {current === 'محاسبات' && <Calc catalog={catalog} go={user.role === 'admin' || DEMO ? t => setTab(t as Tab) : undefined} />}
-        {current === 'مواد' && <Materials catalog={catalog} update={update} />}
+        {current === 'مواد' && <Materials catalog={catalog} update={update} movements={state.movements} />}
         {current === 'فرمول‌ها' && <Recipes catalog={catalog} update={update} />}
         {current === 'محصولات' && <Products catalog={catalog} update={update} />}
         {current === 'هزینه‌ها' && <Costs catalog={catalog} update={update} />}
