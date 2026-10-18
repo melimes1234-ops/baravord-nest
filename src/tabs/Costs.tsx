@@ -46,7 +46,7 @@ function StageCosts({ catalog, update }: { catalog: Catalog; update: Update }) {
           <tbody>
             {recipes.map(r => (
               <tr key={r.id}>
-                <td>{r.name}</td>
+                <td className="mat-name">{r.name}{r.id === 'scf' && <div className="muted hint">هزینه‌ی خرید هر کیلو پلیمر: مالیات ۹٪ + کرایه + خردکردن. اگر قیمت پلیمر عوض شد، این عدد را هم درست کن: «قیمت پلیمر × ۰٫۰۹ + ۱٬۵۰۷ + ۲۴٬۰۰۰». (اکسل: ۴۳٬۶۶۹)</div>}</td>
                 <td className="n">
                   <NumInput unit="تومان" money value={r.overheadPerKg ?? 0} onChange={v => update(s => {
                     if (v && v > 0) s.catalog.recipes[r.id].overheadPerKg = v

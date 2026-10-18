@@ -53,9 +53,9 @@ describe('product pricing', () => {
     const c = cat()
     c.config.roundTo = 1
     const p = priceProduct(c.products.flex, 'n1', c.tariffs[0], c)
-    expect(p.perStick).toBe(Math.round((p.salePerKg * 7500) / 1000))
-    expect(p.perMeter).toBe(Math.round((p.salePerKg * 7500) / 3000))
-    expect(p.salePerKg).toBeCloseTo(p.costPerKg * 1.3, 9)
+    expect(p.perStick).toBe(Math.round((p.salePerKg * 7680) / 1000))
+    expect(p.perMeter).toBe(Math.round((p.salePerKg * 7680) / 3000))
+    expect(p.salePerKg).toBeCloseTo(p.costPerKg * 1.15, 9)
   })
 
   it('overhead is monthly cost / monthly kg, extras are per batch / batch kg, waste scales materials', () => {
@@ -82,6 +82,7 @@ describe('product pricing', () => {
 
   it('no weight = no stick/meter price', () => {
     const c = cat()
+    c.products['t-once'].weightPer3mG = null
     const p = priceProduct(c.products['t-once'], null, c.tariffs[0], c)
     expect(p.perStick).toBeNull()
     expect(p.perMeter).toBeNull()
@@ -199,12 +200,14 @@ describe('validation and formatting', () => {
     const c = cat()
     c.materials.red.pricePerKg = null
     for (const rc of Object.values(c.recipes)) delete rc.overheadPerKg
+    c.config.monthlyCosts = []
+    c.products['t-once'].weightPer3mG = null
     const msgs = validateCatalog(c).map(i => i.message).join('|')
     expect(msgs).toMatch(/وزن شاخه/)
     expect(msgs).toMatch(/قیمت ماده نوشته نشده/)
     expect(msgs).toMatch(/هزینه‌های ثابت کارخانه/)
     // the starting data has its overhead in the making steps, so it is not reported as missing
-    expect(validateCatalog(cat()).some(i => /هزینه‌های ثابت/.test(i.message))).toBe(false)
+    expect(validateCatalog(cat()).some(i => /هزینه‌های ثابت/.test(i.message))).toBe(false) // the monthly costs are in the starting data
   })
 
   it('parses Persian digits and separators', () => {
@@ -251,8 +254,8 @@ describe('formula tools', () => {
   it('cost of a formula = sum of item costs, and a sub-recipe item costs its own per-kg price', () => {
     const c = cat()
     const f = formulaCost(c.recipes['wpc-profile'].items, c)
-    // PRPF costs its materials plus its own 20,000 per kg step overhead
-    const prpf = recipeMaterialPerKg('prpf', c) + 0.565 * SCRAP_EXTRA + 20_000 // + the scrap's buying costs (56.5 kg of SCF per 100) + step overhead
+    // PRPF costs its materials plus the polymer's buying costs (56.5 kg of it per 100)
+    const prpf = recipeMaterialPerKg('prpf', c) + 0.565 * SCRAP_EXTRA // + the scrap's buying costs (56.5 kg of SCF per 100) + step overhead
     expect(f.rows.find(r => r.item.ref.id === 'prpf')!.cost).toBeCloseTo(33 * prpf, 6)
     expect(f.totalCost).toBeCloseTo(33 * prpf + 61 * 44_000 + 1.5 * 700_000 + 2 * 675_000, 4)
     expect(f.incomplete).toBe(false)
@@ -327,8 +330,8 @@ describe('calculation explanation', () => {
     expect(e.extrasPerKg).toBeCloseTo(1000, 9)
     expect(e.afterWastePerKg).toBeCloseTo(e.materialPerKg / 0.95, 6)
     expect(e.costPerKg).toBeCloseTo(e.afterWastePerKg + e.overheadPerKg + 1000, 6)
-    expect(e.salePerKg).toBeCloseTo(e.costPerKg * 1.3, 6)
-    expect(e.perStickRaw).toBeCloseTo((e.salePerKg * 7500) / 1000, 6)
+    expect(e.salePerKg).toBeCloseTo(e.costPerKg * 1.15, 6)
+    expect(e.perStickRaw).toBeCloseTo((e.salePerKg * 7680) / 1000, 6)
     expect(e.rows.reduce((s, r) => s + (r.cost ?? 0), 0)).toBeCloseTo(e.materialCost, 6)
     expect(e.profitPerKg).toBeCloseTo(e.salePerKg - e.costPerKg, 9)
   })
@@ -337,6 +340,8 @@ describe('calculation explanation', () => {
     const c = cat()
     c.materials.yellow.pricePerKg = null
     for (const rc of Object.values(c.recipes)) delete rc.overheadPerKg
+    c.config.monthlyCosts = []
+    c.products['t-once'].weightPer3mG = null
     const bad = explainPrice(c.products['t-once'], 'n3', c.tariffs[0], c)
     const titles = bad.checks.filter(k => !k.ok).map(k => k.title)
     expect(titles).toEqual(expect.arrayContaining(['قیمت بعضی مواد نوشته نشده', 'وزن شاخه را ننوشته‌اید', 'هزینه‌های ثابت کارخانه نوشته نشده']))
@@ -359,10 +364,11 @@ describe('price per square metre', () => {
     const c = cat()
     c.config.roundTo = 1
     const p = priceProduct(c.products.flex, 'n1', c.tariffs[0], c)
-    expect(p.perSqm).toBe(Math.round((p.salePerKg * 7500) / 3000 / 0.14))
+    expect(p.perSqm).toBe(Math.round((p.salePerKg * 7680) / 3000 / 0.14))
     expect(p.perSqm!).toBeGreaterThan(p.perMeter!) // a 14 cm board: 1 m2 is about 7 metres
     c.products.flex.widthMm = undefined
     expect(priceProduct(c.products.flex, 'n1', c.tariffs[0], c).perSqm).toBeNull()
+    c.products['t-once'].weightPer3mG = null
     expect(priceProduct(c.products['t-once'], null, c.tariffs[0], c).perSqm).toBeNull() // no weight
   })
 
@@ -398,15 +404,16 @@ describe('the factory workbook (آخرین محاسبه مواد - دی ۱۴۰۲
   it('profile with colour N7 (30%): matches the sheet\'s method step by step', () => {
     const c = cat()
     const p = priceProduct(c.products.flex, 'n7', c.tariffs[0], c)
-    const prpf = recipeMaterialPerKg('prpf', c) + 0.565 * SCRAP_EXTRA + 20_000
+    const prpf = recipeMaterialPerKg('prpf', c) + 0.565 * SCRAP_EXTRA
     const mix = 33 * prpf + 61 * 44_000 + 1.5 * 700_000 + 2 * 675_000 + 0.3 * 1_000_000 + 2 * 1_000_000 + 0.25 * 1_200_000
     const kg = 33 + 61 + 1.5 + 2 + 0.3 + 2 + 0.25
-    expect(p.costPerKg).toBeCloseTo(mix / kg + 30_000, 6) // + 30,000 profile-step overhead (newest sheet)
-    expect(p.salePerKg).toBeCloseTo((mix / kg + 30_000) * 1.3, 6)
+    // + the factory's own monthly costs: 510,000,000 / 10,000 kg = 51,000 per kg
+    expect(p.costPerKg).toBeCloseTo(mix / kg + 51_000, 6)
+    expect(p.salePerKg).toBeCloseTo((mix / kg + 51_000) * 1.15, 6)
   })
 
-  it('the starting data is complete: nothing but the six products without a weight is missing, and there is no cabinet or TOPS', () => {
-    expect(validateCatalog(cat()).map(i => i.where).sort()).toEqual(['Coffin', 'Off', 'T-Clan', 'T-Coffin', 'T-Fame', 'T-Once'])
+  it('the starting data is complete (every product has a weight), and there is no cabinet or TOPS', () => {
+    expect(validateCatalog(cat())).toEqual([])
     const c = cat()
     expect(Object.keys(c.recipes).sort()).toEqual(['prpf', 'scf', 'wpc-profile'])
     expect(Object.values(c.products).some(p => /top|cab/i.test(p.id + p.name))).toBe(false)
@@ -431,6 +438,7 @@ describe('units: everything is Toman', () => {
     const a = cat(), b = cat()
     for (const m of Object.values(b.materials)) if (m.pricePerKg) m.pricePerKg *= 10
     for (const rc of Object.values(b.recipes)) if (rc.overheadPerKg) rc.overheadPerKg *= 10 // the cost of each making step is Toman too
+    for (const l of b.config.monthlyCosts) l.amount *= 10
     const t = a.tariffs[0]
     const pa = priceProduct(a.products.flex, 'n1', t, a), pb = priceProduct(b.products.flex, 'n1', t, b)
     expect(pb.costPerKg / pa.costPerKg).toBeCloseTo(10, 9)
@@ -485,8 +493,8 @@ describe('change log sentences', () => {
     delete b.products.tail
     const lines = catalogChanges(a, b)
     expect(lines).toContain('قیمت «وکس پلی‌اتیلن (PEWAX)» از ۷۰۰٬۰۰۰ به ۹۰۰٬۰۰۰ تومان')
-    expect(lines).toContain('وزن شاخه‌ی «Flex» از ۷٬۵۰۰ به ۷٬۶۰۰ گرم')
-    expect(lines).toContain(`سود تعرفه‌ی «${tariffName}» از ۳۰٪ به ۱۸٪`)
+    expect(lines).toContain('وزن شاخه‌ی «Flex» از ۷٬۶۸۰ به ۷٬۶۰۰ گرم')
+    expect(lines).toContain(`سود تعرفه‌ی «${tariffName}» از ۱۵٪ به ۱۸٪`)
     expect(lines.some(l => l.includes('درصد دورریز'))).toBe(true)
     expect(lines).toContain(`مقدار مواد فرمول «${a.recipes.prpf.name}» عوض شد`)
     expect(lines).toContain('محصول حذف شد: «Tail»')

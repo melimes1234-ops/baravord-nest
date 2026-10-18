@@ -6,7 +6,7 @@ import type { Catalog, Color, Material, Product, Recipe, RecipeItem } from './ty
  * (e.g. TiO2 1,450,000 there, 1,572,000 here), so they are taken as Toman exactly as written, with no conversion.
  * Bump SEED_VERSION when this data changes, so an admin can be offered the new starting data.
  */
-export const SEED_VERSION = 5
+export const SEED_VERSION = 6
 
 const RIAL = 1
 const mat = (id: string, name: string, rialPerKg: number | null): Material => ({ id, name, pricePerKg: rialPerKg == null ? null : rialPerKg / RIAL })
@@ -56,31 +56,31 @@ const colorDefs: [string, string, RecipeItem[]][] = [
   ['n12', 'N12', [m('titan', 0.4), m('red', 0.3), m('brown', 1.2)]],
 ]
 
-// [name, code, width mm, thickness mm, weight of a 3 m stick in grams (null = unknown)]
+// [name, code, width mm, thickness mm, weight of a 3 m stick in grams]. Sizes and weights come from the factory's own saved data (backup of 1405/07/26).
 const productDefs: [string, string, number, number, number | null][] = [
-  ['Feel', 'FC140', 140, 21, 4800],
-  ['Lead', 'FC103', 103, 21, 5100],
-  ['Shine', 'FD21', 140, 21, 7400],
-  ['Pond', 'FD155', 155, 26, 10450],
-  ['Fair', 'FD26', 155, 26, 9750],
-  ['Flex', 'FD140', 140, 25, 7500],
-  ['Once', 'FD142', 142, 21, 7800],
-  ['T-Once', 'FD142', 142, 21, null],
-  ['Clan', 'FD92', 91.5, 21, 5100],
-  ['T-Clan', 'FD92T', 91.5, 21, null],
-  ['Fame', 'FD72', 72, 21, 3900],
-  ['T-Fame', 'FD72T', 72, 21, null],
-  ['Fate', 'FB290', 290, 12, 15100],
-  ['Flat', 'FB130', 130, 11, 5950],
-  ['Petal', 'FB68', 68, 11, 2890],
-  ['Tail', 'FB55', 55, 14, 3110],
-  ['Viva', 'FB92', 92, 13, 4250],
-  ['Off', 'FT40', 38, 38, null],
-  ['IMP', 'FT90', 90, 45, 5730],
-  ['Mela', 'FT60', 60, 40, 5700],
-  ['Coffin', 'FT46', 27, 46, null],
-  ['T-Coffin', 'FT46T', 27, 46, null],
-  ['Down', 'FT27', 27, 46, 2900],
+  ['Feel', 'FC140', 140, 21, 6600],
+  ['Lead', 'FC103', 103, 21, 4920],
+  ['Shine', 'FD21', 140, 21, 7200],
+  ['Pond', 'FD155', 155, 26, 10050],
+  ['Fair', 'FD26', 155, 26, 8820],
+  ['Flex', 'FD140', 140, 25, 7680],
+  ['Once', 'FD142', 142, 21, 7830],
+  ['T-Once', 'FD142', 142, 21, 11310],
+  ['Clan', 'FD92', 91.5, 21, 5070],
+  ['T-Clan', 'FD92T', 91.5, 21, 7080],
+  ['Fame', 'FD72', 72, 21, 4050],
+  ['T-Fame', 'FD72T', 72, 21, 5100],
+  ['Fate', 'FB290', 290, 12, 14700],
+  ['Flat', 'FB130', 130, 11, 5460],
+  ['Petal', 'FB68', 68, 11, 2820],
+  ['Tail', 'FB55', 55, 14, 2940],
+  ['Viva', 'FB92', 92, 13, 4320],
+  ['Off', 'FT40', 38, 38, 3150],
+  ['IMP', 'FT90', 90, 45, 5760],
+  ['Mela', 'FT60', 60, 40, 5268],
+  ['Coffin', 'FT46', 27, 46, 4050],
+  ['T-Coffin', 'FT46T', 27, 46, 4605],
+  ['Down', 'FT27', 27, 46, 2880],
 ]
 
 /** A fresh copy every time: callers edit the result, and the module-level tables must never change. */
@@ -104,8 +104,8 @@ function buildSeed(): Catalog {
 
   const recipes: Recipe[] = [
     { id: 'scf', name: 'پلیمر آماده‌ی مصرف (خرید + خردکردن)', kind: 'semi', items: [m('pp', 100)], overheadPerKg: POLYMER_EXTRA / RIAL },
-    { id: 'prpf', name: 'PRP پروفایل (PRPF)', kind: 'semi', overheadPerKg: 20_000 / RIAL, items: [r('scf', 56.5), m('carbonate', 40), m('graft', 1.5), m('a060', 0.25), m('a2112', 0.25), m('wax', 1.5)] },
-    { id: 'wpc-profile', name: 'پروفیل WPC (پایه)', kind: 'base', overheadPerKg: 30_000 / RIAL, items: [r('prpf', 33), m('wood', 61), m('wax', 1.5), m('graft', 2)] },
+    { id: 'prpf', name: 'PRP پروفایل (PRPF)', kind: 'semi', overheadPerKg: 0, items: [r('scf', 56.5), m('carbonate', 40), m('graft', 1.5), m('a060', 0.25), m('a2112', 0.25), m('wax', 1.5)] },
+    { id: 'wpc-profile', name: 'پروفیل WPC (پایه)', kind: 'base', overheadPerKg: 0, items: [r('prpf', 33), m('wood', 61), m('wax', 1.5), m('graft', 2)] },
   ]
 
   return {
@@ -114,11 +114,25 @@ function buildSeed(): Catalog {
     recipes: Object.fromEntries(recipes.map(x => [x.id, x])),
     colors: Object.fromEntries(colors.map(c => [c.id, c])),
     products: Object.fromEntries(products.map(p => [p.id, p])),
-    // Profit used in the workbook for profiles: x1.3.
-    tariffs: [{ id: 'profile', name: 'سود ۳۰٪ (پروفایل)', marginPct: 30 }],
+    // The factory's own tariffs (backup of 1405/07/26). The workbook's profile profit is x1.3 = 30%.
+    tariffs: [
+      { id: 'wholesale', name: 'عمده', marginPct: 15 },
+      { id: 'retail', name: 'خرده', marginPct: 25 },
+      { id: 't-mv47ncp0', name: 'خرده', marginPct: 50 },
+      { id: 't-mvcninml', name: 'اصلی', marginPct: 100 },
+    ],
     config: {
-      monthlyCosts: [],
-      monthlyProductionKg: 0,
+      // The factory's own monthly costs and production (backup of 1405/07/26): 510,000,000 / 10,000 kg = 51,000 per kg.
+      // The cost of each making step (PRP, profile) is left at 0 so the same overhead is not counted twice.
+      monthlyCosts: [
+        { name: 'برق', amount: 70_000_000 },
+        { name: 'اجاره', amount: 150_000_000 },
+        { name: 'استهلاک', amount: 50_000_000 },
+        { name: 'آب', amount: 20_000_000 },
+        { name: 'گاز', amount: 20_000_000 },
+        { name: 'حقوق', amount: 200_000_000 },
+      ],
+      monthlyProductionKg: 10_000,
       perBatchCosts: [],
       batchKg: 100,
       wastePct: 0,

@@ -420,3 +420,5 @@ main { animation: pageIn .2s ease backwards; }
 @media (max-width: 380px) { .bottombar button { font-size: 10.5px; } .pick { flex-basis: 100%; } }
 @media print { .bottombar, .drawer, .menu-btn { display: none !important; } main { padding-bottom: 0; } }
 .unit-sm { font-size: 12px; font-weight: 600; color: var(--muted); }
+.mat-name { white-space: normal; min-width: 150px; }
+.mat-name .hint { max-width: 520px; font-size: 12.5px; line-height: 1.8; margin-top: 2px; }
