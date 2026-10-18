@@ -9,13 +9,14 @@ import {
 const cat = (): Catalog => seedCatalog()
 
 // Workbook numbers, taken as Toman exactly as written (the sheet's «ريال» headers are on the same scale as the Toman prices the factory already used).
-const SCRAP_EXTRA = ((2000 * 205_000 + 323 * 182_000) * 0.09 + 3_500_000 + 24_000 * 2323) / 2323
-const SCF = (2000 * 205_000 + 323 * 182_000) / 2323 + SCRAP_EXTRA // 245,470.83 per kg (sheet G30)
+// One polymer price (the average of the sheet's two scraps) plus the buying costs: 9% tax, freight and grinding.
+const SCRAP_EXTRA = 201_800 * 0.09 + 3_500_000 / 2323 + 24_000
+const SCF = 201_800 + SCRAP_EXTRA // ≈ 245,468.67 per kg (sheet G30: 245,470.83)
 
 describe('recipe costing', () => {
   it('PRPF material cost per kg is the weighted sum / total weight', () => {
     const c = cat()
-    const scfMat = (2000 * 205_000 + 323 * 182_000) / 2323
+    const scfMat = 201_800
     const expected = (56.5 * scfMat + 40 * 50_000 + 1.5 * 675_000 + 0.25 * 2_700_000 + 0.25 * 2_900_000 + 1.5 * 700_000) / 100
     expect(recipeMaterialPerKg('prpf', c)).toBeCloseTo(expected, 6)
   })
@@ -27,8 +28,8 @@ describe('recipe costing', () => {
     expect(flat.carbonate).toBeCloseTo(0.33 * 40, 9)
     expect(flat.wood).toBe(61)
     expect(flat.graft).toBeCloseTo(2 + 0.33 * 1.5, 9)
-    // ... and of the scrap: 56.5 kg of SCF per 100 kg, split between SC4 and SCH by their weights
-    expect(flat.sc4).toBeCloseTo(0.33 * 56.5 * (2000 / 2323), 9)
+    // ... and of the polymer: 56.5 kg per 100 kg of PRPF
+    expect(flat.pp).toBeCloseTo(0.33 * 56.5, 9)
   })
 
   it('detects cycles', () => {
@@ -37,11 +38,11 @@ describe('recipe costing', () => {
     expect(() => flatten(c.recipes['wpc-profile'].items, c)).toThrow(/به هم گره خورده/)
   })
 
-  it('changing a material price changes the scrap mix, PRPF and every product using it', () => {
+  it('changing the polymer price changes the ready polymer, PRPF and every product using it', () => {
     const c = cat()
     const flex = c.products.flex
     const before = priceProduct(flex, 'n1', c.tariffs[0], c).perStick!
-    c.materials.sc4.pricePerKg! *= 1.1
+    c.materials.pp.pricePerKg! *= 1.1
     const after = priceProduct(flex, 'n1', c.tariffs[0], c).perStick!
     expect(after).toBeGreaterThan(before)
   })
@@ -134,7 +135,7 @@ describe('batch with custom formula', () => {
   it('later price changes do not touch an existing batch', () => {
     const { c, b } = setup()
     const before = batchReport(b, c).actual.materialCost
-    c.materials.sc4.pricePerKg! *= 2
+    c.materials.pp.pricePerKg! *= 2
     expect(batchReport(b, c).actual.materialCost).toBeCloseTo(before, 6)
   })
 
@@ -179,7 +180,7 @@ describe('inventory', () => {
     const lv = stockLevels(after)
     expect(lv.wax.qtyKg).toBeCloseTo(1000 - 3 - 0.33 * 1.5, 9)
     expect(lv.wood.qtyKg).toBeCloseTo(939, 9)
-    expect(lv.sc4.qtyKg).toBeCloseTo(1000 - 0.33 * 56.5 * (2000 / 2323), 9)
+    expect(lv.pp.qtyKg).toBeCloseTo(1000 - 0.33 * 56.5, 9)
   })
 
   it('refuses to produce when stock is short and reports what is missing', () => {
@@ -376,10 +377,13 @@ describe('price per square metre', () => {
 })
 
 describe('the factory workbook (آخرین محاسبه مواد - دی ۱۴۰۲)', () => {
-  it('the scrap mix costs 245,470.83 per kg once buying costs are added (sheet G30)', () => {
+  it('the ready polymer costs about 245,470 per kg once buying costs are added (sheet G30: 245,470.83)', () => {
     const c = cat()
-    expect(itemUnitPrice({ ref: { kind: 'recipe', id: 'scf' }, qtyKg: 1 }, c)).toBeCloseTo(245_470.83, 1)
-    expect(SCF).toBeCloseTo(245_470.83, 1)
+    expect(itemUnitPrice({ ref: { kind: 'recipe', id: 'scf' }, qtyKg: 1 }, c)).toBeCloseTo(SCF, 6)
+    expect(Math.abs(SCF - 245_470.83)).toBeLessThan(3)
+    // one price edit is enough: the polymer price moves the whole chain
+    c.materials.pp.pricePerKg = 300_000
+    expect(itemUnitPrice({ ref: { kind: 'recipe', id: 'scf' }, qtyKg: 1 }, c)).toBeCloseTo(300_000 + SCRAP_EXTRA, 6)
   })
 
   it('cheque payment adds 6% to the sale price (the workbook multiplies the sale price by 1.06)', () => {

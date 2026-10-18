@@ -6,7 +6,7 @@ import type { Catalog, Color, Material, Product, Recipe, RecipeItem } from './ty
  * (e.g. TiO2 1,450,000 there, 1,572,000 here), so they are taken as Toman exactly as written, with no conversion.
  * Bump SEED_VERSION when this data changes, so an admin can be offered the new starting data.
  */
-export const SEED_VERSION = 4
+export const SEED_VERSION = 5
 
 const RIAL = 1
 const mat = (id: string, name: string, rialPerKg: number | null): Material => ({ id, name, pricePerKg: rialPerKg == null ? null : rialPerKg / RIAL })
@@ -23,8 +23,8 @@ const materials: Material[] = [
   mat('yellow', 'اکسید زرد آهن', 1_000_000),
   mat('brown', 'رنگدانه قهوه‌ای', 1_000_000),
   mat('carbon-black', 'دوده (Carbon black)', 1_200_000),
-  mat('sc4', 'اسکرپ چهار رنگ (SC4)', 205_000),
-  mat('sch', 'اسکرپ هاش (SCH)', 182_000),
+  // One polymer price. The workbook has two scraps (SC4 205,000 and SCH 182,000, mixed 2000 : 323); this is their average.
+  mat('pp', 'پلیمر (PP / اسکرپ)', 201_800),
   // Not in the workbook, but the "finished product" page puts returned production waste here.
   { id: 'waste', name: 'ضایعات برگشتی', pricePerKg: 0 },
 ]
@@ -32,12 +32,10 @@ const materials: Material[] = [
 const m = (id: string, qtyKg: number): RecipeItem => ({ ref: { kind: 'material', id }, qtyKg })
 const r = (id: string, qtyKg: number): RecipeItem => ({ ref: { kind: 'recipe', id }, qtyKg })
 
-// Buying the scrap: price x weight + 9% tax on the purchase + freight (3,500,000 Rial for the load) + grinding (24,000 Rial per kg).
-// The workbook ends at 245,470.83 Rial per kg for the mix; here that is the two scraps plus the per-kg extra below.
-const SC4_KG = 2000
-const SCH_KG = 323
-const SCRAP_KG = SC4_KG + SCH_KG
-const SCRAP_EXTRA_RIAL = ((SC4_KG * 205_000 + SCH_KG * 182_000) * 0.09 + 3_500_000 + 24_000 * SCRAP_KG) / SCRAP_KG
+// Buying the polymer costs more than its price: 9% tax on the purchase, freight (3,500,000 for a 2,323 kg load) and grinding (24,000 per kg).
+// The workbook ends at 245,470.83 per kg; this extra is kept as the cost of the "ready polymer" step so one price edit is enough.
+const POLYMER_PRICE = 201_800
+const POLYMER_EXTRA = POLYMER_PRICE * 0.09 + 3_500_000 / 2323 + 24_000
 
 // Colour = pigments only, added to the same base mix (PRPF 33, wood 61, wax 1.5, graft 2): "فرمول رنگ ۱۴۰۲".
 const colorDefs: [string, string, RecipeItem[]][] = [
@@ -105,7 +103,7 @@ function buildSeed(): Catalog {
   const colors: Color[] = colorDefs.map(([id, name, items]) => ({ id, name, items }))
 
   const recipes: Recipe[] = [
-    { id: 'scf', name: 'اسکرپ آماده‌ی میکس (SC4 + SCH)', kind: 'semi', items: [m('sc4', SC4_KG), m('sch', SCH_KG)], overheadPerKg: SCRAP_EXTRA_RIAL / RIAL },
+    { id: 'scf', name: 'پلیمر آماده‌ی مصرف (خرید + خردکردن)', kind: 'semi', items: [m('pp', 100)], overheadPerKg: POLYMER_EXTRA / RIAL },
     { id: 'prpf', name: 'PRP پروفایل (PRPF)', kind: 'semi', overheadPerKg: 20_000 / RIAL, items: [r('scf', 56.5), m('carbonate', 40), m('graft', 1.5), m('a060', 0.25), m('a2112', 0.25), m('wax', 1.5)] },
     { id: 'wpc-profile', name: 'پروفیل WPC (پایه)', kind: 'base', overheadPerKg: 30_000 / RIAL, items: [r('prpf', 33), m('wood', 61), m('wax', 1.5), m('graft', 2)] },
   ]

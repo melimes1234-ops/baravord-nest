@@ -95,8 +95,8 @@ create temp table res as select add_batch((select p from b)) as r;
 select t.ok('batch stored once', (select count(*) from batches) = 1);
 select t.ok('wax consumed from the ACTUAL formula (3 kg direct + 0.33 of the PRPF wax)', abs((select sum(kg) from movements where material_id = 'wax') - (1200 - 3 - 0.33 * 1.5)) < 1e-6);
 select t.ok('wood consumed (61 kg)', (select sum(kg) from movements where material_id = 'wood') = 939);
-select t.ok('scrap inside PRPF consumed pro rata (33 of 100 kg, 56.5 kg scrap, SC4 = 2000/2323)',
-  abs((select sum(kg) from movements where material_id = 'sc4') - (1000 - 0.33 * 56.5 * 2000 / 2323)) < 1e-6);
+select t.ok('polymer inside PRPF consumed pro rata (33 of 100 kg, 56.5 kg polymer)',
+  abs((select sum(kg) from movements where material_id = 'pp') - (1000 - 0.33 * 56.5)) < 1e-6);
 select t.ok('graft = 2 + 0.33 x 1.5 of the PRPF',
   abs((select sum(kg) from movements where material_id = 'graft') - (1000 - 2 - 0.33 * 1.5)) < 1e-6);
 select t.ok('server froze the prices (client value ignored)',
