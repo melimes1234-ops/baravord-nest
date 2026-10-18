@@ -81,6 +81,7 @@ export default function App() {
   const [tab, setTabState] = useState<Tab>(() => savedTab() ?? (guideHidden() ? 'لیست قیمت' : 'شروع کار'))
   const [menuOpen, setMenuOpen] = useState(false)
   const [sureSeed, setSureSeed] = useState(false)
+  const [seedDone, setSeedDone] = useState('')
   // Remember the section: a refresh, a save or logging in again brings the person back to it, and the phone's back button steps through sections.
   const setTab = (t: Tab) => {
     setTabState(t)
@@ -176,6 +177,7 @@ export default function App() {
       <main key={current} data-tab={TAB_KEY[current]}>
         {DEMO && <div className="alert">نسخه نمایشی: بدون سرور و بدون ورود کاربران. داده‌ها فقط در همین مرورگر می‌مانند و با کسی به اشتراک گذاشته نمی‌شوند.</div>}
         {error && <div className="alert err" onClick={clearError}>{error} (برای بستن بزنید)</div>}
+        {seedDone && <div className="alert ok" onClick={() => setSeedDone('')}>{seedDone} (برای بستن بزنید)</div>}
         {(user.role === 'admin' || DEMO) && catalog.seedVersion !== SEED_VERSION && (
           <div className="alert gaps print-hide">
             <b>اطلاعات اولیه‌ی تازه از فایل اکسل کارخانه آماده است</b>
@@ -184,10 +186,17 @@ export default function App() {
             </p>
             <button className={sureSeed ? 'btn danger' : 'btn'} onClick={() => {
               if (!sureSeed) return setSureSeed(true)
-              downloadBackup(state, user.username)
+              let saved = true
+              try {
+                downloadBackup(state, user.username)
+              } catch {
+                saved = false // a blocked download must not stop the new data from being applied
+              }
               update(s => { s.catalog = seedCatalog() })
               setSureSeed(false)
+              setSeedDone(saved ? 'اطلاعات اکسل اعمال شد (مواد، قیمت‌ها، فرمول‌ها، رنگ‌ها، محصولات، هزینه‌ها و تعرفه‌ها). فایل پشتیبانِ وضعیت قبلی هم دانلود شد.' : 'اطلاعات اکسل اعمال شد، ولی مرورگر دانلود فایل پشتیبان را قبول نکرد. اگر نگران وضعیت قبلی هستی، از تب «پشتیبان‌گیری» یک فایل بگیر.')
             }}>{sureSeed ? 'مطمئنید؟ دوباره بزنید تا اعمال شود' : 'اعمال اطلاعات اکسل'}</button>
+            {sureSeed && <span className="muted"> ← یک بار دیگر بزنید؛ تا آن موقع چیزی عوض نمی‌شود.</span>}
           </div>
         )}
         {current === 'شروع کار' && <Guide catalog={catalog} movements={state.movements} batches={state.batches} role={DEMO ? 'admin' : user.role} demo={DEMO} go={t => setTab(t as Tab)} />}
