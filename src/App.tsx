@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
-import { toFa, validateCatalog } from './core'
+import { SEED_VERSION, seedCatalog, toFa, validateCatalog } from './core'
 import type { Role } from './api'
 import { backend } from './backends'
 import { supabase } from './backends/supabase'
@@ -8,7 +8,7 @@ import { BottomBar, Drawer } from './MobileNav'
 import { DEMO, useDemoSession } from './demo'
 import { applyTheme, initialTheme, type Theme } from './theme'
 import { useSession } from './store'
-import { Backup } from './tabs/Backup'
+import { Backup, downloadBackup } from './tabs/Backup'
 import { Batches } from './tabs/Batches'
 import { Calc } from './tabs/Calc'
 import { Costs } from './tabs/Costs'
@@ -80,6 +80,7 @@ export default function App() {
   }
   const [tab, setTabState] = useState<Tab>(() => savedTab() ?? (guideHidden() ? 'لیست قیمت' : 'شروع کار'))
   const [menuOpen, setMenuOpen] = useState(false)
+  const [sureSeed, setSureSeed] = useState(false)
   // Remember the section: a refresh, a save or logging in again brings the person back to it, and the phone's back button steps through sections.
   const setTab = (t: Tab) => {
     setTabState(t)
@@ -175,6 +176,20 @@ export default function App() {
       <main key={current} data-tab={TAB_KEY[current]}>
         {DEMO && <div className="alert">نسخه نمایشی: بدون سرور و بدون ورود کاربران. داده‌ها فقط در همین مرورگر می‌مانند و با کسی به اشتراک گذاشته نمی‌شوند.</div>}
         {error && <div className="alert err" onClick={clearError}>{error} (برای بستن بزنید)</div>}
+        {(user.role === 'admin' || DEMO) && catalog.seedVersion !== SEED_VERSION && (
+          <div className="alert gaps print-hide">
+            <b>اطلاعات اولیه‌ی تازه از فایل اکسل کارخانه آماده است</b>
+            <p style={{ margin: '6px 0' }}>
+              مواد، قیمت‌ها (به تومان)، فرمول‌ها، رنگ‌های N1 تا N12، هزینه‌ی هر مرحله‌ی ساخت (سربار)، محصولات TOPS و درصدهای سود طبق فایل اکسل گذاشته می‌شود. با زدن دکمه، <b>همه‌ی قیمت‌ها، فرمول‌ها، رنگ‌ها، محصولات و هزینه‌های فعلی جایگزین می‌شود</b>؛ قبلش خودکار یک فایل پشتیبان از وضعیت فعلی دانلود می‌شود تا هر وقت خواستی برگردانی (تب «پشتیبان‌گیری»). ثبت‌های انبار و پارت‌ها عوض نمی‌شود.
+            </p>
+            <button className={sureSeed ? 'btn danger' : 'btn'} onClick={() => {
+              if (!sureSeed) return setSureSeed(true)
+              downloadBackup(state, user.username)
+              update(s => { s.catalog = seedCatalog() })
+              setSureSeed(false)
+            }}>{sureSeed ? 'مطمئنید؟ دوباره بزنید تا اعمال شود' : 'اعمال اطلاعات اکسل'}</button>
+          </div>
+        )}
         {current === 'شروع کار' && <Guide catalog={catalog} movements={state.movements} batches={state.batches} role={DEMO ? 'admin' : user.role} demo={DEMO} go={t => setTab(t as Tab)} />}
         {current === 'لیست قیمت' && <PriceList catalog={catalog} go={user.role === 'admin' || DEMO ? t => setTab(t as Tab) : undefined} onEditTariffs={user.role === 'admin' || DEMO ? () => setTab('هزینه‌ها') : undefined} />}
         {current === 'محاسبات' && <Calc catalog={catalog} go={user.role === 'admin' || DEMO ? t => setTab(t as Tab) : undefined} />}

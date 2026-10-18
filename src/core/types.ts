@@ -26,6 +26,8 @@ export interface Recipe {
   copiedFrom?: Id
   /** 'semi' = intermediate (like PRP) that other formulas can use; 'base' = a product's own formula. */
   kind?: 'semi' | 'base'
+  /** Cost added at this step for every kg it produces (Toman): labour, energy, machines of this stage. */
+  overheadPerKg?: number
 }
 
 /** Pigment formula, added on top of the base recipe for every 100 kg batch. */
@@ -88,6 +90,8 @@ export interface Config {
   defaultTolerancePct: number
   /** Per-material override of the tolerance. */
   toleranceByMaterial: Record<Id, number>
+  /** Extra percent added to the sale price when the customer pays by a two-month cheque. */
+  chequeSurchargePct?: number
 }
 
 export interface Catalog {
@@ -97,4 +101,6 @@ export interface Catalog {
   products: Record<Id, Product>
   tariffs: Tariff[]
   config: Config
+  /** Which set of starting data this catalog was made from (see seed.ts). */
+  seedVersion?: number
 }

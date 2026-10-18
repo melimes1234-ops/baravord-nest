@@ -170,7 +170,7 @@ describe('roles', () => {
     expect(r.body.batch.changes[0].by).toBe('op')
     const s = (await ctx.call(op, 'GET', '/api/state')).body
     const wax = s.movements.filter((m: any) => m.materialId === 'wax')
-    expect(wax.reduce((t: number, m: any) => t + m.kg, 0)).toBeCloseTo(997, 9)
+    expect(wax.reduce((t: number, m: any) => t + m.kg, 0)).toBeCloseTo(1000 - 3 - 0.33 * 1.5, 9) // 3 kg direct + the wax inside the PRPF
     expect(s.batches).toHaveLength(1)
   })
 

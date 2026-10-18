@@ -171,6 +171,9 @@ begin
     if v ->> 'id' is distinct from k or coalesce(v ->> 'name', '') = '' or jsonb_typeof(v -> 'items') is distinct from 'array' then
       raise exception '%: فرمول %', fail, k;
     end if;
+    if v ? 'overheadPerKg' and (jsonb_typeof(v -> 'overheadPerKg') is distinct from 'number' or (v ->> 'overheadPerKg')::numeric < 0 or (v ->> 'overheadPerKg')::numeric > 1e9) then
+      raise exception '%: هزینه‌ی مرحله %', fail, k;
+    end if;
     for it in select * from jsonb_array_elements(v -> 'items') loop
       if jsonb_typeof(it -> 'ref') is distinct from 'object' or coalesce(it -> 'ref' ->> 'kind', '') not in ('material', 'recipe')
          or coalesce(it -> 'ref' ->> 'id', '') = '' or jsonb_typeof(it -> 'qtyKg') is distinct from 'number'
@@ -211,6 +214,9 @@ begin
   foreach k in array array['monthlyProductionKg', 'batchKg', 'wastePct', 'roundTo', 'defaultTolerancePct'] loop
     if jsonb_typeof(cfg -> k) is distinct from 'number' or (cfg ->> k)::numeric < 0 then raise exception '%: config.%', fail, k; end if;
   end loop;
+  if cfg ? 'chequeSurchargePct' and (jsonb_typeof(cfg -> 'chequeSurchargePct') is distinct from 'number' or (cfg ->> 'chequeSurchargePct')::numeric < 0 or (cfg ->> 'chequeSurchargePct')::numeric > 1000) then
+    raise exception '%: config.chequeSurchargePct', fail;
+  end if;
   if (cfg ->> 'wastePct')::numeric >= 100 then raise exception '%: درصد ضایعات', fail; end if;
 end $$;
 

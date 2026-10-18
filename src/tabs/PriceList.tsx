@@ -74,6 +74,9 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
   const [query, setQuery] = useState('')
   // Which cost parts count in the shown prices. Only changes this view: nothing is saved.
   const [incl, setIncl] = useState({ waste: true, overhead: true, extras: true, profit: true })
+  const [pay, setPay] = useState<'cash' | 'cheque'>('cash')
+  const chequePct = catalog.config.chequeSurchargePct ?? 0
+  const payPct = pay === 'cheque' ? chequePct : 0
   const allIn = incl.waste && incl.overhead && incl.extras && incl.profit
   const fullTariff: Tariff | undefined =
     tariffId === CUSTOM
@@ -84,6 +87,8 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
   const view = useMemo<Catalog>(
     () => ({
       ...catalog,
+      // unticking the fixed costs also switches off the cost of each making step
+      recipes: incl.overhead ? catalog.recipes : Object.fromEntries(Object.entries(catalog.recipes).map(([id, rc]) => [id, { ...rc, overheadPerKg: 0 }])),
       config: {
         ...catalog.config,
         wastePct: incl.waste ? catalog.config.wastePct : 0,
@@ -105,12 +110,12 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
     const by = new Map<string, { p: Product; price: ReturnType<typeof priceProduct> }[]>()
     for (const p of Object.values(catalog.products)) {
       if (q && !`${p.name} ${p.code}`.toLowerCase().includes(q)) continue
-      const price = priceProduct(p, p.colorable ? colorId || null : null, tariff, view)
+      const price = priceProduct(p, p.colorable ? colorId || null : null, tariff, view, payPct)
       const s = seriesOf(p)
       by.set(s, [...(by.get(s) ?? []), { p, price }])
     }
     return order.filter(s => by.has(s)).map(s => ({ series: s, rows: by.get(s)! }))
-  }, [catalog, view, colorId, tariff, query])
+  }, [catalog, view, colorId, tariff, query, payPct])
 
   if (!tariff || !fullTariff) return <div className="card">ابتدا یک تعرفه تعریف کنید.</div>
   const oh = overheadPerKg(catalog.config).value
@@ -131,6 +136,15 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
             <button aria-pressed={fullTariff.id === CUSTOM} onClick={() => setTariffId(CUSTOM)}>سود دلخواه</button>
           </div>
         </div>
+        {chequePct > 0 && (
+          <div>
+            <span className="field-label">روش پرداخت مشتری</span>
+            <div className="seg" role="group" aria-label="روش پرداخت">
+              <button aria-pressed={pay === 'cash'} onClick={() => setPay('cash')}>نقدی</button>
+              <button aria-pressed={pay === 'cheque'} onClick={() => setPay('cheque')}>چک دو ماهه · +{toFa(chequePct)}٪</button>
+            </div>
+          </div>
+        )}
         {fullTariff.id === CUSTOM && (
           <label>
             درصد سود دلخواه
@@ -174,7 +188,7 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
 
       <div className="summary">
         {color && <Swatch hex={colorSwatch(color, catalog)} large />}
-        <span>قیمت‌ها برای رنگ <b>{color?.name ?? '—'}</b> و تعرفه <b>{fullTariff.name}</b> ({incl.profit ? `${toFa(fullTariff.marginPct)}٪ سود` : 'بدون سود'}){!allIn && <> · <b className="over">ناقص</b></>}</span>
+        <span>قیمت‌ها برای رنگ <b>{color?.name ?? '—'}</b> و تعرفه <b>{fullTariff.name}</b> ({incl.profit ? `${toFa(fullTariff.marginPct)}٪ سود` : 'بدون سود'}){payPct > 0 && <>، فروش <b>چک دو ماهه</b> (+{toFa(payPct)}٪)</>}{!allIn && <> · <b className="over">ناقص</b></>}</span>
         <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>قیمت متر مربع یعنی چه؟ <InfoTip>{SQM_TIP}</InfoTip></span>
       </div>
 
@@ -228,7 +242,7 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
                         <tr className="panel" id={`panel-${p.id}`}>
                           <td colSpan={7}>
                             <Panel closing={closing} onClosed={() => { setOpen(null); setClosing(false) }}>
-                              <Breakdown catalog={view} product={p} colorId={p.colorable ? colorId || null : null} tariff={tariff} />
+                              <Breakdown catalog={view} product={p} colorId={p.colorable ? colorId || null : null} tariff={tariff} payPct={payPct} />
                             </Panel>
                           </td>
                         </tr>
@@ -246,10 +260,10 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
   )
 }
 
-function Breakdown({ catalog, product, colorId, tariff }: { catalog: Catalog; product: Product; colorId: string | null; tariff: Tariff }) {
+function Breakdown({ catalog, product, colorId, tariff, payPct }: { catalog: Catalog; product: Product; colorId: string | null; tariff: Tariff; payPct: number }) {
   const flat = flatten(productItems(product, colorId, catalog), catalog)
-  const price = priceProduct(product, colorId, tariff, catalog)
-  const ex = explainPrice(product, colorId, tariff, catalog)
+  const price = priceProduct(product, colorId, tariff, catalog, payPct)
+  const ex = explainPrice(product, colorId, tariff, catalog, payPct)
   const c = price.cost
   const waste = c.materialPerKg / (1 - catalog.config.wastePct / 100) - c.materialPerKg
   const profit = price.salePerKg - c.costPerKg
@@ -258,7 +272,7 @@ function Breakdown({ catalog, product, colorId, tariff }: { catalog: Catalog; pr
     { key: 'waste', label: 'دورریز', v: waste },
     { key: 'overhead', label: 'هزینه‌های ثابت', v: c.overheadPerKg },
     { key: 'extras', label: 'کرایه و انبارداری', v: c.extrasPerKg },
-    { key: 'profit', label: `سود (${toFa(tariff.marginPct)}٪)`, v: profit },
+    { key: 'profit', label: payPct > 0 ? `سود (${toFa(tariff.marginPct)}٪) و اضافه‌ی چک (${toFa(payPct)}٪)` : `سود (${toFa(tariff.marginPct)}٪)`, v: profit },
   ]
   const total = parts.reduce((s, x) => s + x.v, 0) || 1
 

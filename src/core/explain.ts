@@ -1,5 +1,5 @@
 import { priceProduct, productItems, roundTo, stickLength, widthMeters } from './costing'
-import { flatten, sumKg } from './flatten'
+import { flatten, stageExtra, sumKg } from './flatten'
 import type { Catalog, Id, Product, Tariff } from './types'
 
 export interface ExplainItem {
@@ -44,6 +44,12 @@ export interface Explain {
   monthlyCostTotal: number
   monthlyProductionKg: number
   overheadPerKg: number
+  /** Part of overheadPerKg that is monthly costs / monthly kg. */
+  monthlyPerKg: number
+  /** Part of overheadPerKg that comes from the making steps. */
+  stagePerKg: number
+  /** Extra percent on the sale price (cheque payment). */
+  payPct: number
   perBatchCostTotal: number
   batchKg: number
   extrasPerKg: number
@@ -66,7 +72,7 @@ export interface Explain {
   checks: Check[]
 }
 
-export function explainPrice(product: Product, colorId: Id | null, tariff: Tariff, catalog: Catalog): Explain {
+export function explainPrice(product: Product, colorId: Id | null, tariff: Tariff, catalog: Catalog, payPct = 0): Explain {
   const cfg = catalog.config
   const used = productItems(product, colorId, catalog)
   const items: ExplainItem[] = used.map(i =>
@@ -88,11 +94,14 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
   const wasteFactor = 1 - cfg.wastePct / 100
   const afterWastePerKg = materialPerKg / wasteFactor
   const monthlyCostTotal = cfg.monthlyCosts.reduce((s, c) => s + c.amount, 0)
-  const overheadPerKg = monthlyCostTotal > 0 && cfg.monthlyProductionKg > 0 ? monthlyCostTotal / cfg.monthlyProductionKg : 0
+  const monthlyPerKg = monthlyCostTotal > 0 && cfg.monthlyProductionKg > 0 ? monthlyCostTotal / cfg.monthlyProductionKg : 0
+  // overhead of the making steps (PRP, profile ...): each step's own cost for every kg of it
+  const stagePerKg = totalKg > 0 ? stageExtra(used, catalog, product.baseRecipeId) / totalKg : 0
+  const overheadPerKg = monthlyPerKg + stagePerKg
   const perBatchCostTotal = cfg.perBatchCosts.reduce((s, c) => s + c.amount, 0)
   const extrasPerKg = cfg.batchKg > 0 ? perBatchCostTotal / cfg.batchKg : 0
   const costPerKg = afterWastePerKg + overheadPerKg + extrasPerKg
-  const salePerKg = costPerKg * (1 + tariff.marginPct / 100)
+  const salePerKg = costPerKg * (1 + tariff.marginPct / 100) * (1 + payPct / 100)
   const w = product.weightPer3mG
   const perStickRaw = w == null ? null : (salePerKg * w) / 1000
   const lengthM = stickLength(product)
@@ -122,15 +131,15 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
     widthM != null
       ? { ok: true, level: 'ok', title: 'عرض محصول نوشته شده', detail: `${product.widthMm} میلی‌متر. قیمت متر مربع از روی همین حساب می‌شود.` }
       : { ok: false, level: 'warn', title: 'عرض محصول را ننوشته‌اید', detail: 'بدون عرض، قیمت متر مربع معلوم نمی‌شود. عرض را در تب «محصولات» بنویسید.', tab: 'محصولات' },
-    monthlyCostTotal > 0
-      ? { ok: true, level: 'ok', title: 'هزینه‌های ثابت کارخانه نوشته شده', detail: 'مبلغ هزینه‌های ماهانه (برق، حقوق و …) وارد شده است.' }
-      : { ok: false, level: 'warn', title: 'هزینه‌های ثابت کارخانه نوشته نشده', detail: 'برق، حقوق، اجاره و مانند آن هنوز وارد نشده و در قیمت نیست. در تب «هزینه‌ها»، جدول اول، ردیف و مبلغ ماهانه را بنویسید.', tab: 'هزینه‌ها' },
-    cfg.monthlyProductionKg > 0
-      ? { ok: true, level: 'ok', title: 'کیلوی تولید ماهانه نوشته شده', detail: `در ماه ${cfg.monthlyProductionKg} کیلو ساخته می‌شود و هزینه‌های ثابت بین همین کیلوها پخش می‌شود.` }
-      : { ok: false, level: 'warn', title: 'کیلوی تولید ماهانه نوشته نشده', detail: 'برنامه باید بداند در یک ماه چند کیلو می‌سازید تا هزینه‌های ثابت را بین کیلوها پخش کند؛ تا آن موقع هزینه‌های ثابت در قیمت نمی‌آید. در تب «هزینه‌ها»، کادر «چند کیلو در این ماه ساخته‌اید؟» را پر کنید.', tab: 'هزینه‌ها' },
-    totalKg >= 95 && totalKg <= 105
-      ? { ok: true, level: 'ok', title: 'وزن پارت حدود ۱۰۰ کیلو است', detail: `جمع فرمول (خود محصول و رنگ) ${totalKg.toFixed(2)} کیلو می‌شود.` }
-      : { ok: false, level: 'warn', title: 'وزن پارت با ۱۰۰ کیلو فرق زیادی دارد', detail: `فرمول‌ها باید روی ۱۰۰ کیلو نوشته شده باشند. الان ${totalKg.toFixed(2)} کیلو می‌شود؛ احتمالاً یکی از مقدارها اشتباه است.` },
+    monthlyCostTotal > 0 || stagePerKg > 0
+      ? { ok: true, level: 'ok', title: 'هزینه‌های ثابت کارخانه نوشته شده', detail: stagePerKg > 0 && monthlyCostTotal <= 0 ? 'هزینه‌ی هر مرحله‌ی ساخت (سربار PRP، پروفایل …) در حساب هست.' : 'مبلغ هزینه‌های ماهانه (برق، حقوق و …) وارد شده است.' }
+      : { ok: false, level: 'warn', title: 'هزینه‌های ثابت کارخانه نوشته نشده', detail: 'سربار هر مرحله‌ی ساخت یا هزینه‌های ماهانه (برق، حقوق، اجاره) هنوز وارد نشده و در قیمت نیست. در تب «هزینه‌ها» بنویسید.', tab: 'هزینه‌ها' },
+    monthlyCostTotal <= 0 || cfg.monthlyProductionKg > 0
+      ? { ok: true, level: 'ok', title: 'کیلوی تولید ماهانه نوشته شده', detail: monthlyCostTotal <= 0 ? 'هزینه‌ی ماهانه‌ای ننوشته‌اید، پس به کیلوی ماه نیازی نیست.' : `در ماه ${cfg.monthlyProductionKg} کیلو ساخته می‌شود و هزینه‌های ثابت بین همین کیلوها پخش می‌شود.` }
+      : { ok: false, level: 'warn', title: 'کیلوی تولید ماهانه نوشته نشده', detail: 'هزینه‌ی ماهانه نوشته‌اید ولی برنامه باید بداند در یک ماه چند کیلو می‌سازید تا آن را بین کیلوها پخش کند؛ تا آن موقع هزینه‌های ماهانه در قیمت نمی‌آید. در تب «هزینه‌ها»، کادر «چند کیلو در این ماه ساخته‌اید؟» را پر کنید.', tab: 'هزینه‌ها' },
+    totalKg >= 85 && totalKg <= 125
+      ? { ok: true, level: 'ok', title: 'وزن پارت معقول است', detail: `جمع فرمول (خود محصول و رنگ) ${totalKg.toFixed(2)} کیلو می‌شود. لازم نیست دقیقاً ۱۰۰ باشد؛ قیمت هر کیلو از همین جمع حساب می‌شود.` }
+      : { ok: false, level: 'warn', title: 'وزن پارت با ۱۰۰ کیلو فرق زیادی دارد', detail: `فرمول‌ها معمولاً روی حدود ۱۰۰ کیلو نوشته می‌شوند. الان ${totalKg.toFixed(2)} کیلو می‌شود؛ احتمالاً یکی از مقدارها اشتباه است.` },
     cfg.wastePct >= 0 && cfg.wastePct <= 30
       ? { ok: true, level: 'ok', title: 'درصد دورریز معقول است', detail: `${cfg.wastePct}٪ از مواد دورریز می‌شود.` }
       : { ok: false, level: 'warn', title: 'درصد دورریز زیاد است', detail: `${cfg.wastePct}٪ خیلی زیاد است. مطمئن هستید؟` },
@@ -145,7 +154,7 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
   return {
     product, colorId, colorName: colorId ? catalog.colors[colorId]?.name ?? null : null, tariff, items, rows, totalKg, materialCost, materialPerKg,
     wastePct: cfg.wastePct, afterWastePerKg, wasteExtraPerKg: afterWastePerKg - materialPerKg, monthlyCostTotal, monthlyProductionKg: cfg.monthlyProductionKg,
-    overheadPerKg, perBatchCostTotal, batchKg: cfg.batchKg, extrasPerKg, costPerKg, marginPct: tariff.marginPct, profitPerKg: salePerKg - costPerKg, salePerKg,
+    overheadPerKg, monthlyPerKg, stagePerKg, payPct, perBatchCostTotal, batchKg: cfg.batchKg, extrasPerKg, costPerKg, marginPct: tariff.marginPct, profitPerKg: salePerKg - costPerKg, salePerKg,
     weightG: w, lengthM, roundStep: cfg.roundTo, perMeterRaw, perStickRaw, perMeter, perStick, widthM, perSqmRaw, perSqm, missingPrices, checks,
   }
 }

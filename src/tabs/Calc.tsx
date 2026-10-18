@@ -30,7 +30,7 @@ function summaryText(e: Explain): string {
   for (const r of e.rows) L.push(`  ${r.name}: ${kg(r.kg)} کیلو × ${r.pricePerKg == null ? 'بدون قیمت' : money(r.pricePerKg)} = ${r.cost == null ? '—' : money(r.cost)}`)
   L.push(`۱) هزینه مواد هر کیلو = ${money(e.materialCost)} ÷ ${kg(e.totalKg)} = ${money(e.materialPerKg)}`)
   L.push(`۲) با دورریز ${e.wastePct}٪ = ${money(e.materialPerKg)} ÷ (۱ − ${e.wastePct / 100}) = ${money(e.afterWastePerKg)}`)
-  L.push(`۳) هزینه‌های ثابت کارخانه برای هر کیلو = ${money(e.monthlyCostTotal)} ÷ ${money(e.monthlyProductionKg)} = ${money(e.overheadPerKg)}`)
+  L.push(`۳) هزینه‌های ثابت کارخانه برای هر کیلو = ماهانه ${money(e.monthlyPerKg)} (${money(e.monthlyCostTotal)} ÷ ${money(e.monthlyProductionKg)}) + مرحله‌های ساخت ${money(e.stagePerKg)} = ${money(e.overheadPerKg)}`)
   L.push(`۴) کرایه و انبارداری برای هر کیلو = ${money(e.perBatchCostTotal)} ÷ ${kg(e.batchKg)} = ${money(e.extrasPerKg)}`)
   L.push(`۵) خرج ساخت یک کیلو (قیمت تمام‌شده) = ${money(e.costPerKg)}`)
   L.push(`۶) قیمت فروش هر کیلو = ${money(e.costPerKg)} × (۱ + ${e.marginPct / 100}) = ${money(e.salePerKg)}`)
@@ -189,11 +189,16 @@ export function Calc({ catalog, go }: { catalog: Catalog; go?: (tab: string) => 
           </Step>
 
           <Step n={5} title="هزینه‌های ثابت کارخانه"
-            what="برق، حقوق، اجاره و مانند آن هر ماه پرداخت می‌شود، چه چیزی بسازیم چه نسازیم. آن را بین همه‌ی کیلوهایی که همان ماه ساخته‌ایم پخش می‌کنیم."
-            note={e.overheadPerKg === 0 ? <span className="bad">این هنوز صفر است، چون هزینه‌های ماهانه یا کیلوی تولید ماه را ننوشته‌اید.</span> : undefined}>
+            what="دو نوع هزینه‌ی ثابت داریم. یکی هزینه‌ی هر مرحله‌ی ساخت (مثلاً ساختن PRP و ساختن پروفایل) که برای هر کیلو همان مرحله حساب می‌شود. دیگری برق، حقوق و اجاره‌ی هر ماه که آن را بین همه‌ی کیلوهای ساخته‌شده‌ی آن ماه پخش می‌کنیم."
+            note={e.overheadPerKg === 0 ? <span className="bad">این هنوز صفر است، چون هزینه‌ی مرحله‌ها و هزینه‌های ماهانه را ننوشته‌اید.</span> : undefined}>
             <Bill
-              rows={[{ label: 'هزینه‌های ثابت یک ماه', value: t(e.monthlyCostTotal) }, { label: 'کیلوی ساخته‌شده در ماه', value: `${money(e.monthlyProductionKg)} کیلو` }]}
-              total={{ label: 'سهم هر کیلو', value: t(e.overheadPerKg) }} />
+              rows={[
+                { label: 'هزینه‌ی مرحله‌های ساخت (هر کیلو)', value: t(e.stagePerKg) },
+                { label: 'هزینه‌های ثابت یک ماه', value: t(e.monthlyCostTotal) },
+                { label: 'کیلوی ساخته‌شده در ماه', value: `${money(e.monthlyProductionKg)} کیلو` },
+                { label: 'سهم هر کیلو از هزینه‌های ماهانه', value: t(e.monthlyPerKg) },
+              ]}
+              total={{ label: 'سهم هر کیلو (جمع هر دو)', value: t(e.overheadPerKg) }} />
           </Step>
 
           <Step n={6} title="کرایه و انبارداری"

@@ -22,8 +22,10 @@ export function priceGaps(catalog: Catalog): Gap[] {
 
   const c = catalog.config
   const fixed = c.monthlyCosts.reduce((s, l) => s + l.amount, 0)
-  if (fixed <= 0) gaps.push({ must: true, tab: 'هزینه‌ها', text: 'هزینه‌های ثابت ماهانه (برق، حقوق، اجاره) نوشته نشده و در قیمت نیست.' })
-  else if (c.monthlyProductionKg <= 0) gaps.push({ must: true, tab: 'هزینه‌ها', text: 'کیلوی تولید ماهانه نوشته نشده؛ بدون آن، هزینه‌های ثابت بین کیلوها پخش نمی‌شود و در قیمت نمی‌آید.' })
+  const hasStageCost = Object.values(catalog.recipes).some(r => (r.overheadPerKg ?? 0) > 0)
+  if (fixed <= 0) {
+    if (!hasStageCost) gaps.push({ must: true, tab: 'هزینه‌ها', text: 'هزینه‌های ثابت (سربار هر مرحله‌ی ساخت یا هزینه‌های ماهانه مثل برق و حقوق) نوشته نشده و در قیمت نیست.' })
+  } else if (c.monthlyProductionKg <= 0) gaps.push({ must: true, tab: 'هزینه‌ها', text: 'کیلوی تولید ماهانه نوشته نشده؛ بدون آن، هزینه‌های ماهانه بین کیلوها پخش نمی‌شود و در قیمت نمی‌آید.' })
 
   if (c.perBatchCosts.every(l => !(l.amount > 0))) gaps.push({ must: false, tab: 'هزینه‌ها', text: 'هزینه‌ی هر پارت (کرایه، انبارداری، باسکول) نوشته نشده و در قیمت نیست. اگر چنین هزینه‌ای ندارید، همین‌طور بماند.' })
   if (!(c.wastePct > 0)) gaps.push({ must: false, tab: 'هزینه‌ها', text: 'درصد دورریز صفر است، یعنی فرض شده هیچ ماده‌ای هدر نمی‌رود. اگر در کارخانه دورریز دارید، عدد واقعی را بنویسید تا قیمت واقعی‌تر شود.' })

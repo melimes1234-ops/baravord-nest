@@ -129,7 +129,20 @@ export function Batches({ state, update }: { state: AppState; update: Update }) 
               <thead><tr><th>تاریخ</th><th>محصول</th><th>رنگ</th><th className="n">وزن</th><th className="n">هزینه کل (تومان)</th><th className="n">اختلاف با استاندارد (تومان)</th><th>تغییرات</th></tr></thead>
               <tbody>
                 {state.batches.map(b => {
-                  const r = batchReport(b, catalog as Catalog)
+                  let r: ReturnType<typeof batchReport>
+                  try {
+                    r = batchReport(b, catalog as Catalog)
+                  } catch {
+                    // made with a formula that no longer exists (for example before the starting data was replaced)
+                    return (
+                      <tr key={b.id}>
+                        <td>{toJalaliDate(b.date)}</td>
+                        <td>{catalog.products[b.productId]?.name ?? b.productId}</td>
+                        <td>{b.colorId ? catalog.colors[b.colorId]?.name ?? b.colorId : '—'}</td>
+                        <td colSpan={4} className="muted">فرمول این پارت دیگر در برنامه نیست؛ جزئیاتش نمایش داده نمی‌شود.</td>
+                      </tr>
+                    )
+                  }
                   return (
                     <tr key={b.id}>
                       <td>{toJalaliDate(b.date)}</td>

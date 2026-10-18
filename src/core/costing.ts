@@ -1,4 +1,4 @@
-import { flatten, totalKg, type Flat } from './flatten'
+import { flatten, stageExtra, totalKg, type Flat } from './flatten'
 import type { Catalog, Config, Id, Product, RecipeItem, Tariff } from './types'
 
 export interface CostResult {
@@ -6,7 +6,10 @@ export interface CostResult {
   materialCost: number
   /** material cost per kg of output, before waste. */
   materialPerKg: number
+  /** Monthly fixed costs per kg plus the overhead of the making steps (stagePerKg). */
   overheadPerKg: number
+  /** The part of overheadPerKg that comes from the making steps (PRP, profile ...). */
+  stagePerKg: number
   extrasPerKg: number
   /** Final cost per kg (materials/(1-waste) + overhead + extras). */
   costPerKg: number
@@ -34,6 +37,7 @@ export function costFlat(
   flat: Flat,
   prices: Record<Id, number | null>,
   config: Config,
+  stageTotal = 0,
 ): CostResult {
   const kg = totalKg(flat)
   const missingPrices: Id[] = []
@@ -50,13 +54,15 @@ export function costFlat(
   const oh = overheadPerKg(config)
   if (oh.warning) warnings.push(oh.warning)
   const extras = extrasPerKg(config)
+  const stagePerKg = kg > 0 ? stageTotal / kg : 0
   return {
     totalKg: kg,
     materialCost,
     materialPerKg,
-    overheadPerKg: oh.value,
+    overheadPerKg: oh.value + stagePerKg,
+    stagePerKg,
     extrasPerKg: extras,
-    costPerKg: materialPerKg / wasteFactor + oh.value + extras,
+    costPerKg: materialPerKg / wasteFactor + oh.value + stagePerKg + extras,
     missingPrices,
     warnings,
   }
@@ -66,8 +72,9 @@ export function currentPrices(catalog: Pick<Catalog, 'materials'>): Record<Id, n
   return Object.fromEntries(Object.values(catalog.materials).map(m => [m.id, m.pricePerKg]))
 }
 
-export function costItems(items: RecipeItem[], catalog: Catalog): CostResult {
-  return costFlat(flatten(items, catalog), currentPrices(catalog), catalog.config)
+/** `ownRecipeId`: the formula these items belong to, so its own stage overhead counts too. */
+export function costItems(items: RecipeItem[], catalog: Catalog, ownRecipeId?: Id): CostResult {
+  return costFlat(flatten(items, catalog), currentPrices(catalog), catalog.config, stageExtra(items, catalog, ownRecipeId))
 }
 
 /** Cost per kg of a recipe on its own, without overhead (used for PRP etc.). */
@@ -129,10 +136,12 @@ export function priceProduct(
   colorId: Id | null,
   tariff: Tariff,
   catalog: Catalog,
+  /** Extra percent on the sale price (cheque payment). */
+  payPct = 0,
 ): ProductPrice {
-  const cost = costItems(productItems(product, colorId, catalog), catalog)
+  const cost = costItems(productItems(product, colorId, catalog), catalog, product.baseRecipeId)
   const step = catalog.config.roundTo
-  const salePerKg = cost.costPerKg * (1 + tariff.marginPct / 100)
+  const salePerKg = cost.costPerKg * (1 + tariff.marginPct / 100) * (1 + payPct / 100)
   const w = product.weightPer3mG
   const perStick = w == null ? null : roundTo((salePerKg * w) / 1000, step)
   const wm = widthMeters(product)

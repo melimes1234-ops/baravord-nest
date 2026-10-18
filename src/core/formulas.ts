@@ -1,5 +1,5 @@
 import { costFlat, currentPrices } from './costing'
-import { flatten, sumKg } from './flatten'
+import { flatten, stageExtra, sumKg } from './flatten'
 import type { Catalog, Id, Product, Recipe, RecipeItem } from './types'
 
 /** Price of 1 kg of an item: a material's price, or a sub-recipe's material cost. null = a price is missing. */
@@ -8,8 +8,9 @@ export function itemUnitPrice(item: RecipeItem, catalog: Catalog): number | null
   const r = catalog.recipes[item.ref.id]
   if (!r) return null
   const flat = flatten(r.items, catalog)
-  const c = costFlat(flat, currentPrices(catalog), { ...catalog.config, monthlyCosts: [], perBatchCosts: [], wastePct: 0 })
-  return c.missingPrices.length > 0 ? null : c.materialPerKg
+  const c = costFlat(flat, currentPrices(catalog), { ...catalog.config, monthlyCosts: [], perBatchCosts: [], wastePct: 0 }, stageExtra(r.items, catalog, r.id))
+  // materials plus the overhead of this step and the steps inside it
+  return c.missingPrices.length > 0 ? null : c.costPerKg
 }
 
 export interface FormulaItemCost {

@@ -34,12 +34,41 @@ function Lines({ title, help, lines, onChange }: { title: string; help: string; 
   )
 }
 
+function StageCosts({ catalog, update }: { catalog: Catalog; update: Update }) {
+  const recipes = Object.values(catalog.recipes)
+  return (
+    <div className="card">
+      <h2>هزینه‌ی هر مرحله‌ی ساخت (سربار)</h2>
+      <p className="muted help">در کارخانه هر مرحله هزینه‌ی خودش را دارد (مثلاً ساختن PRP و بعد ساختن پروفایل). برای هر مرحله بنویسید به ازای <b>هر کیلو</b> که در آن مرحله ساخته می‌شود چند تومان هزینه می‌شود. این مبلغ به قیمت تمام‌شده اضافه می‌شود. اگر هزینه‌ای ندارد، صفر بگذارید.</p>
+      <div className="tablewrap">
+        <table>
+          <thead><tr><th>مرحله (فرمول)</th><th className="n">هزینه‌ی هر کیلو (تومان)</th></tr></thead>
+          <tbody>
+            {recipes.map(r => (
+              <tr key={r.id}>
+                <td>{r.name}</td>
+                <td className="n">
+                  <NumInput unit="تومان" money value={r.overheadPerKg ?? 0} onChange={v => update(s => {
+                    if (v && v > 0) s.catalog.recipes[r.id].overheadPerKg = v
+                    else delete s.catalog.recipes[r.id].overheadPerKg
+                  })} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 export function Costs({ catalog, update }: { catalog: Catalog; update: Update }) {
   const c = catalog.config
   const oh = overheadPerKg(c)
   const addTariff = () => update(s => { s.catalog.tariffs.push({ id: `t-${Date.now().toString(36)}`, name: 'تعرفه جدید', marginPct: 20 }) })
   return (
     <>
+      <StageCosts catalog={catalog} update={update} />
       <Lines title="هزینه‌های ثابتِ هر ماه (برق، حقوق، اجاره و مانند آن)" help="هر ماه این پول‌ها را می‌دهید، چه کار کنید چه نکنید. اسم هر هزینه و مبلغ یک ماهش را بنویسید. برنامه این مبلغ را بین کیلوهایی که در ماه می‌سازید پخش می‌کند تا ببیند روی هر کیلو چقدر می‌افتد." lines={c.monthlyCosts} onChange={l => update(s => { s.catalog.config.monthlyCosts = l })} />
       <div className="card">
         <p className="muted help">عدد «چند کیلو در ماه» را واقعی بنویسید. هر چه بیشتر بسازید، سهم هر کیلو از هزینه‌های ثابت کمتر می‌شود، و برعکس. دو کادر کناری فقط نتیجه را نشان می‌دهند و خودتان چیزی در آن‌ها نمی‌نویسید.</p>
@@ -60,6 +89,7 @@ export function Costs({ catalog, update }: { catalog: Catalog; update: Update })
           <div className="kpi"><span className="muted">سهم هر کیلو از کرایه و انبارداری</span><b>{formatToman(extrasPerKg(c))} تومان</b></div>
           <label>چند درصد مواد دورریز می‌شود؟<NumInput unit="٪" value={c.wastePct} decimals={2} onChange={v => update(s => { s.catalog.config.wastePct = Math.min(Math.max(v ?? 0, 0), 99) })} /></label>
           <label>قیمت‌ها به نزدیک‌ترین … تومان برسند<NumInput unit="تومان" money value={c.roundTo} onChange={v => update(s => { s.catalog.config.roundTo = v ?? 1 })} /></label>
+          <label>اگر مشتری با چک دو ماهه بخرد، قیمت چند درصد بیشتر شود؟<NumInput unit="٪" value={c.chequeSurchargePct ?? 0} decimals={2} onChange={v => update(s => { s.catalog.config.chequeSurchargePct = v ?? 0 })} /></label>
           <label>اگر مقدار یک ماده در پارت از فرمول بیشتر از … درصد فرق کند، هشدار بده<NumInput unit="٪" value={c.defaultTolerancePct} decimals={2} onChange={v => update(s => { s.catalog.config.defaultTolerancePct = v ?? 5 })} /></label>
         </div>
       </div>

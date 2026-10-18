@@ -15,11 +15,11 @@ export function kpiTip(kind: KpiKind, e: Explain): ReactNode {
           intro="این همان پولی است که کارخانه برای ساختن یک کیلو از این محصول خرج می‌کند."
           rows={[
             { label: 'مواد (با دورریز)', value: t(e.afterWastePerKg) },
-            { label: 'هزینه‌های ثابت کارخانه (برق، حقوق ...)', value: t(e.overheadPerKg) },
+            { label: 'هزینه‌های ثابت (مرحله‌های ساخت، برق، حقوق ...)', value: t(e.overheadPerKg) },
             { label: 'کرایه و انبارداری', value: t(e.extrasPerKg) },
           ]}
           total={{ label: 'خرج ساخت یک کیلو', value: t(e.costPerKg) }}
-          note={e.overheadPerKg === 0 ? 'هزینه‌های ثابت کارخانه هنوز نوشته نشده، برای همین صفر حساب شده.' : undefined}
+          note={e.overheadPerKg === 0 ? 'هزینه‌ی مرحله‌ها و هزینه‌های ثابت هنوز نوشته نشده، برای همین صفر حساب شده.' : undefined}
         />
       )
     case 'sale':

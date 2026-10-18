@@ -50,6 +50,8 @@ export function validateCatalogShape(c: unknown): asserts c is Catalog {
   for (const [id, r] of Object.entries(c.recipes as Record<string, unknown>)) {
     if (!isObj(r) || r.id !== id || !str(r.name)) bad(`فرمول ${id}`)
     items((r as Record<string, unknown>).items, `فرمول ${id}`)
+    const oh = (r as Record<string, unknown>).overheadPerKg
+    if (oh !== undefined && !num(oh, 1e9)) bad(`هزینه‌ی مرحله‌ی ${id}`)
   }
   for (const [id, r] of Object.entries(c.colors as Record<string, unknown>)) {
     if (!isObj(r) || r.id !== id || !str(r.name)) bad(`رنگ ${id}`)
@@ -72,6 +74,7 @@ export function validateCatalogShape(c: unknown): asserts c is Catalog {
     bad('config')
   }
   if (!isObj(cfg.toleranceByMaterial)) bad('config.toleranceByMaterial')
+  if (cfg.chequeSurchargePct !== undefined && !num(cfg.chequeSurchargePct, 1000)) bad('config.chequeSurchargePct')
 }
 
 export function createApp(db: Db) {

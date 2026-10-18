@@ -1,5 +1,5 @@
 import { costFlat, currentPrices, type CostResult } from './costing'
-import { flatten, sumKg, type Flat } from './flatten'
+import { flatten, stageExtra, sumKg, type Flat } from './flatten'
 import type { Catalog, Id, ItemRef, RecipeItem } from './types'
 
 export interface BatchItem {
@@ -113,8 +113,9 @@ export interface BatchReport {
 export function batchReport(b: Batch, catalog: Catalog): BatchReport {
   const stdFlat = flatten(standardItems(b), catalog)
   const actFlat = flatten(actualItems(b), catalog)
-  const actual = costFlat(actFlat, b.frozenPrices, catalog.config)
-  const standard = costFlat(stdFlat, b.frozenPrices, catalog.config)
+  const base = catalog.products[b.productId]?.baseRecipeId
+  const actual = costFlat(actFlat, b.frozenPrices, catalog.config, stageExtra(actualItems(b), catalog, base))
+  const standard = costFlat(stdFlat, b.frozenPrices, catalog.config, stageExtra(standardItems(b), catalog, base))
   const ids = new Set([...Object.keys(stdFlat), ...Object.keys(actFlat)])
   const lines: VarianceLine[] = [...ids].map(id => {
     const stdKg = stdFlat[id] ?? 0

@@ -2,40 +2,46 @@ import { describe, expect, it } from 'vitest'
 import {
   addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
   stickLength, calcCsv, catalogChanges, todayIso, isoToJalali, jalaliToIso, jalaliMonthLength, jalaliWeekday, colorSwatch, explainPrice, formulaCost, normalizeTo, recipeUsage, setItemPercent, withReplacement, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
-  replaceBatchItem, seedCatalog, setActualQty, stockLevels, toJalaliDate, validateCatalog,
+  replaceBatchItem, itemUnitPrice, seedCatalog, setActualQty, stockLevels, toJalaliDate, validateCatalog,
   type Catalog, type Movement,
 } from './index'
 
 const cat = (): Catalog => seedCatalog()
 
+// Workbook numbers, in Toman (the workbook is in Rial: /10).
+const SCRAP_EXTRA = ((2000 * 205_000 + 323 * 182_000) * 0.09 + 3_500_000 + 24_000 * 2323) / 2323 / 10
+const SCF = (2000 * 20_500 + 323 * 18_200) / 2323 + SCRAP_EXTRA // 24,547.08 Toman per kg (sheet: 245,470.83 Rial)
+
 describe('recipe costing', () => {
-  it('PRP cost per kg is the weighted sum / total weight', () => {
+  it('PRPF material cost per kg is the weighted sum / total weight', () => {
     const c = cat()
-    const expected =
-      (38.5 * 19_000 + 0.25 * 1_350_000 + 1 * 290_000 + 60 * 205_000) / 99.75
-    expect(recipeMaterialPerKg('prp', c)).toBeCloseTo(expected, 6)
+    const scfMat = (2000 * 20_500 + 323 * 18_200) / 2323
+    const expected = (56.5 * scfMat + 40 * 5_000 + 1.5 * 67_500 + 0.25 * 270_000 + 0.25 * 290_000 + 1.5 * 70_000) / 100
+    expect(recipeMaterialPerKg('prpf', c)).toBeCloseTo(expected, 6)
   })
 
   it('flattening a sub-recipe scales its materials by used/total', () => {
     const c = cat()
     const flat = flatten(c.recipes['wpc-profile'].items, c)
-    // 33 kg of PRP (99.75 kg) holds 33/99.75 of 60 kg polymer
-    expect(flat['pp-white']).toBeCloseTo((33 / 99.75) * 60, 9)
-    expect(flat.wood).toBe(60)
-    expect(flat.graft).toBeCloseTo(3 + (33 / 99.75) * 1, 9)
+    // 33 kg of PRPF (100 kg) holds 33/100 of its 40 kg carbonate and 1.5 kg graft
+    expect(flat.carbonate).toBeCloseTo(0.33 * 40, 9)
+    expect(flat.wood).toBe(61)
+    expect(flat.graft).toBeCloseTo(2 + 0.33 * 1.5, 9)
+    // ... and of the scrap: 56.5 kg of SCF per 100 kg, split between SC4 and SCH by their weights
+    expect(flat.sc4).toBeCloseTo(0.33 * 56.5 * (2000 / 2323), 9)
   })
 
   it('detects cycles', () => {
     const c = cat()
-    c.recipes.prp.items.push({ ref: { kind: 'recipe', id: 'wpc-profile' }, qtyKg: 1 })
+    c.recipes.prpf.items.push({ ref: { kind: 'recipe', id: 'wpc-profile' }, qtyKg: 1 })
     expect(() => flatten(c.recipes['wpc-profile'].items, c)).toThrow(/به هم گره خورده/)
   })
 
-  it('changing a material price changes PRP and every product using it', () => {
+  it('changing a material price changes the scrap mix, PRPF and every product using it', () => {
     const c = cat()
     const flex = c.products.flex
     const before = priceProduct(flex, 'n1', c.tariffs[0], c).perStick!
-    c.materials['pp-white'].pricePerKg! *= 1.1
+    c.materials.sc4.pricePerKg! *= 1.1
     const after = priceProduct(flex, 'n1', c.tariffs[0], c).perStick!
     expect(after).toBeGreaterThan(before)
   })
@@ -48,7 +54,7 @@ describe('product pricing', () => {
     const p = priceProduct(c.products.flex, 'n1', c.tariffs[1], c)
     expect(p.perStick).toBe(Math.round((p.salePerKg * 7500) / 1000))
     expect(p.perMeter).toBe(Math.round((p.salePerKg * 7500) / 3000))
-    expect(p.salePerKg).toBeCloseTo(p.costPerKg * 1.25, 9)
+    expect(p.salePerKg).toBeCloseTo(p.costPerKg * 1.3, 9)
   })
 
   it('overhead is monthly cost / monthly kg, extras are per batch / batch kg, waste scales materials', () => {
@@ -58,6 +64,7 @@ describe('product pricing', () => {
     c.config.perBatchCosts = [{ name: 'کرایه', amount: 100_000 }]
     c.config.batchKg = 100
     c.config.wastePct = 5
+    for (const rc of Object.values(c.recipes)) delete rc.overheadPerKg // only the monthly costs in this test
     const items = productItems(c.products.flex, 'n1', c)
     const r = costItems(items, c)
     expect(r.overheadPerKg).toBeCloseTo(2000, 9)
@@ -67,6 +74,7 @@ describe('product pricing', () => {
 
   it('missing prices are reported and price is incomplete', () => {
     const c = cat()
+    c.materials.yellow.pricePerKg = null
     const r = costItems(productItems(c.products.flex, 'n3', c), c)
     expect(r.missingPrices).toContain('yellow')
   })
@@ -105,28 +113,28 @@ describe('batch with custom formula', () => {
     const { c, b } = setup()
     const b2 = setActualQty(b, { kind: 'material', id: 'wax' }, 3, 'ali', 'چسبندگی')
     const rep = batchReport(b2, c)
-    expect(rep.extraCost).toBeCloseTo(1 * 250_000, 6)
+    expect(rep.extraCost).toBeCloseTo(1.5 * 70_000, 6) // 1.5 kg more wax at the workbook price
     expect(rep.exceeded.map(l => l.materialId)).toContain('wax')
     expect(b2.changes.at(-1)).toMatchObject({ by: 'ali', reason: 'چسبندگی' })
   })
 
   it('small change inside tolerance is not flagged', () => {
     const { c, b } = setup()
-    const b2 = setActualQty(b, { kind: 'material', id: 'wood' }, 61, 'ali') // +1.67 %
+    const b2 = setActualQty(b, { kind: 'material', id: 'wood' }, 62, 'ali') // +1.64 %
     expect(batchReport(b2, c).exceeded.find(l => l.materialId === 'wood')).toBeUndefined()
   })
 
   it('per-material tolerance overrides the default', () => {
     const { c, b } = setup()
     c.config.toleranceByMaterial.wood = 1
-    const b2 = setActualQty(b, { kind: 'material', id: 'wood' }, 61, 'ali')
+    const b2 = setActualQty(b, { kind: 'material', id: 'wood' }, 62, 'ali')
     expect(batchReport(b2, c).exceeded.map(l => l.materialId)).toContain('wood')
   })
 
   it('later price changes do not touch an existing batch', () => {
     const { c, b } = setup()
     const before = batchReport(b, c).actual.materialCost
-    c.materials['pp-white'].pricePerKg! *= 2
+    c.materials.sc4.pricePerKg! *= 2
     expect(batchReport(b, c).actual.materialCost).toBeCloseTo(before, 6)
   })
 
@@ -136,10 +144,10 @@ describe('batch with custom formula', () => {
     expect(batchReport(b2, c).exceeded.map(l => l.materialId)).toContain('carbonate')
     b2 = removeBatchItem(b, { kind: 'material', id: 'wax' }, 'ali')
     const wax = batchReport(b2, c).lines.find(l => l.materialId === 'wax')!
-    expect(wax.actualKg).toBe(0)
-    expect(wax.diffPct).toBeCloseTo(-100, 9)
+    expect(wax.actualKg).toBeCloseTo(0.33 * 1.5, 9) // only the wax inside PRPF is left
+    expect(wax.diffPct).toBeLessThan(-70)
     b2 = replaceBatchItem(b, { kind: 'material', id: 'titan' }, { kind: 'material', id: 'carbon-black' }, 'ali')
-    expect(batchReport(b2, c).lines.find(l => l.materialId === 'carbon-black')!.actualKg).toBeCloseTo(1.5, 9)
+    expect(batchReport(b2, c).lines.find(l => l.materialId === 'carbon-black')!.actualKg).toBeCloseTo(8, 9)
   })
 
   it('can scale a batch to another total weight', () => {
@@ -169,9 +177,9 @@ describe('inventory', () => {
     const stock: Movement[] = Object.keys(c.materials).map(id => buy(id, 1000, 1, '2026-10-01'))
     const after = consumeBatch(b, c, stock)
     const lv = stockLevels(after)
-    expect(lv.wax.qtyKg).toBeCloseTo(997, 9)
-    expect(lv.wood.qtyKg).toBeCloseTo(940, 9)
-    expect(lv['pp-white'].qtyKg).toBeCloseTo(1000 - (33 / 99.75) * 60, 9)
+    expect(lv.wax.qtyKg).toBeCloseTo(1000 - 3 - 0.33 * 1.5, 9)
+    expect(lv.wood.qtyKg).toBeCloseTo(939, 9)
+    expect(lv.sc4.qtyKg).toBeCloseTo(1000 - 0.33 * 56.5 * (2000 / 2323), 9)
   })
 
   it('refuses to produce when stock is short and reports what is missing', () => {
@@ -181,16 +189,21 @@ describe('inventory', () => {
     const stock = [buy('wood', 10, 1, '2026-10-01')]
     expect(() => consumeBatch(b, c, stock)).toThrow(/موجودی کافی نیست/)
     const sh = checkAvailability(flatten(items, c), stockLevels(stock))
-    expect(sh.find(s => s.materialId === 'wood')!.missingKg).toBeCloseTo(50, 9)
+    expect(sh.find(s => s.materialId === 'wood')!.missingKg).toBeCloseTo(51, 9)
   })
 })
 
 describe('validation and formatting', () => {
   it('reports missing prices, weights and overhead', () => {
-    const msgs = validateCatalog(cat()).map(i => i.message).join('|')
+    const c = cat()
+    c.materials.red.pricePerKg = null
+    for (const rc of Object.values(c.recipes)) delete rc.overheadPerKg
+    const msgs = validateCatalog(c).map(i => i.message).join('|')
     expect(msgs).toMatch(/وزن شاخه/)
     expect(msgs).toMatch(/قیمت ماده نوشته نشده/)
     expect(msgs).toMatch(/هزینه‌های ثابت کارخانه/)
+    // the starting data has its overhead in the making steps, so it is not reported as missing
+    expect(validateCatalog(cat()).some(i => /هزینه‌های ثابت/.test(i.message))).toBe(false)
   })
 
   it('parses Persian digits and separators', () => {
@@ -237,42 +250,45 @@ describe('formula tools', () => {
   it('cost of a formula = sum of item costs, and a sub-recipe item costs its own per-kg price', () => {
     const c = cat()
     const f = formulaCost(c.recipes['wpc-profile'].items, c)
-    const prp = recipeMaterialPerKg('prp', c)
-    expect(f.rows.find(r => r.item.ref.id === 'prp')!.cost).toBeCloseTo(33 * prp, 6)
-    expect(f.totalCost).toBeCloseTo(60 * 20_500 + 33 * prp + 2 * 250_000 + 3 * 290_000, 4)
+    // PRPF costs its materials plus its own 2,000 Toman per kg step overhead
+    const prpf = recipeMaterialPerKg('prpf', c) + 0.565 * SCRAP_EXTRA + 2_000 // + the scrap's buying costs (56.5 kg of SCF per 100) + step overhead
+    expect(f.rows.find(r => r.item.ref.id === 'prpf')!.cost).toBeCloseTo(33 * prpf, 6)
+    expect(f.totalCost).toBeCloseTo(33 * prpf + 61 * 4_400 + 1.5 * 70_000 + 2 * 67_500, 4)
     expect(f.incomplete).toBe(false)
   })
 
   it('normalize scales to 100 kg and keeps the proportions', () => {
     const c = cat()
-    const n = normalizeTo(c.recipes.prp.items, 100)
-    expect(n.reduce((s, i) => s + i.qtyKg, 0)).toBeCloseTo(100, 4)
-    expect(n[3].qtyKg / n[0].qtyKg).toBeCloseTo(60 / 38.5, 4)
+    const n = normalizeTo(c.recipes.prpf.items, 200)
+    expect(n.reduce((s, i) => s + i.qtyKg, 0)).toBeCloseTo(200, 4)
+    expect(n[1].qtyKg / n[0].qtyKg).toBeCloseTo(40 / 56.5, 4)
   })
 
   it('percent edit sets the share and leaves the other items alone', () => {
     const c = cat()
-    const items = setItemPercent(c.recipes.prp.items, 0, 50)!
+    const items = setItemPercent(c.recipes.prpf.items, 0, 50)!
     const total = items.reduce((s, i) => s + i.qtyKg, 0)
     expect(items[0].qtyKg / total).toBeCloseTo(0.5, 6)
-    expect(items[1].qtyKg).toBe(0.25)
-    expect(setItemPercent(c.recipes.prp.items, 0, 100)).toBeNull()
+    expect(items[1].qtyKg).toBe(40)
+    expect(setItemPercent(c.recipes.prpf.items, 0, 100)).toBeNull()
   })
 
   it('usage lists the products and recipes that depend on a recipe', () => {
     const c = cat()
-    expect(recipeUsage('prp', c).recipes.map(r => r.id)).toEqual(['wpc-profile'])
+    expect(recipeUsage('prpf', c).recipes.map(r => r.id)).toEqual(['wpc-profile'])
     expect(recipeUsage('wpc-profile', c).products.length).toBe(23)
+    expect(recipeUsage('tops', c).products.length).toBe(4)
+    expect(recipeUsage('scf', c).recipes.map(r => r.id).sort()).toEqual(['prpf', 'prpft'])
   })
 
   it('replacing a formula in a copy changes prices there and never in the original', () => {
     const c = cat()
     const before = priceProduct(c.products.flex, 'n1', c.tariffs[0], c).perStick!
-    const cheaper = c.recipes.prp.items.map(i => (i.ref.id === 'pp-white' ? { ...i, qtyKg: 50 } : i))
-    const alt = withReplacement(c, 'recipe', 'prp', cheaper)
+    const cheaper = c.recipes.prpf.items.map(i => (i.ref.id === 'scf' ? { ...i, qtyKg: 40 } : i))
+    const alt = withReplacement(c, 'recipe', 'prpf', cheaper)
     expect(priceProduct(c.products.flex, 'n1', c.tariffs[0], alt).perStick!).toBeLessThan(before)
     expect(priceProduct(c.products.flex, 'n1', c.tariffs[0], c).perStick!).toBe(before)
-    expect(c.recipes.prp.items.find(i => i.ref.id === 'pp-white')!.qtyKg).toBe(60)
+    expect(c.recipes.prpf.items.find(i => i.ref.id === 'scf')!.qtyKg).toBe(56.5)
   })
 })
 
@@ -283,7 +299,6 @@ describe('calculation explanation', () => {
     c.config.monthlyProductionKg = 50_000
     c.config.perBatchCosts = [{ name: 'کرایه', amount: 100_000 }]
     c.config.wastePct = 5
-    for (const id of ['yellow', 'red', 'brown', 'carbon-black', 'pp-recycled']) c.materials[id].pricePerKg = 1_000_000
     return c
   }
 
@@ -306,11 +321,13 @@ describe('calculation explanation', () => {
   it('the steps add up: cost = materials after waste + overhead + extras; sale = cost x (1 + margin)', () => {
     const c = full()
     const e = explainPrice(c.products.flex, 'n1', c.tariffs[1], c)
-    expect(e.overheadPerKg).toBeCloseTo(2000, 9)
+    expect(e.monthlyPerKg).toBeCloseTo(2000, 9)
+    expect(e.overheadPerKg).toBeCloseTo(2000 + e.stagePerKg, 9)
+    expect(e.stagePerKg).toBeGreaterThan(0)
     expect(e.extrasPerKg).toBeCloseTo(1000, 9)
     expect(e.afterWastePerKg).toBeCloseTo(e.materialPerKg / 0.95, 6)
-    expect(e.costPerKg).toBeCloseTo(e.afterWastePerKg + 3000, 6)
-    expect(e.salePerKg).toBeCloseTo(e.costPerKg * 1.25, 6)
+    expect(e.costPerKg).toBeCloseTo(e.afterWastePerKg + e.overheadPerKg + 1000, 6)
+    expect(e.salePerKg).toBeCloseTo(e.costPerKg * 1.3, 6)
     expect(e.perStickRaw).toBeCloseTo((e.salePerKg * 7500) / 1000, 6)
     expect(e.rows.reduce((s, r) => s + (r.cost ?? 0), 0)).toBeCloseTo(e.materialCost, 6)
     expect(e.profitPerKg).toBeCloseTo(e.salePerKg - e.costPerKg, 9)
@@ -318,6 +335,8 @@ describe('calculation explanation', () => {
 
   it('checks report what is missing, and are all green when the data is complete', () => {
     const c = cat()
+    c.materials.yellow.pricePerKg = null
+    for (const rc of Object.values(c.recipes)) delete rc.overheadPerKg
     const bad = explainPrice(c.products['t-once'], 'n3', c.tariffs[0], c)
     const titles = bad.checks.filter(k => !k.ok).map(k => k.title)
     expect(titles).toEqual(expect.arrayContaining(['قیمت بعضی مواد نوشته نشده', 'وزن شاخه را ننوشته‌اید', 'هزینه‌های ثابت کارخانه نوشته نشده']))
@@ -357,24 +376,63 @@ describe('price per square metre', () => {
   })
 })
 
+describe('the factory workbook (آخرین محاسبه مواد - دی ۱۴۰۲)', () => {
+  it('the scrap mix costs 245,470.83 Rial per kg once buying costs are added', () => {
+    const c = cat()
+    expect(itemUnitPrice({ ref: { kind: 'recipe', id: 'scf' }, qtyKg: 1 }, c)).toBeCloseTo(24_547.083, 2)
+    expect(SCF).toBeCloseTo(24_547.083, 2)
+  })
+
+  it('PRPFT costs 195,123.08 Rial per kg with its 20,000 Rial step overhead', () => {
+    const c = cat()
+    expect(itemUnitPrice({ ref: { kind: 'recipe', id: 'prpft' }, qtyKg: 1 }, c)).toBeCloseTo(19_512.308, 2)
+  })
+
+  it('TOPS: cost 130,152 Rial/kg, +20% = 156,183, boards by weight, cheque +6%', () => {
+    const c = cat()
+    const t = c.tariffs.find(x => x.id === 'tops')!
+    const p = priceProduct(c.products['tops32-41'], null, t, c)
+    expect(p.costPerKg).toBeCloseTo(13_015.244, 2)
+    expect(p.salePerKg).toBeCloseTo(15_618.293, 2)
+    expect(p.perStick).toBe(765_296) // sheet: 7,652,963.6 Rial
+    expect(priceProduct(c.products['tops32-41'], null, t, c, 6).perStick).toBe(811_214) // sheet: 8,112,141.4 Rial
+    expect(priceProduct(c.products['tops50-41'], null, t, c).perStick).toBe(960_525)
+    expect(priceProduct(c.products['tops32-36'], null, t, c).perStick).toBe(646_597)
+  })
+
+  it('profile with colour N7 (30%): matches the sheet\'s method step by step', () => {
+    const c = cat()
+    const p = priceProduct(c.products.flex, 'n7', c.tariffs.find(x => x.id === 'profile')!, c)
+    const prpf = recipeMaterialPerKg('prpf', c) + 0.565 * SCRAP_EXTRA + 2_000
+    const mix = 33 * prpf + 61 * 4_400 + 1.5 * 70_000 + 2 * 67_500 + 0.3 * 100_000 + 2 * 100_000 + 0.25 * 120_000
+    const kg = 33 + 61 + 1.5 + 2 + 0.3 + 2 + 0.25
+    expect(p.costPerKg).toBeCloseTo(mix / kg + 10_000, 6) // + 100,000 Rial profile-step overhead
+    expect(p.salePerKg).toBeCloseTo((mix / kg + 10_000) * 1.3, 6)
+  })
+
+  it('the starting data is complete: nothing but the six products without a weight is missing', () => {
+    expect(validateCatalog(cat()).map(i => i.where).sort()).toEqual(['Coffin', 'Off', 'T-Clan', 'T-Coffin', 'T-Fame', 'T-Once'])
+  })
+})
+
 describe('units: everything is Toman', () => {
   it('a price typed in Rial (10x) is flagged, normal prices and small changes are not', () => {
     const c = cat()
     expect(validateCatalog(c).some(i => i.message.startsWith('قیمت مشکوک'))).toBe(false)
-    c.materials.wood.pricePerKg = 20_500 * 1.8 // inflation-sized change
+    c.materials.wood.pricePerKg = 4_400 * 1.8 // inflation-sized change
     expect(validateCatalog(c).some(i => i.message.startsWith('قیمت مشکوک'))).toBe(false)
-    c.materials.wood.pricePerKg = 205_000 // 20,500 Toman written as Rial
+    c.materials.wood.pricePerKg = 44_000 // 4,400 Toman written as Rial
     const bad = validateCatalog(c).filter(i => i.message.startsWith('قیمت مشکوک'))
     expect(bad).toHaveLength(1)
     expect(bad[0].tab).toBe('مواد')
-    c.materials.wood.pricePerKg = 2_050 // divided by 10 by mistake
+    c.materials.wood.pricePerKg = 440 // divided by 10 by mistake
     expect(validateCatalog(c).some(i => i.message.startsWith('قیمت مشکوک'))).toBe(true)
   })
 
   it('price scales linearly with every Toman input (no hidden unit factor)', () => {
     const a = cat(), b = cat()
     for (const m of Object.values(b.materials)) if (m.pricePerKg) m.pricePerKg *= 10
-    for (const l of b.config.monthlyCosts) l.amount *= 10
+    for (const rc of Object.values(b.recipes)) if (rc.overheadPerKg) rc.overheadPerKg *= 10 // the cost of each making step is Toman too
     const t = a.tariffs[0]
     const pa = priceProduct(a.products.flex, 'n1', t, a), pb = priceProduct(b.products.flex, 'n1', t, b)
     expect(pb.costPerKg / pa.costPerKg).toBeCloseTo(10, 9)
@@ -420,18 +478,19 @@ describe('change log sentences', () => {
     const a = cat()
     const b = structuredClone(a)
     expect(catalogChanges(a, b)).toEqual([])
-    b.materials.wax.pricePerKg = 300_000
+    b.materials.wax.pricePerKg = 90_000
     b.products.flex.weightPer3mG = 7600
     b.tariffs[0].marginPct = 18
+    const tariffName = a.tariffs[0].name
     b.config.wastePct = 4
-    b.recipes.prp.items[3].qtyKg = 58
+    b.recipes.prpf.items[3].qtyKg = 58
     delete b.products.tail
     const lines = catalogChanges(a, b)
-    expect(lines).toContain('قیمت «وکس» از ۲۵۰٬۰۰۰ به ۳۰۰٬۰۰۰ تومان')
+    expect(lines).toContain('قیمت «وکس پلی‌اتیلن (PEWAX)» از ۷۰٬۰۰۰ به ۹۰٬۰۰۰ تومان')
     expect(lines).toContain('وزن شاخه‌ی «Flex» از ۷٬۵۰۰ به ۷٬۶۰۰ گرم')
-    expect(lines).toContain('سود تعرفه‌ی «عمده» از ۱۵٪ به ۱۸٪')
+    expect(lines).toContain(`سود تعرفه‌ی «${tariffName}» از ۲۰٪ به ۱۸٪`)
     expect(lines.some(l => l.includes('درصد دورریز'))).toBe(true)
-    expect(lines).toContain('مقدار مواد فرمول «PRP» عوض شد')
+    expect(lines).toContain(`مقدار مواد فرمول «${a.recipes.prpf.name}» عوض شد`)
     expect(lines).toContain('محصول حذف شد: «Tail»')
   })
 

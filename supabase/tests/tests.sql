@@ -81,7 +81,7 @@ select t.fails('bad date', $q$select add_movement('{"type":"in","date":"2026-13-
 select add_movement(jsonb_build_object('type', 'in', 'date', '2026-10-01', 'materialId', k, 'kg', 1000))
   from jsonb_object_keys((get_state() -> 'catalog' -> 'materials')) k;
 
--- a batch: standard Flex + N1, with 3 kg wax instead of 2
+-- a batch: standard Flex + N1, with 3 kg wax instead of 1.5
 create temp table b as
 select jsonb_build_object('date', '2026-10-04', 'productId', 'flex', 'colorId', 'n1',
   'frozenPrices', '{"wax":1}'::jsonb,
@@ -93,12 +93,12 @@ select jsonb_build_object('date', '2026-10-04', 'productId', 'flex', 'colorId', 
 create temp table res as select add_batch((select p from b)) as r;
 
 select t.ok('batch stored once', (select count(*) from batches) = 1);
-select t.ok('wax consumed from the ACTUAL formula (3 kg, not 2)', (select sum(kg) from movements where material_id = 'wax') = 1197);
-select t.ok('wood consumed (60 kg)', (select sum(kg) from movements where material_id = 'wood') = 940);
-select t.ok('polymer inside PRP consumed pro rata',
-  abs((select sum(kg) from movements where material_id = 'pp-white') - (1000 - 33.0 / 99.75 * 60)) < 1e-6);
-select t.ok('graft = 3 + 33/99.75 of the PRP',
-  abs((select sum(kg) from movements where material_id = 'graft') - (1000 - 3 - 33.0 / 99.75 * 1)) < 1e-6);
+select t.ok('wax consumed from the ACTUAL formula (3 kg direct + 0.33 of the PRPF wax)', abs((select sum(kg) from movements where material_id = 'wax') - (1200 - 3 - 0.33 * 1.5)) < 1e-6);
+select t.ok('wood consumed (61 kg)', (select sum(kg) from movements where material_id = 'wood') = 939);
+select t.ok('scrap inside PRPF consumed pro rata (33 of 100 kg, 56.5 kg scrap, SC4 = 2000/2323)',
+  abs((select sum(kg) from movements where material_id = 'sc4') - (1000 - 0.33 * 56.5 * 2000 / 2323)) < 1e-6);
+select t.ok('graft = 2 + 0.33 x 1.5 of the PRPF',
+  abs((select sum(kg) from movements where material_id = 'graft') - (1000 - 2 - 0.33 * 1.5)) < 1e-6);
 select t.ok('server froze the prices (client value ignored)',
   ((select r -> 'frozenPrices' -> 'wax' from res))::numeric = 250000);
 select t.ok('change author comes from the session', (select r -> 'changes' -> 0 ->> 'by' from res) = 'bob@x.ir');
@@ -148,7 +148,7 @@ select t.ok('goods list is empty again', jsonb_array_length(get_state() -> 'good
 select t.as_user('alice@x.ir');
 select t.fails('adjust below zero is refused', $q$select add_movement('{"type":"adjust","date":"2026-10-04","materialId":"wax","kg":-99999}')$q$, '23514');
 select add_movement('{"type":"adjust","date":"2026-10-04","materialId":"wax","kg":-7}');
-select t.ok('admin adjust works', (select sum(kg) from movements where material_id = 'wax') = 1190);
+select t.ok('admin adjust works', abs((select sum(kg) from movements where material_id = 'wax') - 1189.505) < 1e-6);
 select t.fails('cannot demote last admin', format($q$select set_role(%L, 'viewer')$q$, (select id from profiles where email = 'alice@x.ir')), '23514');
 select set_role((select id from profiles where email = 'bob@x.ir'), 'admin');
 select set_role((select id from profiles where email = 'alice@x.ir'), 'viewer');

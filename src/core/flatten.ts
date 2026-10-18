@@ -17,6 +17,7 @@ export function flatten(
   stack: Id[] = [],
   scale = 1,
   out: Flat = {},
+  stage?: { total: number },
 ): Flat {
   for (const item of items) {
     if (item.ref.kind === 'material') {
@@ -29,9 +30,22 @@ export function flatten(
     if (!recipe) throw new Error(`این فرمول پیدا نشد: ${id}`)
     const total = sumKg(recipe.items)
     if (total <= 0) continue
-    flatten(recipe.items, catalog, [...stack, id], (scale * item.qtyKg) / total, out)
+    // the stage's own cost for every kg of it that goes into the mix
+    if (stage && recipe.overheadPerKg) stage.total += item.qtyKg * scale * recipe.overheadPerKg
+    flatten(recipe.items, catalog, [...stack, id], (scale * item.qtyKg) / total, out, stage)
   }
   return out
+}
+
+/**
+ * Total stage overhead (Toman) of making `items`: every sub-recipe used contributes (kg used x its overheadPerKg),
+ * and the recipe the items belong to (`ownRecipeId`, e.g. a product's base formula) adds its own per kg of the whole mix.
+ */
+export function stageExtra(items: RecipeItem[], catalog: Pick<Catalog, 'recipes' | 'materials'>, ownRecipeId?: Id): number {
+  const stage = { total: 0 }
+  flatten(items, catalog, [], 1, {}, stage)
+  const own = ownRecipeId ? catalog.recipes[ownRecipeId]?.overheadPerKg ?? 0 : 0
+  return stage.total + own * sumKg(items)
 }
 
 export function addFlat(a: Flat, b: Flat): Flat {
