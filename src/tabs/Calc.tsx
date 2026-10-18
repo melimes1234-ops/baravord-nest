@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { calcCsv, explainPrice, faNum, formatKg, formatToman, toFa, type Catalog, type Check, type Explain } from '../core'
 import { DEMO } from '../demo'
-import { Bill, InfoTip, Kpi, Tag } from '../ui'
+import { Bill, Toman, InfoTip, Kpi, Tag } from '../ui'
 import { kpiTip } from './KpiTips'
 
 const money = (n: number | null) => formatToman(n)
@@ -114,11 +114,11 @@ export function Calc({ catalog, go }: { catalog: Catalog; go?: (tab: string) => 
         </div>
         {showText && <textarea className="copybox" readOnly value={text} rows={12} onFocus={ev => ev.currentTarget.select()} aria-label="متن برای کپی" />}
         <div className="kpis" style={{ marginBottom: 0 }}>
-          <Kpi label="قیمت تمام‌شده هر کیلو" tip={kpiTip('cost', e)}>{money(e.costPerKg)}</Kpi>
-          <Kpi label="قیمت فروش هر کیلو" tip={kpiTip('sale', e)}>{money(e.salePerKg)}</Kpi>
-          <Kpi label="قیمت هر متر" tip={kpiTip('meter', e)}>{money(e.perMeter)}</Kpi>
-          <Kpi label="قیمت هر متر مربع" tip={kpiTip('sqm', e)}>{money(e.perSqm)}</Kpi>
-          <Kpi label={`قیمت شاخه (${faNum(e.lengthM)} متری)`} tip={kpiTip('stick', e)} accent="var(--accent)">{money(e.perStick)}</Kpi>
+          <Kpi label="قیمت تمام‌شده هر کیلو" tip={kpiTip('cost', e)}><Toman v={e.costPerKg} /></Kpi>
+          <Kpi label="قیمت فروش هر کیلو" tip={kpiTip('sale', e)}><Toman v={e.salePerKg} /></Kpi>
+          <Kpi label="قیمت هر متر" tip={kpiTip('meter', e)}><Toman v={e.perMeter} /></Kpi>
+          <Kpi label="قیمت هر متر مربع" tip={kpiTip('sqm', e)}><Toman v={e.perSqm} /></Kpi>
+          <Kpi label={`قیمت شاخه (${faNum(e.lengthM)} متری)`} tip={kpiTip('stick', e)} accent="var(--accent)"><Toman v={e.perStick} /></Kpi>
         </div>
       </div>
 
@@ -160,7 +160,7 @@ export function Calc({ catalog, go }: { catalog: Catalog; go?: (tab: string) => 
               </p>
             ))}
             <div className="tablewrap"><table>
-              <thead><tr><th>ماده</th><th className="n">چند کیلو</th><th className="n">قیمت یک کیلو</th><th className="n">خرج</th></tr></thead>
+              <thead><tr><th>ماده</th><th className="n">چند کیلو</th><th className="n">قیمت یک کیلو (تومان)</th><th className="n">خرج (تومان)</th></tr></thead>
               <tbody>
                 {e.rows.map(r => (
                   <tr key={r.materialId}>

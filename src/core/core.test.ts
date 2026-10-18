@@ -357,6 +357,30 @@ describe('price per square metre', () => {
   })
 })
 
+describe('units: everything is Toman', () => {
+  it('a price typed in Rial (10x) is flagged, normal prices and small changes are not', () => {
+    const c = cat()
+    expect(validateCatalog(c).some(i => i.message.startsWith('قیمت مشکوک'))).toBe(false)
+    c.materials.wood.pricePerKg = 20_500 * 1.8 // inflation-sized change
+    expect(validateCatalog(c).some(i => i.message.startsWith('قیمت مشکوک'))).toBe(false)
+    c.materials.wood.pricePerKg = 205_000 // 20,500 Toman written as Rial
+    const bad = validateCatalog(c).filter(i => i.message.startsWith('قیمت مشکوک'))
+    expect(bad).toHaveLength(1)
+    expect(bad[0].tab).toBe('مواد')
+    c.materials.wood.pricePerKg = 2_050 // divided by 10 by mistake
+    expect(validateCatalog(c).some(i => i.message.startsWith('قیمت مشکوک'))).toBe(true)
+  })
+
+  it('price scales linearly with every Toman input (no hidden unit factor)', () => {
+    const a = cat(), b = cat()
+    for (const m of Object.values(b.materials)) if (m.pricePerKg) m.pricePerKg *= 10
+    for (const l of b.config.monthlyCosts) l.amount *= 10
+    const t = a.tariffs[0]
+    const pa = priceProduct(a.products.flex, 'n1', t, a), pb = priceProduct(b.products.flex, 'n1', t, b)
+    expect(pb.costPerKg / pa.costPerKg).toBeCloseTo(10, 9)
+  })
+})
+
 describe('stick length', () => {
   it('per metre = stick price / its own length; a product without a length uses 3 m', () => {
     const c = cat()

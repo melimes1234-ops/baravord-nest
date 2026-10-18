@@ -49,7 +49,7 @@ export function Stock({ catalog, movements, update, readOnly }: { catalog: Catal
         </InfoTip></h2>
         <div className="tablewrap scroll-box">
           <table>
-            <thead><tr><th>ماده</th><th className="n">موجودی (کیلو)</th><th className="n">میانگین قیمت</th><th className="n">ارزش موجودی</th></tr></thead>
+            <thead><tr><th>ماده</th><th className="n">موجودی (کیلو)</th><th className="n">میانگین قیمت (تومان)</th><th className="n">ارزش موجودی (تومان)</th></tr></thead>
             <tbody>
               {Object.values(catalog.materials).map(m => {
                 const s = levels[m.id]

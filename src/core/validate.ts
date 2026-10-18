@@ -1,3 +1,5 @@
+import { formatToman } from './format'
+import { seedCatalog } from './seed'
 import { flatten, sumKg } from './flatten'
 import type { Catalog } from './types'
 
@@ -37,6 +39,16 @@ export function validateCatalog(c: Catalog): Issue[] {
     const m = c.materials[id]
     if (!m) issues.push({ level: 'error', where: id, message: 'این ماده در لیست مواد نیست', tab: 'مواد' })
     else if (m.pricePerKg == null) issues.push({ level: 'warn', where: m.name, message: 'قیمت ماده نوشته نشده', tab: 'مواد' })
+  }
+  // Everything in the app is Toman. A price ~10x away from the starting list usually means Rial was typed.
+  const ref = seedCatalog().materials
+  for (const m of Object.values(c.materials)) {
+    const r = ref[m.id]?.pricePerKg
+    if (m.pricePerKg == null || m.pricePerKg <= 0 || r == null || r <= 0) continue
+    const ratio = m.pricePerKg / r
+    if (ratio >= 8 || ratio <= 1 / 8) {
+      issues.push({ level: 'warn', where: m.name, message: `قیمت مشکوک: ${formatToman(m.pricePerKg)} تومان با قیمت اولیه (${formatToman(r)} تومان) ${ratio >= 1 ? 'خیلی بیشتر' : 'خیلی کمتر'} است. مطمئن شوید قیمت را به تومان نوشته‌اید، نه ریال (ریال ۱۰ برابر تومان است).`, tab: 'مواد' })
+    }
   }
   if (c.config.monthlyCosts.length === 0) {
     issues.push({ level: 'warn', where: 'هزینه‌ها', message: 'هزینه‌های ثابت کارخانه نوشته نشده؛ در قیمت نیامده. در تب «هزینه‌ها»، در جدول اول، دکمه‌ی «افزودن ردیف» را بزنید و اسم و مبلغ ماهانه را بنویسید.', tab: 'هزینه‌ها' })

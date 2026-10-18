@@ -15,6 +15,8 @@ export function priceGaps(catalog: Catalog): Gap[] {
 
   const noPrice = names('قیمت ماده نوشته نشده')
   if (noPrice.length) gaps.push({ must: true, tab: 'مواد', text: `قیمت این مواد نوشته نشده (${noPrice.join('، ')}). تا نوشته نشود، قیمت محصولی که از آن‌ها استفاده می‌کند کمتر از واقعی درمی‌آید.` })
+  const odd = names('قیمت مشکوک')
+  if (odd.length) gaps.push({ must: true, tab: 'مواد', text: `قیمت این مواد ۱۰ برابر یا بیشتر با قیمت اولیه فرق دارد (${odd.join('، ')}). همه‌ی قیمت‌ها باید به تومان باشد؛ اگر به ریال نوشته‌اید، ۱۰ برابر شده است.` })
   const noWeight = names('وزن شاخه نوشته نشده')
   if (noWeight.length) gaps.push({ must: true, tab: 'محصولات', text: `وزن شاخه‌ی این محصولات نوشته نشده (${noWeight.join('، ')}). بدون وزن، قیمت شاخه و متر معلوم نمی‌شود.` })
 

@@ -4,7 +4,7 @@ import {
   withReplacement, type Catalog, type Id, type RecipeItem,
 } from '../core'
 import type { Update } from '../store'
-import { InfoTip, LockIcon, NumInput, Swatch, Tag, TextInput } from '../ui'
+import { InfoTip, LockIcon, NumInput, Swatch, Tag, TextInput, Toman } from '../ui'
 
 type Kind = 'recipe' | 'color'
 type Unit = 'kg' | 'g' | 'pct'
@@ -279,7 +279,7 @@ function FormulaView(props: {
       <div className="tablewrap">
         <table>
           <thead>
-            <tr><th>جزء</th><th className="n">مقدار ({unitLabel})</th><th className="n">چقدر از وزن</th><th>چقدر از خرج</th><th className="n">هزینه</th>{!locked && <th />}</tr>
+            <tr><th>جزء</th><th className="n">مقدار ({unitLabel})</th><th className="n">چقدر از وزن</th><th>چقدر از خرج</th><th className="n">هزینه (تومان)</th>{!locked && <th />}</tr>
           </thead>
           <tbody>
             {entry.items.map((it, idx) => {
@@ -348,8 +348,8 @@ function FormulaView(props: {
 
       <div className="kpis" style={{ marginTop: 14 }}>
         <div className="kpi"><span>وزن کل</span><b>{formatKg(total)} کیلو</b></div>
-        <div className="kpi"><span>مواد یک کیلو چقدر خرج دارد</span><b>{formatToman(fc.perKg)}{fc.incomplete && ' *'}</b></div>
-        <div className="kpi"><span>خرج کل این فرمول</span><b>{formatToman(fc.totalCost)}{fc.incomplete && ' *'}</b></div>
+        <div className="kpi"><span>مواد یک کیلو چقدر خرج دارد</span><b><Toman v={fc.perKg} />{fc.incomplete && ' *'}</b></div>
+        <div className="kpi"><span>خرج کل این فرمول</span><b><Toman v={fc.totalCost} />{fc.incomplete && ' *'}</b></div>
         {source && sourceCost && sourceCost.perKg > 0 && (
           <div className="kpi">
             <span>نسبت به «{source.name}»</span>
@@ -426,8 +426,8 @@ function FormulaTest({ catalog, entry, all }: { catalog: Catalog; entry: Entry; 
       {result && result.now && result.next && (
         <>
           <div className="kpis">
-            <div className="kpi"><span>قیمت شاخه {result.p.name} (الان)</span><b>{formatToman(result.now.perStick)}</b></div>
-            <div className="kpi" style={{ ['--k' as string]: 'var(--accent)' }}><span>اگر این فرمول بود</span><b>{formatToman(result.next.perStick)}</b></div>
+            <div className="kpi"><span>قیمت شاخه {result.p.name} (الان)</span><b><Toman v={result.now.perStick} /></b></div>
+            <div className="kpi" style={{ ['--k' as string]: 'var(--accent)' }}><span>اگر این فرمول بود</span><b><Toman v={result.next.perStick} /></b></div>
             <div className="kpi">
               <span>تغییر</span>
               <b className={d != null && d > 0 ? 'over' : ''}>{d == null ? '—' : `${d >= 0 ? '▲' : '▼'} ${fa(Math.abs(d), 1)}٪`}</b>

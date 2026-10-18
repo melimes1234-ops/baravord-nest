@@ -5,7 +5,7 @@ import {
   type Catalog, type Product, type Tariff,
 } from '../core'
 import { DEMO } from '../demo'
-import { InfoTip, Kpi, NumInput, Swatch, Tag } from '../ui'
+import { InfoTip, Kpi, NumInput, Swatch, Tag, Toman } from '../ui'
 import { kpiTip } from './KpiTips'
 
 /** 'FD142' -> 'FD'. Products of one series share a colour in the list. */
@@ -182,8 +182,8 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
         <table className="price-table">
           <thead>
             <tr>
-              <th>محصول</th><th className="n hide-sm">وزن شاخه</th><th className="n hide-sm">هر کیلو</th>
-              <th className="n">هر متر</th><th className="n hide-sm">هر متر مربع</th><th className="n">قیمت شاخه</th><th className="hide-sm status">وضعیت</th>
+              <th>محصول</th><th className="n hide-sm">وزن شاخه</th><th className="n hide-sm">هر کیلو (تومان)</th>
+              <th className="n">هر متر (تومان)</th><th className="n hide-sm">هر متر مربع (تومان)</th><th className="n">قیمت شاخه (تومان)</th><th className="hide-sm status">وضعیت</th>
             </tr>
           </thead>
           <tbody>
@@ -265,11 +265,11 @@ function Breakdown({ catalog, product, colorId, tariff }: { catalog: Catalog; pr
   return (
     <div className="panel-in">
       <div className="kpis" style={{ marginBottom: 0 }}>
-        <Kpi label="قیمت تمام‌شده هر کیلو" tip={kpiTip('cost', ex)} accent="var(--muted)">{formatToman(c.costPerKg)}</Kpi>
-        <Kpi label="قیمت فروش هر کیلو" tip={kpiTip('sale', ex)}>{formatToman(price.salePerKg)}</Kpi>
-        <Kpi label="قیمت هر متر" tip={kpiTip('meter', ex)}>{formatToman(price.perMeter)}</Kpi>
-        <Kpi label="قیمت هر متر مربع" tip={kpiTip('sqm', ex)}>{formatToman(price.perSqm)}</Kpi>
-        <Kpi label={`قیمت شاخه (${faNum(stickLength(product))} متری)`} tip={kpiTip('stick', ex)} accent="var(--accent)">{formatToman(price.perStick)}</Kpi>
+        <Kpi label="قیمت تمام‌شده هر کیلو" tip={kpiTip('cost', ex)} accent="var(--muted)"><Toman v={c.costPerKg} /></Kpi>
+        <Kpi label="قیمت فروش هر کیلو" tip={kpiTip('sale', ex)}><Toman v={price.salePerKg} /></Kpi>
+        <Kpi label="قیمت هر متر" tip={kpiTip('meter', ex)}><Toman v={price.perMeter} /></Kpi>
+        <Kpi label="قیمت هر متر مربع" tip={kpiTip('sqm', ex)}><Toman v={price.perSqm} /></Kpi>
+        <Kpi label={`قیمت شاخه (${faNum(stickLength(product))} متری)`} tip={kpiTip('stick', ex)} accent="var(--accent)"><Toman v={price.perStick} /></Kpi>
       </div>
 
       <div>
@@ -286,7 +286,7 @@ function Breakdown({ catalog, product, colorId, tariff }: { catalog: Catalog; pr
 
       <div className="tablewrap">
         <table>
-          <thead><tr><th>ماده (پارت {toFa(Math.round(c.totalKg))} کیلویی)</th><th className="n">کیلو</th><th className="n hide-sm">قیمت/کیلو</th><th className="n">هزینه</th></tr></thead>
+          <thead><tr><th>ماده (پارت {toFa(Math.round(c.totalKg))} کیلویی)</th><th className="n">کیلو</th><th className="n hide-sm">قیمت/کیلو (تومان)</th><th className="n">هزینه (تومان)</th></tr></thead>
           <tbody>
             {Object.entries(flat).map(([id, q]) => {
               const m = catalog.materials[id]

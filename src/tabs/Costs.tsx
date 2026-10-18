@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { formatToman, overheadPerKg, extrasPerKg, type Catalog, type CostLine } from '../core'
 import type { Update } from '../store'
-import { NumInput, TextInput } from '../ui'
+import { NumInput, TextInput, Toman } from '../ui'
 
 function Lines({ title, help, lines, onChange }: { title: string; help: string; lines: CostLine[]; onChange: (l: CostLine[]) => void }) {
   // the row that was just added gets the cursor, so the name can be typed right away
@@ -25,7 +25,7 @@ function Lines({ title, help, lines, onChange }: { title: string; help: string; 
                 <td><button className="btn danger" onClick={() => onChange(lines.filter((_, j) => j !== i))}>حذف</button></td>
               </tr>
             ))}
-            <tr><td><b>جمع</b></td><td className="n"><b>{formatToman(lines.reduce((s, l) => s + l.amount, 0))}</b></td><td /></tr>
+            <tr><td><b>جمع</b></td><td className="n"><b><Toman v={lines.reduce((s, l) => s + l.amount, 0)} /></b></td><td /></tr>
           </tbody>
         </table>
       </div>

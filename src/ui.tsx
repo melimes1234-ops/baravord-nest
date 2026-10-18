@@ -233,3 +233,6 @@ export function Bill(props: {
     </div>
   )
 }
+
+/** A money value with its unit, so a number is never left guessing between Toman and Rial. */
+export const Toman = ({ v }: { v: number | null | undefined }) => <>{formatToman(v)} <small className="unit-sm">تومان</small></>

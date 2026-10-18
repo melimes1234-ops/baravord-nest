@@ -1,6 +1,6 @@
 import type { Catalog, Color, Material, Product, RecipeItem } from './types'
 
-// Prices come from the handwritten price sheet (written in Rial, stored here in Toman).
+// Prices come from the handwritten price sheet (written in Rial there, converted once: everything in the app is Toman).
 // Values marked null were not on the sheet and must be entered in the app.
 const materials: Material[] = [
   { id: 'wood', name: 'پودر چوب (خاک اره)', pricePerKg: 20_500 },

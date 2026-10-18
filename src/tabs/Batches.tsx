@@ -126,7 +126,7 @@ export function Batches({ state, update }: { state: AppState; update: Update }) 
         {state.batches.length === 0 ? <p className="muted">هنوز پارتی ثبت نشده.</p> : (
           <div className="tablewrap scroll-box">
             <table>
-              <thead><tr><th>تاریخ</th><th>محصول</th><th>رنگ</th><th className="n">وزن</th><th className="n">هزینه کل</th><th className="n">اختلاف با استاندارد</th><th>تغییرات</th></tr></thead>
+              <thead><tr><th>تاریخ</th><th>محصول</th><th>رنگ</th><th className="n">وزن</th><th className="n">هزینه کل (تومان)</th><th className="n">اختلاف با استاندارد (تومان)</th><th>تغییرات</th></tr></thead>
               <tbody>
                 {state.batches.map(b => {
                   const r = batchReport(b, catalog as Catalog)
