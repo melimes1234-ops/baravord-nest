@@ -8,15 +8,15 @@ import {
 
 const cat = (): Catalog => seedCatalog()
 
-// Workbook numbers, in Toman (the workbook is in Rial: /10).
-const SCRAP_EXTRA = ((2000 * 205_000 + 323 * 182_000) * 0.09 + 3_500_000 + 24_000 * 2323) / 2323 / 10
-const SCF = (2000 * 20_500 + 323 * 18_200) / 2323 + SCRAP_EXTRA // 24,547.08 Toman per kg (sheet: 245,470.83 Rial)
+// Workbook numbers, taken as Toman exactly as written (the sheet's «ريال» headers are on the same scale as the Toman prices the factory already used).
+const SCRAP_EXTRA = ((2000 * 205_000 + 323 * 182_000) * 0.09 + 3_500_000 + 24_000 * 2323) / 2323
+const SCF = (2000 * 205_000 + 323 * 182_000) / 2323 + SCRAP_EXTRA // 245,470.83 per kg (sheet G30)
 
 describe('recipe costing', () => {
   it('PRPF material cost per kg is the weighted sum / total weight', () => {
     const c = cat()
-    const scfMat = (2000 * 20_500 + 323 * 18_200) / 2323
-    const expected = (56.5 * scfMat + 40 * 5_000 + 1.5 * 67_500 + 0.25 * 270_000 + 0.25 * 290_000 + 1.5 * 70_000) / 100
+    const scfMat = (2000 * 205_000 + 323 * 182_000) / 2323
+    const expected = (56.5 * scfMat + 40 * 50_000 + 1.5 * 675_000 + 0.25 * 2_700_000 + 0.25 * 2_900_000 + 1.5 * 700_000) / 100
     expect(recipeMaterialPerKg('prpf', c)).toBeCloseTo(expected, 6)
   })
 
@@ -113,7 +113,7 @@ describe('batch with custom formula', () => {
     const { c, b } = setup()
     const b2 = setActualQty(b, { kind: 'material', id: 'wax' }, 3, 'ali', 'چسبندگی')
     const rep = batchReport(b2, c)
-    expect(rep.extraCost).toBeCloseTo(1.5 * 70_000, 6) // 1.5 kg more wax at the workbook price
+    expect(rep.extraCost).toBeCloseTo(1.5 * 700_000, 6) // 1.5 kg more wax at the workbook price
     expect(rep.exceeded.map(l => l.materialId)).toContain('wax')
     expect(b2.changes.at(-1)).toMatchObject({ by: 'ali', reason: 'چسبندگی' })
   })
@@ -250,10 +250,10 @@ describe('formula tools', () => {
   it('cost of a formula = sum of item costs, and a sub-recipe item costs its own per-kg price', () => {
     const c = cat()
     const f = formulaCost(c.recipes['wpc-profile'].items, c)
-    // PRPF costs its materials plus its own 2,000 Toman per kg step overhead
-    const prpf = recipeMaterialPerKg('prpf', c) + 0.565 * SCRAP_EXTRA + 2_000 // + the scrap's buying costs (56.5 kg of SCF per 100) + step overhead
+    // PRPF costs its materials plus its own 20,000 per kg step overhead
+    const prpf = recipeMaterialPerKg('prpf', c) + 0.565 * SCRAP_EXTRA + 20_000 // + the scrap's buying costs (56.5 kg of SCF per 100) + step overhead
     expect(f.rows.find(r => r.item.ref.id === 'prpf')!.cost).toBeCloseTo(33 * prpf, 6)
-    expect(f.totalCost).toBeCloseTo(33 * prpf + 61 * 4_400 + 1.5 * 70_000 + 2 * 67_500, 4)
+    expect(f.totalCost).toBeCloseTo(33 * prpf + 61 * 44_000 + 1.5 * 700_000 + 2 * 675_000, 4)
     expect(f.incomplete).toBe(false)
   })
 
@@ -376,10 +376,10 @@ describe('price per square metre', () => {
 })
 
 describe('the factory workbook (آخرین محاسبه مواد - دی ۱۴۰۲)', () => {
-  it('the scrap mix costs 245,470.83 Rial per kg once buying costs are added', () => {
+  it('the scrap mix costs 245,470.83 per kg once buying costs are added (sheet G30)', () => {
     const c = cat()
-    expect(itemUnitPrice({ ref: { kind: 'recipe', id: 'scf' }, qtyKg: 1 }, c)).toBeCloseTo(24_547.083, 2)
-    expect(SCF).toBeCloseTo(24_547.083, 2)
+    expect(itemUnitPrice({ ref: { kind: 'recipe', id: 'scf' }, qtyKg: 1 }, c)).toBeCloseTo(245_470.83, 1)
+    expect(SCF).toBeCloseTo(245_470.83, 1)
   })
 
   it('cheque payment adds 6% to the sale price (the workbook multiplies the sale price by 1.06)', () => {
@@ -394,11 +394,11 @@ describe('the factory workbook (آخرین محاسبه مواد - دی ۱۴۰۲
   it('profile with colour N7 (30%): matches the sheet\'s method step by step', () => {
     const c = cat()
     const p = priceProduct(c.products.flex, 'n7', c.tariffs[0], c)
-    const prpf = recipeMaterialPerKg('prpf', c) + 0.565 * SCRAP_EXTRA + 2_000
-    const mix = 33 * prpf + 61 * 4_400 + 1.5 * 70_000 + 2 * 67_500 + 0.3 * 100_000 + 2 * 100_000 + 0.25 * 120_000
+    const prpf = recipeMaterialPerKg('prpf', c) + 0.565 * SCRAP_EXTRA + 20_000
+    const mix = 33 * prpf + 61 * 44_000 + 1.5 * 700_000 + 2 * 675_000 + 0.3 * 1_000_000 + 2 * 1_000_000 + 0.25 * 1_200_000
     const kg = 33 + 61 + 1.5 + 2 + 0.3 + 2 + 0.25
-    expect(p.costPerKg).toBeCloseTo(mix / kg + 10_000, 6) // + 100,000 Rial profile-step overhead
-    expect(p.salePerKg).toBeCloseTo((mix / kg + 10_000) * 1.3, 6)
+    expect(p.costPerKg).toBeCloseTo(mix / kg + 30_000, 6) // + 30,000 profile-step overhead (newest sheet)
+    expect(p.salePerKg).toBeCloseTo((mix / kg + 30_000) * 1.3, 6)
   })
 
   it('the starting data is complete: nothing but the six products without a weight is missing, and there is no cabinet or TOPS', () => {
@@ -413,13 +413,13 @@ describe('units: everything is Toman', () => {
   it('a price typed in Rial (10x) is flagged, normal prices and small changes are not', () => {
     const c = cat()
     expect(validateCatalog(c).some(i => i.message.startsWith('قیمت مشکوک'))).toBe(false)
-    c.materials.wood.pricePerKg = 4_400 * 1.8 // inflation-sized change
+    c.materials.wood.pricePerKg = 44_000 * 1.8 // inflation-sized change
     expect(validateCatalog(c).some(i => i.message.startsWith('قیمت مشکوک'))).toBe(false)
-    c.materials.wood.pricePerKg = 44_000 // 4,400 Toman written as Rial
+    c.materials.wood.pricePerKg = 440_000 // 44,000 Toman written with one zero too many
     const bad = validateCatalog(c).filter(i => i.message.startsWith('قیمت مشکوک'))
     expect(bad).toHaveLength(1)
     expect(bad[0].tab).toBe('مواد')
-    c.materials.wood.pricePerKg = 440 // divided by 10 by mistake
+    c.materials.wood.pricePerKg = 4_400 // one zero too few
     expect(validateCatalog(c).some(i => i.message.startsWith('قیمت مشکوک'))).toBe(true)
   })
 
@@ -472,7 +472,7 @@ describe('change log sentences', () => {
     const a = cat()
     const b = structuredClone(a)
     expect(catalogChanges(a, b)).toEqual([])
-    b.materials.wax.pricePerKg = 90_000
+    b.materials.wax.pricePerKg = 900_000
     b.products.flex.weightPer3mG = 7600
     b.tariffs[0].marginPct = 18
     const tariffName = a.tariffs[0].name
@@ -480,7 +480,7 @@ describe('change log sentences', () => {
     b.recipes.prpf.items[3].qtyKg = 58
     delete b.products.tail
     const lines = catalogChanges(a, b)
-    expect(lines).toContain('قیمت «وکس پلی‌اتیلن (PEWAX)» از ۷۰٬۰۰۰ به ۹۰٬۰۰۰ تومان')
+    expect(lines).toContain('قیمت «وکس پلی‌اتیلن (PEWAX)» از ۷۰۰٬۰۰۰ به ۹۰۰٬۰۰۰ تومان')
     expect(lines).toContain('وزن شاخه‌ی «Flex» از ۷٬۵۰۰ به ۷٬۶۰۰ گرم')
     expect(lines).toContain(`سود تعرفه‌ی «${tariffName}» از ۳۰٪ به ۱۸٪`)
     expect(lines.some(l => l.includes('درصد دورریز'))).toBe(true)

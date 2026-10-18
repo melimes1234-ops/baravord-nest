@@ -2,12 +2,13 @@ import type { Catalog, Color, Material, Product, Recipe, RecipeItem } from './ty
 
 /**
  * Starting data = the factory's own calculation workbook ("آخرین محاسبه مواد - دی ۱۴۰۲").
- * The workbook writes prices in Rial per kg; the app is in Toman, so every price here is the workbook value / 10.
+ * The workbook headers say «ريال», but its numbers are on the same scale as the Toman prices the factory already used
+ * (e.g. TiO2 1,450,000 there, 1,572,000 here), so they are taken as Toman exactly as written, with no conversion.
  * Bump SEED_VERSION when this data changes, so an admin can be offered the new starting data.
  */
-export const SEED_VERSION = 3
+export const SEED_VERSION = 4
 
-const RIAL = 10
+const RIAL = 1
 const mat = (id: string, name: string, rialPerKg: number | null): Material => ({ id, name, pricePerKg: rialPerKg == null ? null : rialPerKg / RIAL })
 
 const materials: Material[] = [
@@ -106,7 +107,7 @@ function buildSeed(): Catalog {
   const recipes: Recipe[] = [
     { id: 'scf', name: 'اسکرپ آماده‌ی میکس (SC4 + SCH)', kind: 'semi', items: [m('sc4', SC4_KG), m('sch', SCH_KG)], overheadPerKg: SCRAP_EXTRA_RIAL / RIAL },
     { id: 'prpf', name: 'PRP پروفایل (PRPF)', kind: 'semi', overheadPerKg: 20_000 / RIAL, items: [r('scf', 56.5), m('carbonate', 40), m('graft', 1.5), m('a060', 0.25), m('a2112', 0.25), m('wax', 1.5)] },
-    { id: 'wpc-profile', name: 'پروفیل WPC (پایه)', kind: 'base', overheadPerKg: 100_000 / RIAL, items: [r('prpf', 33), m('wood', 61), m('wax', 1.5), m('graft', 2)] },
+    { id: 'wpc-profile', name: 'پروفیل WPC (پایه)', kind: 'base', overheadPerKg: 30_000 / RIAL, items: [r('prpf', 33), m('wood', 61), m('wax', 1.5), m('graft', 2)] },
   ]
 
   return {
