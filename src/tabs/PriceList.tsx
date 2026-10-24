@@ -1,10 +1,11 @@
 import { PriceGaps } from './PriceGaps'
+import { PriceSheet } from './PriceSheet'
+import { downloadExcel, downloadJson } from '../exportFiles'
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  colorSwatch, explainPrice, extrasPerKg, faNum, flatten, stickLength, formatKg, formatToman, overheadPerKg, priceProduct, productItems, toFa,
+  buildPriceExport, todayIso, type PriceMetric, colorSwatch, explainPrice, extrasPerKg, faNum, flatten, stickLength, formatKg, formatToman, overheadPerKg, priceProduct, productItems, toFa,
   type Catalog, type Product, type Tariff,
 } from '../core'
-import { DEMO } from '../demo'
 import { InfoTip, Kpi, NumInput, Swatch, Tag, Toman } from '../ui'
 import { kpiTip } from './KpiTips'
 
@@ -75,6 +76,10 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
   // Which cost parts count in the shown prices. Only changes this view: nothing is saved.
   const [incl, setIncl] = useState({ waste: true, overhead: true, extras: true, profit: true })
   const [pay, setPay] = useState<'cash' | 'cheque'>('cash')
+  // the PDF is the browser's «print → save as PDF» of a page made for paper; `sheet` holds what goes on it while printing
+  const [sheet, setSheet] = useState<{ metrics: PriceMetric[]; data: ReturnType<typeof buildPriceExport> } | null>(null)
+  const [pdfMetrics, setPdfMetrics] = useState<PriceMetric[]>(['perStick', 'perMeter'])
+  const [exporting, setExporting] = useState('')
   const chequePct = catalog.config.chequeSurchargePct ?? 0
   const payPct = pay === 'cheque' ? chequePct : 0
   const allIn = incl.waste && incl.overhead && incl.extras && incl.profit
@@ -103,6 +108,30 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
     !incl.waste && 'دورریز مواد', !incl.overhead && 'هزینه‌های ثابت کارخانه', !incl.extras && 'کرایه و انبارداری', !incl.profit && 'سود',
   ].filter(Boolean) as string[]
 
+  // every file is made from the same view the screen shows, so what you export is what you see
+  const makeExport = () => buildPriceExport(view, tariff!, payPct, excluded, todayIso())
+  const runExport = async (kind: 'excel' | 'json') => {
+    setExporting(kind)
+    try {
+      if (kind === 'excel') await downloadExcel(makeExport())
+      else downloadJson(makeExport())
+    } finally {
+      setExporting('')
+    }
+  }
+  useEffect(() => {
+    if (!sheet) return
+    document.body.classList.add('printing-sheet')
+    const done = () => setSheet(null)
+    window.addEventListener('afterprint', done, { once: true })
+    const t = setTimeout(() => window.print(), 120)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener('afterprint', done)
+      document.body.classList.remove('printing-sheet')
+    }
+  }, [sheet])
+
   const groups = useMemo(() => {
     if (!tariff) return []
     const q = query.trim().toLowerCase()
@@ -124,6 +153,7 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
   return (
     <div className="card">
       <PriceGaps catalog={catalog} go={go} />
+      {sheet && <PriceSheet data={sheet.data} metrics={sheet.metrics} />}
       <div className="row">
         <div>
           <span className="field-label">تعرفه (درصد سود)</span>
@@ -158,7 +188,27 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
           جستجوی محصول
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="نام یا کد، مثلاً Flex" />
         </label>
-        {!DEMO && <button className="btn ghost print-hide" onClick={() => window.print()}>چاپ</button>}
+      </div>
+
+      <div className="export-box print-hide">
+        <b>خروجی همین لیست</b>
+        <InfoTip>
+          <p>لیست کامل (همه‌ی محصولات و همه‌ی رنگ‌ها) با <b>همین تعرفه، روش پرداخت و همین انتخاب هزینه‌ها</b> که بالا می‌بینید ساخته می‌شود.</p>
+          <p><b>PDF:</b> صفحه‌ی چاپ باز می‌شود؛ «ذخیره به‌صورت PDF» را انتخاب کنید. کاغذ را «افقی» بگذارید.</p>
+          <p><b>Excel:</b> یک برگه برای هر نوع قیمت (شاخه، متر، متر مربع، کیلو)، محصول‌ها در ردیف و رنگ‌ها در ستون.</p>
+          <p><b>JSON:</b> برای وارد کردن در سایت دیگر؛ قیمت‌ها به تومان و عدد صحیح‌اند.</p>
+        </InfoTip>
+        <div className="chips" role="group" aria-label="بخش‌های PDF">
+          {([['perStick', 'قیمت شاخه'], ['perMeter', 'قیمت متر'], ['perSqm', 'قیمت متر مربع'], ['perKg', 'قیمت کیلو']] as const).map(([k, label]) => (
+            <button key={k} className="chip" aria-pressed={pdfMetrics.includes(k)} onClick={() => setPdfMetrics(pdfMetrics.includes(k) ? pdfMetrics.filter(x => x !== k) : [...pdfMetrics, k])}>{label}</button>
+          ))}
+        </div>
+        <div className="row" style={{ marginBottom: 0 }}>
+          <button className="btn" disabled={pdfMetrics.length === 0 || !!sheet} onClick={() => setSheet({ metrics: pdfMetrics, data: makeExport() })}>PDF</button>
+          <button className="btn" disabled={!!exporting} onClick={() => void runExport('excel')}>{exporting === 'excel' ? '…' : 'Excel'}</button>
+          <button className="btn ghost" disabled={!!exporting} onClick={() => void runExport('json')}>JSON (برای وارد کردن در سایت)</button>
+          {excluded.length > 0 && <span className="muted">توجه: لیست الان ناقص است (بدون {excluded.join('، ')}) و همین‌طور خروجی می‌گیرد.</span>}
+        </div>
       </div>
 
       <span className="field-label">رنگ محصول</span>

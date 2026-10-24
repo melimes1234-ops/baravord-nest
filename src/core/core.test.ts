@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
+  buildPriceExport, priceExportJson, metricValue, addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
   stickLength, calcCsv, catalogChanges, todayIso, isoToJalali, jalaliToIso, jalaliMonthLength, jalaliWeekday, colorSwatch, explainPrice, formulaCost, normalizeTo, recipeUsage, setItemPercent, withReplacement, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
   replaceBatchItem, itemUnitPrice, seedCatalog, setActualQty, stockLevels, toJalaliDate, validateCatalog,
   type Catalog, type Movement,
@@ -417,6 +417,37 @@ describe('the factory workbook (آخرین محاسبه مواد - دی ۱۴۰۲
     const c = cat()
     expect(Object.keys(c.recipes).sort()).toEqual(['prpf', 'scf', 'wpc-profile'])
     expect(Object.values(c.products).some(p => /top|cab/i.test(p.id + p.name))).toBe(false)
+  })
+})
+
+describe('price list export', () => {
+  it('has every product and colour, the same prices as the price list, and a JSON a website can import', () => {
+    const c = cat()
+    const t = c.tariffs[1]
+    const x = buildPriceExport(c, t, 6, [], '2026-10-24')
+    expect(x.rows).toHaveLength(Object.keys(c.products).length)
+    expect(x.colors).toHaveLength(Object.keys(c.colors).length)
+    expect(x.jalaliDate).toBe('1405/08/02')
+    const flex = x.rows.find(r => r.product.id === 'flex')!
+    expect(flex.byColor.n7.perStick).toBe(priceProduct(c.products.flex, 'n7', t, c, 6).perStick)
+    const j = JSON.parse(priceExportJson(x))
+    expect(j).toMatchObject({ kind: 'price-list', currency: 'IRT', payment: 'cheque', paymentSurchargePct: 6, complete: true })
+    const jf = j.products.find((p: { id: string }) => p.id === 'flex')
+    expect(jf.stickWeightG).toBe(7680)
+    expect(jf.prices.n7.perStick).toBe(flex.byColor.n7.perStick)
+    expect(Number.isInteger(jf.prices.n7.perKg)).toBe(true)
+    expect(Object.keys(jf.prices)).toHaveLength(Object.keys(c.colors).length)
+  })
+
+  it('a product that cannot be priced (no weight) exports null, and an incomplete list says so', () => {
+    const c = cat()
+    c.products['t-once'].weightPer3mG = null
+    const x = buildPriceExport(c, c.tariffs[0], 0, ['سود'], '2026-10-24')
+    const j = JSON.parse(priceExportJson(x))
+    expect(j.complete).toBe(false)
+    expect(j.notIncluded).toEqual(['سود'])
+    expect(j.products.find((p: { id: string }) => p.id === 't-once').prices.n1.perStick).toBeNull()
+    expect(metricValue(x.rows.find(r => r.product.id === 't-once')!.byColor.n1, 'perStick')).toBeNull()
   })
 })
 

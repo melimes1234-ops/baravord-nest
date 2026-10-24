@@ -422,3 +422,28 @@ main { animation: pageIn .2s ease backwards; }
 .unit-sm { font-size: 12px; font-weight: 600; color: var(--muted); }
 .mat-name { white-space: normal; min-width: 150px; }
 .mat-name .hint { max-width: 520px; font-size: 12.5px; line-height: 1.8; margin-top: 2px; }
+
+/* ---- price list export ---- */
+.export-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 14px; border: 1px dashed var(--line); border-radius: 10px; background: var(--tint); }
+.print-sheet { display: none; }
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  body.printing-sheet { background: #fff !important; }
+  body.printing-sheet #root { display: none !important; }
+  body.printing-sheet .print-sheet { display: block !important; color: #000; background: #fff; font-size: 8.5pt; line-height: 1.35; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ps-section { break-after: page; }
+  .ps-section:last-child { break-after: auto; }
+  .print-sheet h1 { font-size: 13pt; margin: 0 0 3px; }
+  .ps-meta { margin: 0 0 6px; font-size: 8.5pt; }
+  .ps-warn { color: #b00; }
+  .ps-table { width: 100%; border-collapse: collapse; table-layout: auto; font-size: 7.2pt; }
+  .ps-table th, .ps-table td { border: 1px solid #888; padding: 2px 1.5px; text-align: center; white-space: nowrap; }
+  .ps-table th { background: #e8f0ec; font-weight: 700; }
+  .ps-table thead { display: table-header-group; }
+  .ps-table tr { break-inside: avoid; }
+  .ps-table .ps-name { text-align: start; }
+  .ps-table td.ps-n { direction: ltr; font-variant-numeric: tabular-nums; }
+  .ps-name span { color: #555; font-size: 6.5pt; }
+  .ps-sw { display: inline-block; width: 7px; height: 7px; border-radius: 50%; border: 1px solid #333; margin-inline-end: 3px; }
+  .ps-foot { margin: 6px 0 0; font-size: 8pt; color: #333; }
+}

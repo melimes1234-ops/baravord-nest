@@ -21,7 +21,8 @@
     "hono": "^4.13.13",
     "jalaali-js": "^2.0.1",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
     "@types/jalaali-js": "^1.2.0",
