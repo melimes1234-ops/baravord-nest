@@ -127,9 +127,15 @@ export function PriceList({ catalog, onEditTariffs, go, onMargin }: { catalog: C
     document.body.classList.add('printing-sheet')
     const done = () => setSheet(null)
     window.addEventListener('afterprint', done, { once: true })
-    const t = setTimeout(() => window.print(), 120)
+    // the printed pages use Vazirmatn: wait until it is loaded, or the PDF would be made with a stand-in font
+    let alive = true
+    const t = { id: 0 as ReturnType<typeof setTimeout> | 0 }
+    void Promise.all(['400', '600', '700'].map(w => document.fonts.load(`${w} 10pt Vazirmatn`)))
+      .catch(() => undefined)
+      .then(() => { if (alive) t.id = setTimeout(() => window.print(), 120) })
     return () => {
-      clearTimeout(t)
+      alive = false
+      clearTimeout(t.id || undefined)
       window.removeEventListener('afterprint', done)
       document.body.classList.remove('printing-sheet')
     }

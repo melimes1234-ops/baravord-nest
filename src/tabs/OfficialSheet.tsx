@@ -17,12 +17,12 @@ export function OfficialSheet({ data }: { data: OfficialList }) {
         <div className="os-frame">
           <table className="os-table">
             <colgroup>
-              <col style={{ width: '4.5%' }} /><col style={{ width: '9%' }} /><col style={{ width: '8%' }} /><col style={{ width: '9.5%' }} />
-              <col style={{ width: '20%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10.5%' }} /><col style={{ width: '28.5%' }} />
+              <col style={{ width: '4.5%' }} /><col style={{ width: '9%' }} /><col style={{ width: '8%' }} /><col style={{ width: '10.5%' }} />
+              <col style={{ width: '19%' }} /><col style={{ width: '10%' }} /><col style={{ width: '10.5%' }} /><col style={{ width: '28.5%' }} />
             </colgroup>
             <thead>
               <tr>
-                <th>کاربرد</th><th>نام کالا</th><th>کد کالا</th><th>اندازه ( میلیمتر )</th><th>سطح مقطع</th><th>مترطول (تومان)</th><th>مترمربع (تومان)</th><th>توضیحات بیشتر</th>
+                <th>کاربرد</th><th>نام کالا</th><th>کد کالا</th><th>اندازه (میلیمتر)</th><th>سطح مقطع</th><th>مترطول (تومان)</th><th>مترمربع (تومان)</th><th>توضیحات بیشتر</th>
               </tr>
             </thead>
             <tbody>

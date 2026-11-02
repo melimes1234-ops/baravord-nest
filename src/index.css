@@ -1,3 +1,8 @@
+/* Vazirmatn (open font, SIL OFL), shipped with the app so the screen and the printed lists look the same on every device */
+@font-face { font-family: Vazirmatn; src: url('../node_modules/vazirmatn/fonts/webfonts/Vazirmatn-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: Vazirmatn; src: url('../node_modules/vazirmatn/fonts/webfonts/Vazirmatn-SemiBold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: Vazirmatn; src: url('../node_modules/vazirmatn/fonts/webfonts/Vazirmatn-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+
 /* Light is the base; dark redefines the same tokens (system choice or the explicit toggle). */
 :root {
   --bg: #f3f6f4; --card: #ffffff; --ink: #17211d; --muted: #596863; --line: #d9e1dd; --tint: #edf3f0;
@@ -453,15 +458,15 @@ main { animation: pageIn .2s ease backwards; }
 
 /* ---- the factory's printed price list (A3, two pages) ---- */
 @media print {
-  .official-sheet { font-family: Calibri, 'Segoe UI', Arial, Tahoma, sans-serif; font-size: 10pt; line-height: 1.25; }
+  .official-sheet { font-family: Vazirmatn, Tahoma, Arial, sans-serif; font-size: 9.5pt; line-height: 1.4; }
   .os-page { width: 297mm; height: 419mm; box-sizing: border-box; padding: 27mm 17mm 0; break-after: page; overflow: hidden; }
   .os-page:last-child { break-after: auto; }
-  .os-title { font-size: 12pt; font-weight: 700; direction: ltr; text-align: left; margin: 0 0 6mm 8mm; }
+  .os-title { font-size: 13pt; font-weight: 700; direction: ltr; text-align: left; margin: 0 0 6mm 8mm; }
   .os-warn { color: #b00; font-weight: 700; direction: rtl; }
   .os-frame { background: #8ae313; padding: 4mm 3.5mm 5mm; }
   .os-table { width: 100%; border-collapse: separate; border-spacing: 0 1px; table-layout: fixed; }
   .official-sheet, .official-sheet th, .official-sheet td { color: #000; }
-  .os-table th { background: #8ae313; font-size: 10.5pt; font-weight: 700; padding: 3.2mm 1.5mm; text-align: center; white-space: normal; }
+  .os-table th { background: #8ae313; font-size: 10pt; font-weight: 700; padding: 3.2mm 1.5mm; text-align: center; white-space: normal; }
   .os-table td { padding: 1.2mm 1.5mm; text-align: center; vertical-align: middle; height: 9.6mm; white-space: normal; border-bottom: 0; }
   .os-table td.os-n, .os-table td.os-code, .os-table td.os-size { white-space: nowrap; }
   .os-table tbody tr:nth-child(odd) td:not(.os-group) { background: #e2efd9; }
@@ -474,16 +479,16 @@ main { animation: pageIn .2s ease backwards; }
   .os-name { font-size: 10pt; }
   .os-code { direction: ltr; }
   .os-size { direction: ltr; font-weight: 600; }
-  .os-n { direction: ltr; font-size: 10.5pt; }
-  .os-desc { font-size: 8.5pt; }
+  .os-n { direction: ltr; font-size: 10pt; letter-spacing: .01em; }
+  .os-desc { font-size: 8pt; line-height: 1.5; }
   .os-shapebox { display: flex; align-items: center; justify-content: center; gap: 2mm; direction: ltr; }
   .os-shapebox b { font-size: 9pt; white-space: nowrap; }
   .os-pic { display: block; }
-  .os-notes { list-style: none; margin: 5mm 0 0; padding: 0 3mm; font-size: 8pt; font-weight: 700; line-height: 1.55; }
+  .os-notes { list-style: none; margin: 5mm 0 0; padding: 0 3mm; font-size: 7.8pt; font-weight: 700; line-height: 1.7; }
   .os-notes li::before { content: '✓'; margin-inline-end: 2mm; }
   .os-acc th, .os-acc-head th { background: #e2efd9; font-size: 9pt; padding: 3mm 1.5mm; }
   .os-acc { margin-top: 5mm; }
-  .os-special { font-size: 9pt; font-weight: 700; direction: rtl; }
+  .os-special { font-size: 8.5pt; font-weight: 700; direction: rtl; }
   .os-ltr { direction: ltr; }
   .os-call { font-size: 8.5pt; font-weight: 700; }
   .os-p2 .os-table td { height: 12mm; }
