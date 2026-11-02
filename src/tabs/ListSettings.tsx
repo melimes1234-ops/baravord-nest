@@ -1,6 +1,8 @@
 import { ACCESSORY_GROUP_LABEL, ACCESSORY_GROUP_ORDER, GROUP_LABEL, GROUP_ORDER, seedCatalog, type AccessoryGroup, type Catalog, type PriceListSettings, type ProductGroup } from '../core'
 import type { Update } from '../store'
+import { backend } from '../backends'
 import { InfoTip, NumInput, TextInput } from '../ui'
+import { SiteSync } from './SiteSync'
 
 /** Everything the printed price list needs that is not calculated: title, colour, notes, accessories and each product's printed details. */
 export function ListSettings({ catalog, update }: { catalog: Catalog; update: Update }) {
@@ -15,6 +17,7 @@ export function ListSettings({ catalog, update }: { catalog: Catalog; update: Up
 
   return (
     <>
+      {backend.kind === 'server' && <SiteSync catalog={catalog} />}
       <div className="card">
         <h2>لیست قیمت چاپی (PDF): عنوان، تبصره‌ها و قیمت پایه <InfoTip>
           <p>این‌ها در PDF «لیست قیمت» (طرح رسمی شرکت) چاپ می‌شود. هر چه اینجا عوض کنید، PDF بعدی همان را دارد.</p>
@@ -76,10 +79,10 @@ export function ListSettings({ catalog, update }: { catalog: Catalog; update: Up
 
       <div className="card">
         <h2>اطلاعات چاپی هر محصول</h2>
-        <p className="muted help">گروه (ستون «کاربرد»)، توضیحات بیشتر، اینکه قیمت متر مربع هم چاپ شود یا نه، و عدد کنار نقشه‌ی مقطع (چند متر از این پروفایل یک متر مربع را می‌پوشاند؛ خالی یعنی ۱۰۰۰ ÷ پهنا).</p>
+        <p className="muted help">گروه (ستون «کاربرد»)، توضیحات بیشتر، اینکه قیمت متر مربع هم چاپ شود یا نه، و عدد کنار نقشه‌ی مقطع (چند متر از این پروفایل یک متر مربع را می‌پوشاند؛ خالی یعنی ۱۰۰۰ ÷ پهنا). «کد در سایت» کدی است که این محصول در سایت وردپرس دارد؛ اگر خالی بماند همان کد چاپی (یا خود اسم محصول) برای پیدا کردنش به کار می‌رود. محصولی که کد ندارد را اینجا دستی بنویس.</p>
         <div className="tablewrap scroll-box">
           <table>
-            <thead className="sticky-head"><tr><th>محصول</th><th>گروه</th><th>توضیحات بیشتر</th><th>قیمت متر مربع</th><th className="n">عدد کنار نقشه</th></tr></thead>
+            <thead className="sticky-head"><tr><th>محصول</th><th>گروه</th><th>توضیحات بیشتر</th><th>قیمت متر مربع</th><th className="n">عدد کنار نقشه</th><th>کد در سایت</th></tr></thead>
             <tbody>
               {products.map(p => (
                 <tr key={p.id}>
@@ -93,6 +96,7 @@ export function ListSettings({ catalog, update }: { catalog: Catalog; update: Up
                   <td style={{ whiteSpace: 'normal', minWidth: 240 }}><TextInput value={p.description ?? ''} onChange={v => update(s => { s.catalog.products[p.id].description = v })} /></td>
                   <td><label className="check"><input type="checkbox" checked={!!p.showSqm} onChange={e => update(s => { s.catalog.products[p.id].showSqm = e.target.checked })} style={{ minWidth: 0 }} /> چاپ شود</label></td>
                   <td className="n"><NumInput value={p.coverPerM2 ?? null} decimals={4} placeholder={p.widthMm ? String(Math.round(10_000_000 / p.widthMm) / 10_000) : '—'} onChange={v => update(s => { const pr = s.catalog.products[p.id]; if (v == null) delete pr.coverPerM2; else pr.coverPerM2 = v })} /></td>
+                  <td><TextInput ltr width={120} placeholder={p.code || 'کد را بنویسید'} value={p.siteCode ?? ''} onChange={v => update(s => { const pr = s.catalog.products[p.id]; if (v) pr.siteCode = v; else delete pr.siteCode })} /></td>
                 </tr>
               ))}
             </tbody>

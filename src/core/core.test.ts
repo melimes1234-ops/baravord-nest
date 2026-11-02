@@ -564,6 +564,7 @@ describe('Export and Romance, and the migration of older catalogs', () => {
     old.products.tops1 = { ...old.products.flex, id: 'tops1', baseRecipeId: 'tops' }
     const m = migrateCatalog(old)!
     expect(m.products.shine.code).toBe('FC21')
+    expect(m.products.shine.siteCode).toBe('FD21')
     expect(m.products['t-once'].code).toBe('FD142T')
     expect(m.products['t-fame'].name).toBe('Fame-T')
     expect(m.products.export.weightPer3mG).toBe(7110)

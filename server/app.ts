@@ -1,8 +1,9 @@
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { Hono, type Context } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import { bodyLimit } from 'hono/body-limit'
 import {
-  catalogChanges, consumeBatch, currentPrices, seedCatalog, stockLevels,
+  buildSitePrices, catalogChanges, consumeBatch, currentPrices, defaultSiteTariff, seedCatalog, stockLevels, todayIso,
   type Batch, type Catalog, type GoodsMove, goodsKey, goodsStock, type ItemRef, type Movement,
 } from '../src/core'
 import {
@@ -14,6 +15,8 @@ import { tx, type Db } from './db'
 type Env = { Variables: { user: User } }
 
 const CATALOG_KEY = 'catalog'
+/** Settings for handing the prices to the company website: { key, tariffId }. Kept apart from the catalog so a restore or a viewer never touches the key. */
+const SITE_KEY = 'site_sync'
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 const USERNAME = /^[A-Za-z0-9_.؀-ۿ-]{3,32}$/
 
@@ -158,6 +161,38 @@ export function createApp(db: Db) {
     return c.json({ ok: true })
   })
 
+  // ---- prices for the company website (needs the secret key, not a login) ----
+  interface SiteSync { key: string; tariffId: string }
+  const readSite = (): SiteSync => {
+    const row = db.prepare('SELECT value FROM kv WHERE key = ?').get(SITE_KEY) as { value: string } | undefined
+    try {
+      const v = row ? JSON.parse(row.value) : {}
+      return { key: typeof v.key === 'string' ? v.key : '', tariffId: typeof v.tariffId === 'string' ? v.tariffId : '' }
+    } catch {
+      return { key: '', tariffId: '' }
+    }
+  }
+  const writeSite = (v: SiteSync) =>
+    db.prepare('INSERT INTO kv (key, value, version) VALUES (?,?,1) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(SITE_KEY, JSON.stringify(v))
+  const sameKey = (a: string, b: string): boolean => {
+    const x = Buffer.from(a)
+    const y = Buffer.from(b)
+    return x.length === y.length && timingSafeEqual(x, y)
+  }
+  app.get('/api/public/prices', c => {
+    const site = readSite()
+    c.header('Cache-Control', 'no-store')
+    if (!site.key) throw new HttpError(404, 'اتصال به سایت فعال نیست')
+    const auth = c.req.header('authorization') ?? ''
+    const given = auth.startsWith('Bearer ') ? auth.slice(7).trim() : (c.req.header('x-site-key') ?? c.req.query('key') ?? '')
+    if (!sameKey(given, site.key)) throw new HttpError(401, 'کلید نادرست است')
+    const { catalog } = readCatalog()
+    const tariff = catalog.tariffs.find(t => t.id === site.tariffId) ?? defaultSiteTariff(catalog)
+    if (!tariff) throw new HttpError(409, 'تعرفه‌ای تعریف نشده')
+    return c.json(buildSitePrices(catalog, tariff, todayIso()))
+  })
+
+
   // ---- everything below needs a session ----
   app.use('/api/*', async (c, next) => {
     const user = userFromToken(db, getCookie(c, 'sid'))
@@ -193,6 +228,35 @@ export function createApp(db: Db) {
       return next
     })
     return c.json({ version })
+  })
+
+  // ---- connection to the company website (admin) ----
+  const siteView = () => {
+    const { catalog } = readCatalog()
+    const site = readSite()
+    const tariff = catalog.tariffs.find(t => t.id === site.tariffId) ?? defaultSiteTariff(catalog)
+    return { enabled: !!site.key, key: site.key, tariffId: tariff?.id ?? '' }
+  }
+  app.get('/api/site-sync', c => {
+    need(c, 'admin')
+    return c.json(siteView())
+  })
+  app.put('/api/site-sync', async c => {
+    const user = need(c, 'admin')
+    const body = await c.req.json().catch(() => null)
+    if (!isObj(body)) throw new HttpError(400, 'درخواست نامعتبر')
+    const cur = readSite()
+    const next: SiteSync = { ...cur }
+    if (body.tariffId !== undefined) {
+      if (typeof body.tariffId !== 'string' || !readCatalog().catalog.tariffs.some(t => t.id === body.tariffId)) throw new HttpError(400, 'تعرفه پیدا نشد')
+      next.tariffId = body.tariffId
+    }
+    if (body.action === 'enable' && !next.key) next.key = randomBytes(24).toString('hex')
+    if (body.action === 'regenerate') next.key = randomBytes(24).toString('hex')
+    if (body.action === 'disable') next.key = ''
+    writeSite(next)
+    audit(user.username, 'site-sync', { action: body.action ?? 'tariff', tariffId: next.tariffId })
+    return c.json(siteView())
   })
 
   // ---- inventory ----

@@ -72,6 +72,8 @@ export interface Product {
   coverPerM2?: number
   /** Size as printed when it is not «width × thickness» (for example «38 mm»). */
   sizeText?: string
+  /** The code this product has on the website, when it differs from the printed one. Empty = the printed code. */
+  siteCode?: string
   /** false for products that are sold without a colour . */
   colorable: boolean
 }

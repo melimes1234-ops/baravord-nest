@@ -22,6 +22,8 @@ export function migrateCatalog(c: Catalog): Catalog | null {
   // codes and names as printed on the price list (only when still the old ones: a name or code the user chose is left alone)
   const shine = next.products.shine
   if (shine && shine.code === 'FD21') { shine.code = 'FC21'; mark() }
+  // the website calls Shine FD21 while the printed list says FC21: keep both
+  if (shine && shine.code === 'FC21' && shine.siteCode === undefined) { shine.siteCode = 'FD21'; mark() }
   const tOnce = next.products['t-once']
   if (tOnce && tOnce.code === 'FD142') { tOnce.code = 'FD142T'; mark() }
   const tFame = next.products['t-fame']

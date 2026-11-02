@@ -239,3 +239,62 @@ describe('user management', () => {
     expect((await call(op, 'GET', '/api/me')).status).toBe(401)
   })
 })
+
+describe('prices for the website', () => {
+  const get = (app: ReturnType<typeof setup>['app'], path: string, headers: Record<string, string> = {}) => app.request(path, { headers })
+
+  it('is off until the admin switches it on, then needs the secret key', async () => {
+    const { app, login, call } = setup()
+    expect((await get(app, '/api/public/prices')).status).toBe(404)
+    const admin = await login('admin')
+    expect((await call(await login('op'), 'GET', '/api/site-sync')).status).toBe(403)
+    const on = await call(admin, 'PUT', '/api/site-sync', { action: 'enable' })
+    expect(on.status).toBe(200)
+    expect(on.body.enabled).toBe(true)
+    expect(on.body.key).toMatch(/^[0-9a-f]{48}$/)
+    expect((await get(app, '/api/public/prices')).status).toBe(401)
+    expect((await get(app, '/api/public/prices', { authorization: 'Bearer wrong' })).status).toBe(401)
+    const ok = await get(app, '/api/public/prices', { authorization: `Bearer ${on.body.key}` })
+    expect(ok.status).toBe(200)
+    expect(ok.headers.get('cache-control')).toBe('no-store')
+    // the key also works from the query string and the header the plugin may use
+    expect((await get(app, `/api/public/prices?key=${on.body.key}`)).status).toBe(200)
+    expect((await get(app, '/api/public/prices', { 'x-site-key': on.body.key })).status).toBe(200)
+  })
+
+  it('gives only the printed prices, with the site code, and nothing about cost', async () => {
+    const { app, login, call } = setup()
+    const admin = await login('admin')
+    const { key } = (await call(admin, 'PUT', '/api/site-sync', { action: 'enable' })).body
+    const r = await (await get(app, '/api/public/prices', { authorization: `Bearer ${key}` })).json() as any
+    expect(r.kind).toBe('site-prices')
+    expect(r.payment).toBe('cash')
+    expect(r.products.length).toBeGreaterThan(20)
+    const shine = r.products.find((p: any) => p.id === 'shine')
+    expect(shine.code).toBe('FD21')
+    expect(shine.printedCode).toBe('FC21')
+    const clan = r.products.find((p: any) => p.id === 'clan')
+    expect(clan.perMeter % 1000).toBe(0)
+    expect(JSON.stringify(r)).not.toMatch(/cost|margin|pricePerKg|recipe|stock/i)
+    // the tariff can be changed, and then the prices follow it
+    const before = clan.perMeter
+    const tariffs = (await call(admin, 'GET', '/api/state')).body.catalog.tariffs as { id: string; marginPct: number }[]
+    const lowest = tariffs.reduce((a, b) => (b.marginPct < a.marginPct ? b : a))
+    expect((await call(admin, 'PUT', '/api/site-sync', { tariffId: lowest.id })).status).toBe(200)
+    const low = await (await get(app, '/api/public/prices', { authorization: `Bearer ${key}` })).json() as any
+    expect(low.products.find((p: any) => p.id === 'clan').perMeter).toBeLessThan(before)
+    expect((await call(admin, 'PUT', '/api/site-sync', { tariffId: 'nope' })).status).toBe(400)
+  })
+
+  it('a new key kills the old one and switching off closes it', async () => {
+    const { app, login, call } = setup()
+    const admin = await login('admin')
+    const a = (await call(admin, 'PUT', '/api/site-sync', { action: 'enable' })).body.key
+    const b = (await call(admin, 'PUT', '/api/site-sync', { action: 'regenerate' })).body.key
+    expect(b).not.toBe(a)
+    expect((await get(app, '/api/public/prices', { authorization: `Bearer ${a}` })).status).toBe(401)
+    expect((await get(app, '/api/public/prices', { authorization: `Bearer ${b}` })).status).toBe(200)
+    await call(admin, 'PUT', '/api/site-sync', { action: 'disable' })
+    expect((await get(app, '/api/public/prices', { authorization: `Bearer ${b}` })).status).toBe(404)
+  })
+})
