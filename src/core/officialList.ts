@@ -77,7 +77,7 @@ export function buildOfficialList(view: Catalog, tariff: Tariff, payPct: number,
     const perMeter = raw == null ? null : roundTo(raw, step)
     const wm = widthMeters(p)
     const perSqm = p.showSqm && perMeter != null && wm != null ? roundTo(perMeter / wm, sqmStep) : null
-    const cover = p.group === 'trim' ? null : p.coverPerM2 != null ? trim4(p.coverPerM2) : p.widthMm ? trim4(1000 / p.widthMm) : null
+    const cover = p.group === 'trim' || p.coverPerM2 === 0 ? null : p.coverPerM2 != null ? trim4(p.coverPerM2) : p.widthMm ? trim4(1000 / p.widthMm) : null
     return { id: p.id, name: p.name.toUpperCase(), code: p.code, size: productSize(p), cover, description: p.description ?? '', perMeter, perSqm }
   }
 

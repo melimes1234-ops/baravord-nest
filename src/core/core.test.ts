@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildOfficialList, SHAPES, buildPriceExport, priceExportJson, metricValue, addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
+  migrateCatalog, buildOfficialList, SHAPES, buildPriceExport, priceExportJson, metricValue, addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
   stickLength, calcCsv, catalogChanges, todayIso, isoToJalali, jalaliToIso, jalaliMonthLength, jalaliWeekday, colorSwatch, explainPrice, formulaCost, normalizeTo, recipeUsage, setItemPercent, withReplacement, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
   replaceBatchItem, itemUnitPrice, seedCatalog, setActualQty, stockLevels, toJalaliDate, validateCatalog,
   type Catalog, type Movement,
@@ -280,7 +280,7 @@ describe('formula tools', () => {
   it('usage lists the products and recipes that depend on a recipe', () => {
     const c = cat()
     expect(recipeUsage('prpf', c).recipes.map(r => r.id)).toEqual(['wpc-profile'])
-    expect(recipeUsage('wpc-profile', c).products.length).toBe(23)
+    expect(recipeUsage('wpc-profile', c).products.length).toBe(25)
     expect(recipeUsage('scf', c).recipes.map(r => r.id)).toEqual(['prpf'])
   })
 
@@ -476,7 +476,7 @@ describe('the printed price list (طرح رسمی)', () => {
     const l = buildOfficialList(c, t(c), 0, [], '2026-10-24')
     expect(l.title).toBe('NEST – SUMMER 1405')
     expect(l.groups.map(g => g.group)).toEqual(['cladding', 'decking', 'vivards', 'trim'])
-    expect(l.groups.map(g => g.rows.length)).toEqual([2, 10, 5, 6])
+    expect(l.groups.map(g => g.rows.length)).toEqual([4, 10, 5, 6])
     const feel = l.groups[0].rows[0]
     expect(feel).toMatchObject({ name: 'FEEL', code: 'FC140', size: '140 × 21', cover: '7.1428', description: 'نماپوش 14 سانتیمتر' })
     expect(JSON.stringify(l.groups)).not.toMatch(/N9|"n9"/) // the colour behind the price is never printed on the rows
@@ -527,12 +527,54 @@ describe('the printed list with a catalog saved before it existed', () => {
     c.products.flex.description = 'متن من'
     c.products.feel.showSqm = false
     const l = buildOfficialList(c, c.tariffs[0], 0, [], '2026-10-24')
-    expect(l.groups.map(g => g.rows.length)).toEqual([2, 10, 5, 6])
+    expect(l.groups.map(g => g.rows.length)).toEqual([4, 10, 5, 6])
     expect(l.notes).toHaveLength(9)
     expect(l.accessories.flatMap(g => g.rows)).toHaveLength(18)
     expect(l.groups[1].rows.find(r => r.code === 'FD140')!.description).toBe('متن من')
     expect(l.groups[0].rows[0].perSqm).toBeNull() // the user switched the m2 price off for Feel
     expect(l.groups[0].rows[1].perSqm).not.toBeNull()
+  })
+})
+
+describe('Export and Romance, and the migration of older catalogs', () => {
+  it('Export and Romance weigh what the factory measured (per metre 2.37 and 2.187 kg) and print their numbers inside the description', () => {
+    const c = cat()
+    expect(c.products.export).toMatchObject({ code: 'FC150', widthMm: 150, thicknessMm: 20, weightPer3mG: 7110, group: 'cladding' })
+    expect(c.products.romance).toMatchObject({ code: 'FC142', widthMm: 142, thicknessMm: 20, weightPer3mG: 6561 })
+    // the sheet's "kg per m2" (15.81 and 15.62) = kg per metre x metres per m2
+    expect((7110 / 3000) * 6.6666).toBeCloseTo(15.8, 1)
+    expect((6561 / 3000) * 7.1428).toBeCloseTo(15.62, 2)
+    const l = buildOfficialList(c, c.tariffs[0], 0, [], '2026-10-24')
+    const exp = l.groups[0].rows.find(r => r.code === 'FC150')!
+    expect(exp.cover).toBeNull()
+    expect(exp.perMeter).not.toBeNull()
+    expect(exp.perSqm).not.toBeNull()
+    expect(l.groups[0].rows.map(r => r.code)).toEqual(['FC140', 'FC103', 'FC150', 'FC142'])
+  })
+
+  it('an older catalog gets the printed codes, the missing products and loses the removed ones; a fresh catalog needs nothing', () => {
+    expect(migrateCatalog(cat())).toBeNull()
+    const old = cat()
+    old.products.shine.code = 'FD21'
+    old.products['t-once'].code = 'FD142'
+    old.products['t-fame'].name = 'T-Fame'
+    delete old.products.export
+    delete old.products.romance
+    old.recipes.tops = { id: 'tops', name: 'tops', items: [] }
+    old.products.tops1 = { ...old.products.flex, id: 'tops1', baseRecipeId: 'tops' }
+    const m = migrateCatalog(old)!
+    expect(m.products.shine.code).toBe('FC21')
+    expect(m.products['t-once'].code).toBe('FD142T')
+    expect(m.products['t-fame'].name).toBe('Fame-T')
+    expect(m.products.export.weightPer3mG).toBe(7110)
+    expect(m.products.romance.weightPer3mG).toBe(6561)
+    expect(m.recipes.tops).toBeUndefined()
+    expect(m.products.tops1).toBeUndefined()
+    expect(migrateCatalog(m)).toBeNull() // done once, nothing left to do
+    // a code the user chose himself is not touched
+    const own = cat()
+    own.products.shine.code = 'MY-CODE'
+    expect(migrateCatalog(own)).toBeNull()
   })
 })
 

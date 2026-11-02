@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { catalogChanges, type Batch, type Catalog, type GoodsMove, type Movement } from './core'
+import { catalogChanges, migrateCatalog, type Batch, type Catalog, type GoodsMove, type Movement } from './core'
 import { ApiError, type ServerState, type User } from './api'
 import { backend } from './backends'
 
@@ -34,17 +34,10 @@ export function useSession() {
   const apply = useCallback((s: ServerState) => {
     version.current = s.version
     savedCatalog.current = s.catalog
-    // The cabinet sheet and the TOPS boards were removed from the system: take them out of catalogs created before that (admin saves it).
-    const gone = (c: Catalog) => !!(c.products.cabinet || c.recipes.cabinet || c.recipes.tops || c.recipes.prpft || c.tariffs.some(t => t.id === 'tops') || Object.values(c.products).some(p => p.baseRecipeId === 'tops'))
-    if (s.user.role === 'admin' && !migrated.current && gone(s.catalog)) {
+    // A catalog saved by an older version is brought up to date by the admin's browser (once per page load, never in a loop).
+    const cleaned = s.user.role === 'admin' && !migrated.current ? migrateCatalog(s.catalog) : null
+    if (cleaned) {
       migrated.current = true
-      const cleaned = structuredClone(s.catalog)
-      delete cleaned.products.cabinet
-      delete cleaned.recipes.cabinet
-      for (const p of Object.values(cleaned.products)) if (p.baseRecipeId === 'tops') delete cleaned.products[p.id]
-      delete cleaned.recipes.tops
-      delete cleaned.recipes.prpft
-      if (cleaned.tariffs.length > 1) cleaned.tariffs = cleaned.tariffs.filter(t => t.id !== 'tops')
       s = { ...s, catalog: cleaned }
       dirtyCatalog.current = cleaned
       clearTimeout(saveTimer.current)

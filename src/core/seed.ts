@@ -74,6 +74,9 @@ interface ProductDef {
 const productDefs: ProductDef[] = [
   { id: 'feel', name: 'Feel', code: 'FC140', widthMm: 140, thicknessMm: 21, weightG: 6600, group: 'cladding', description: 'نماپوش 14 سانتیمتر', cover: 7.1428, sqm: true },
   { id: 'lead', name: 'Lead', code: 'FC103', widthMm: 103, thicknessMm: 21, weightG: 4920, group: 'cladding', description: 'نماپوش 10 سانتیمتر', cover: 9.7, sqm: true },
+  // Export and Romance: weight per metre 2.37 kg and 2.187 kg (x 3 m = a stick). The list prints their metres-per-m2 inside the description, not next to the drawing (cover 0).
+  { id: 'export', name: 'Export', code: 'FC150', widthMm: 150, thicknessMm: 20, weightG: 7110, group: 'cladding', description: 'نماپوش کام و زبانه 15 سانتیمتر – 6.6666', cover: 0, sqm: true },
+  { id: 'romance', name: 'Romance', code: 'FC142', widthMm: 142, thicknessMm: 20, weightG: 6561, group: 'cladding', description: 'نماپوش رومنس 14 سانتیمتر - 7.1428', cover: 0, sqm: true },
   { id: 'shine', name: 'Shine', code: 'FC21', widthMm: 140, thicknessMm: 21, weightG: 7200, group: 'decking', description: 'کفپوش و نماپوش 14 سانتیمتر پیچ و کلیپس مخفی', cover: 7.1428, sqm: true },
   { id: 'pond', name: 'Pond', code: 'FD155', widthMm: 155, thicknessMm: 26, weightG: 10050, group: 'decking', description: 'کفپوش سنگین 15.5 - سانتیمتر - پارکی', cover: 6.25, sqm: true },
   { id: 'fair', name: 'Fair', code: 'FD26', widthMm: 155, thicknessMm: 26, weightG: 8820, group: 'decking', description: 'کفپوش 15.5 سانتیمتر خانگی', cover: 6.25, sqm: true },
