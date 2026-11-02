@@ -8,6 +8,18 @@ const Pic = ({ code }: { code?: string }) => {
   return s ? <img className="os-pic" src={s.src} alt="" style={{ width: `${s.w / 300}in`, height: `${s.h / 300}in` }} /> : null
 }
 
+/** «7.1428» split at the point, so the decimal points of all rows stand exactly under each other. */
+const Cover = ({ v }: { v: string }) => {
+  const [i, f] = v.split('.')
+  return (
+    <span className="os-cov" dir="ltr">
+      <span className="os-cov-dash">-</span>
+      <span className="os-cov-i">{i}</span>
+      <span className="os-cov-f">{f ? `.${f}` : ''}</span>
+    </span>
+  )
+}
+
 /** The factory's printed price list: page 1 profiles, page 2 accessories. Only on screen while printing. */
 export function OfficialSheet({ data }: { data: OfficialList }) {
   return createPortal(
@@ -37,7 +49,11 @@ export function OfficialSheet({ data }: { data: OfficialList }) {
                   <td className="os-code">{r.code}</td>
                   <td className="os-size">{r.size}</td>
                   <td className="os-shape">
-                    <div className="os-shapebox"><Pic code={r.code} />{r.cover && <b>- {r.cover}</b>}</div>
+                    {r.cover ? (
+                      <div className="os-shapebox"><div className="os-pic-cell"><Pic code={r.code} /></div><Cover v={r.cover} /></div>
+                    ) : (
+                      <div className="os-shapebox os-solo"><Pic code={r.code} /></div>
+                    )}
                   </td>
                   <td className="os-n">{num(r.perMeter) || ''}</td>
                   <td className="os-n">{num(r.perSqm)}</td>

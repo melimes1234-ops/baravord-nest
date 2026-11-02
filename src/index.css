@@ -481,7 +481,14 @@ main { animation: pageIn .2s ease backwards; }
   .os-size { direction: ltr; font-weight: 600; }
   .os-n { direction: ltr; font-size: 10pt; letter-spacing: .01em; }
   .os-desc { font-size: 8pt; line-height: 1.5; }
-  .os-shapebox { display: flex; align-items: center; justify-content: center; gap: 2mm; direction: ltr; }
+  /* drawings are centred in one fixed-width area and the numbers stand in one fixed column, decimal points under each other */
+  .os-shapebox { display: flex; align-items: center; justify-content: center; direction: ltr; }
+  .os-pic-cell { flex: 0 0 31mm; width: 31mm; min-width: 0; display: flex; justify-content: center; align-items: center; }
+  .os-pic-cell .os-pic { max-width: 30mm; height: auto !important; }
+  .os-cov { flex: 0 0 18mm; display: grid; grid-template-columns: 3mm 6mm 9mm; align-items: baseline; font-weight: 700; font-size: 9pt; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .os-cov-dash { text-align: left; }
+  .os-cov-i { text-align: right; }
+  .os-cov-f { text-align: left; }
   .os-shapebox b { font-size: 9pt; white-space: nowrap; }
   .os-pic { display: block; }
   .os-notes { list-style: none; margin: 5mm 0 0; padding: 0 3mm; font-size: 7.8pt; font-weight: 700; line-height: 1.7; }
