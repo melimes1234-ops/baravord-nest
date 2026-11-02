@@ -10,6 +10,7 @@ const LABEL: Record<string, string> = {
   'movement.add': 'ثبت در انبار',
   'batch.add': 'ثبت پارت تولید',
   'goods.add': 'ثبت محصول ساخته‌شده',
+  restore: 'بازگردانی کامل از فایل پشتیبان',
   'goods.delete': 'حذف ثبت محصول ساخته‌شده',
   'user.add': 'ساخت کاربر',
   'user.update': 'تغییر کاربر',
@@ -49,6 +50,8 @@ export function auditLines(action: string, detailText: string, catalog?: Catalog
       const color = d.colorId ? catalog?.colors[String(d.colorId)]?.name : undefined
       return [`پارت ${product}${color ? ` با رنگ ${color}` : ''}`]
     }
+    case 'restore':
+      return [`${d.movements ?? 0} ثبت انبار، ${d.batches ?? 0} پارت و ${d.goods ?? 0} ثبت محصول ساخته‌شده از فایل برگردانده شد`]
     case 'goods.add':
       return [goodsSentence(d as unknown as GoodsMove, catalog)]
     case 'goods.delete':

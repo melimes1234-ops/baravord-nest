@@ -1,0 +1,23 @@
+name: Host package
+
+# Builds wpc-host.zip: the whole app for an ordinary web host that can run a Node.js app (no Supabase, no npm install there).
+on:
+  push:
+    branches: [main, claude/exciting-clarke-hirdb8]
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:host
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wpc-host
+          path: wpc-host.zip

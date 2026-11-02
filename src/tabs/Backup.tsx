@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { toFa, toJalaliDate, todayIso, validateCatalog, type Catalog } from '../core'
+import { api } from '../api'
+import { backend } from '../backends'
 import type { AppState, Update } from '../store'
 
 const LAST = 'wpc-last-backup'
@@ -46,8 +48,11 @@ function readFile(file: File): Promise<BackupFile> {
   })
 }
 
-export function Backup({ state, update, user }: { state: AppState; update: Update; user: string }) {
+export function Backup({ state, update, user, onRestored }: { state: AppState; update: Update; user: string; onRestored?: () => void }) {
   const [done, setDone] = useState('')
+  const [fullFile, setFullFile] = useState<BackupFile | null>(null)
+  const [busy, setBusy] = useState(false)
+  const fullInput = useRef<HTMLInputElement>(null)
   const [error, setError] = useState('')
   const [picked, setPicked] = useState<BackupFile | null>(null)
   const input = useRef<HTMLInputElement>(null)
@@ -75,6 +80,31 @@ export function Backup({ state, update, user }: { state: AppState; update: Updat
     if (input.current) input.current.value = ''
   }
 
+  const chooseFull = async (f: File | undefined) => {
+    setError(''); setDone(''); setFullFile(null)
+    if (!f) return
+    try { setFullFile(await readFile(f)) } catch (e) { setError(e instanceof SyntaxError ? 'این فایل خوانده نشد؛ مطمئن شوید فایل پشتیبان است.' : (e as Error).message) }
+  }
+  // moves everything (prices, formulas AND stock, batches, finished goods) from a backup file into this installation
+  const restoreFull = async () => {
+    if (!fullFile) return
+    setBusy(true); setError('')
+    try {
+      downloadBackup(state, user) // keep what is here now
+      const r = await api<{ movements: number; batches: number; goods: number }>('POST', '/api/restore', {
+        catalog: fullFile.catalog, movements: fullFile.movements ?? [], batches: fullFile.batches ?? [], goods: fullFile.goods ?? [],
+      })
+      setDone(`همه‌ی اطلاعات از فایل برگشت: قیمت‌ها و فرمول‌ها، ${toFa(r.movements)} ثبت انبار، ${toFa(r.batches)} پارت و ${toFa(r.goods)} ثبت محصول ساخته‌شده. پیش از آن از وضعیت قبلی هم یک فایل پشتیبان دانلود شد.`)
+      setFullFile(null)
+      if (fullInput.current) fullInput.current.value = ''
+      onRestored?.()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const n = (o: object) => toFa(Object.keys(o).length)
   return (
     <>
@@ -92,9 +122,28 @@ export function Backup({ state, update, user }: { state: AppState; update: Updat
         </ul>
       </div>
 
+      {backend.kind === 'server' && (
+        <div className="card">
+          <h2>بازگردانی کامل (انتقال همه‌ی اطلاعات به این سایت)</h2>
+          <p className="muted help">برای وقتی که از سایت دیگری (مثلاً نسخه‌ی قبلی روی Supabase) منتقل می‌شوی: فایل پشتیبان را همان‌جا بگیر و اینجا بارگذاری کن. <b>همه چیز</b> جایگزین می‌شود: قیمت‌ها، فرمول‌ها، محصولات، هزینه‌ها، <b>انبار، پارت‌ها و محصول ساخته‌شده</b>. کاربرها منتقل نمی‌شوند (رمزها قابل انتقال نیست)؛ آن‌ها را در تب «کاربران» دوباره بسازید. قبل از اجرا، از وضعیت فعلی این سایت هم یک فایل پشتیبان دانلود می‌شود.</p>
+          <div className="row">
+            <input ref={fullInput} type="file" accept=".json,application/json" onChange={e => void chooseFull(e.target.files?.[0])} />
+          </div>
+          {fullFile && (
+            <div className="alert">
+              <b>فایل خوانده شد.</b> ساخته‌شده در {toJalaliDate(fullFile.createdAt.slice(0, 10))}: {n(fullFile.catalog.materials)} ماده، {n(fullFile.catalog.recipes)} فرمول، {n(fullFile.catalog.products)} محصول، {toFa((fullFile.movements ?? []).length)} ثبت انبار، {toFa((fullFile.batches ?? []).length)} پارت و {toFa((fullFile.goods ?? []).length)} ثبت محصول ساخته‌شده.
+              <div className="row" style={{ marginTop: 8, marginBottom: 0 }}>
+                <button className="btn danger" disabled={busy} onClick={() => void restoreFull()}>{busy ? '…' : 'بله، همه‌ی اطلاعات را از این فایل جایگزین کن'}</button>
+                <button className="btn ghost" disabled={busy} onClick={() => { setFullFile(null); if (fullInput.current) fullInput.current.value = '' }}>انصراف</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="card">
-        <h2>برگرداندن از فایل پشتیبان</h2>
-        <p className="muted help">با این کار <b>قیمت‌ها، فرمول‌ها، رنگ‌ها، محصولات، هزینه‌ها و تعرفه‌ها</b> دقیقاً مثل فایل می‌شود. ثبت‌های انبار، پارت‌ها و محصول ساخته‌شده با این کار عوض نمی‌شود (آن‌ها در فایل برای نگهداری هست). قبل از برگرداندن، خودکار از وضعیت فعلی هم یک فایل پشتیبان دانلود می‌شود.</p>
+        <h2>برگرداندن قیمت‌ها و فرمول‌ها از فایل پشتیبان</h2>
+        <p className="muted help">با این کار <b>قیمت‌ها، فرمول‌ها، رنگ‌ها، محصولات، هزینه‌ها و تعرفه‌ها</b> دقیقاً مثل فایل می‌شود. ثبت‌های انبار، پارت‌ها و محصول ساخته‌شده با این کار عوض نمی‌شود{backend.kind === 'server' ? ' (برای برگرداندن آن‌ها «بازگردانی کامل» را بزن)' : ''}. قبل از برگرداندن، خودکار از وضعیت فعلی هم یک فایل پشتیبان دانلود می‌شود.</p>
         <div className="row">
           <input ref={input} type="file" accept=".json,application/json" onChange={e => void choose(e.target.files?.[0])} />
         </div>

@@ -233,7 +233,7 @@ export default function App() {
         {current === 'محصول ساخته‌شده' && <Goods state={state} update={update} readOnly={!canEdit} canDelete={user.role === 'admin' || DEMO} />}
         {current === 'انبار' && <Stock catalog={catalog} movements={state.movements} update={update} readOnly={!canEdit} />}
         {current === 'هشدارها' && <Issues catalog={catalog} go={user.role === 'admin' || DEMO ? t => setTab(t as Tab) : undefined} />}
-        {current === 'پشتیبان‌گیری' && <Backup state={state} update={update} user={user.username} />}
+        {current === 'پشتیبان‌گیری' && <Backup state={state} update={update} user={user.username} onRestored={() => void impl.refresh()} />}
         {current === 'کاربران' && (backend.kind === 'supabase' ? <SupabaseUsers catalog={catalog} /> : <Users me={user} catalog={catalog} />)}
       </main>
       <BottomBar tabs={tabs} current={current} tabKey={TAB_KEY} onSelect={setTab} issueCount={issueCount} onMore={() => setMenuOpen(true)} />

@@ -130,6 +130,30 @@ describe('roles', () => {
     expect(after.movements.filter((m: any) => m.materialId === 'waste').reduce((s: number, m: any) => s + m.kg, 0)).toBe(0)
   })
 
+  it('full restore (admin): puts back everything from a backup file, refuses bad files without changing anything', async () => {
+    const pid = Object.keys(catalog.products)[0]
+    await ctx.call(op, 'POST', '/api/movements', { type: 'in', date: '2026-10-04', materialId: 'wax', kg: 10, pricePerKg: 5 })
+    await ctx.call(op, 'POST', '/api/goods', { type: 'in', date: '2026-10-05', productId: pid, colorId: null, lengthM: 3, sticks: 4 })
+    const s1 = (await ctx.call(admin, 'GET', '/api/state')).body
+    const backup = { catalog: s1.catalog, movements: s1.movements, batches: s1.batches, goods: s1.goods } // the file the app writes
+    await ctx.call(op, 'POST', '/api/movements', { type: 'in', date: '2026-10-06', materialId: 'wood', kg: 99 })
+    expect((await ctx.call(op, 'POST', '/api/restore', backup)).status).toBe(403)
+    expect((await ctx.call(view, 'POST', '/api/restore', backup)).status).toBe(403)
+    const badRow = { ...backup, movements: [{ id: 'x', date: 'nope', materialId: 'wax', kg: 1, type: 'in' }] }
+    expect((await ctx.call(admin, 'POST', '/api/restore', badRow)).status).toBe(400)
+    expect((await ctx.call(admin, 'POST', '/api/restore', { ...backup, catalog: { materials: {} } })).status).toBe(400)
+    expect((await ctx.call(admin, 'POST', '/api/restore', { ...backup, goods: [{ id: 'g', date: '2026-10-05', type: 'weird' }] })).status).toBe(400)
+    expect((await ctx.call(admin, 'GET', '/api/state')).body.movements).toHaveLength(2) // the bad files changed nothing
+    const ok = await ctx.call(admin, 'POST', '/api/restore', backup)
+    expect(ok.status).toBe(200)
+    expect(ok.body).toMatchObject({ movements: 1, goods: 1 })
+    const s2 = (await ctx.call(admin, 'GET', '/api/state')).body
+    expect(s2.movements).toEqual(s1.movements)
+    expect(s2.goods).toEqual(s1.goods)
+    expect(s2.catalog).toEqual(s1.catalog)
+    expect(s2.version).toBeGreaterThan(s1.version)
+  })
+
   it('viewer cannot write anything', async () => {
     const m = { type: 'in', date: '2026-10-04', materialId: 'wax', kg: 10 }
     expect((await ctx.call(view, 'POST', '/api/movements', m)).status).toBe(403)

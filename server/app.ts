@@ -110,7 +110,10 @@ export function createApp(db: Db) {
     return c.json({ error: 'خطای داخلی سرور' }, 500)
   })
 
-  app.use('/api/*', bodyLimit({ maxSize: 5 * 1024 * 1024, onError: c => c.json({ error: 'حجم درخواست زیاد است' }, 413) }))
+  // a full restore carries the whole history, so it may be bigger than any other request
+  const limitBig = bodyLimit({ maxSize: 60 * 1024 * 1024, onError: c => c.json({ error: 'حجم فایل زیاد است' }, 413) })
+  const limitSmall = bodyLimit({ maxSize: 5 * 1024 * 1024, onError: c => c.json({ error: 'حجم درخواست زیاد است' }, 413) })
+  app.use('/api/*', (c, next) => (c.req.path === '/api/restore' ? limitBig(c, next) : limitSmall(c, next)))
 
   // Mutations must be JSON: a cross-site form post cannot send that content type.
   app.use('/api/*', async (c, next) => {
@@ -343,6 +346,52 @@ export function createApp(db: Db) {
       audit(user.username, 'goods.delete', rec)
     })
     return c.json({ ok: true })
+  })
+
+  // ---- full restore (admin): moves everything from a backup file, e.g. from another installation ----
+  app.post('/api/restore', async c => {
+    const user = need(c, 'admin')
+    const b = await c.req.json().catch(() => null)
+    if (!isObj(b)) throw new HttpError(400, 'فایل پشتیبان معتبر نیست')
+    validateCatalogShape(b.catalog)
+    const list = (v: unknown, what: string): Record<string, unknown>[] => {
+      if (v === undefined) return []
+      if (!Array.isArray(v) || v.length > 500_000) throw new HttpError(400, `فهرست ${what} در فایل معتبر نیست`)
+      const ids = new Set<string>()
+      for (const r of v) {
+        if (!isObj(r) || typeof r.id !== 'string' || !r.id || r.id.length > 100 || ids.has(r.id) || typeof r.date !== 'string' || !ISO_DATE.test(r.date)) {
+          throw new HttpError(400, `یکی از ردیف‌های ${what} در فایل معتبر نیست`)
+        }
+        ids.add(r.id)
+      }
+      return v as Record<string, unknown>[]
+    }
+    const movements = list(b.movements, 'انبار')
+    const batches = list(b.batches, 'پارت‌ها')
+    const goods = list(b.goods, 'محصول ساخته‌شده')
+    for (const m of movements) {
+      if (typeof m.materialId !== 'string' || typeof m.kg !== 'number' || !Number.isFinite(m.kg) || !['in', 'out', 'waste_in', 'adjust'].includes(String(m.type))) {
+        throw new HttpError(400, 'یکی از ردیف‌های انبار در فایل معتبر نیست')
+      }
+    }
+    for (const x of batches) if (typeof x.productId !== 'string' || !Array.isArray(x.items)) throw new HttpError(400, 'یکی از پارت‌های فایل معتبر نیست')
+    for (const g of goods) if (!['in', 'out', 'scrap'].includes(String(g.type))) throw new HttpError(400, 'یکی از ردیف‌های محصول ساخته‌شده در فایل معتبر نیست')
+
+    const version = tx(db, () => {
+      db.prepare('DELETE FROM movements').run()
+      db.prepare('DELETE FROM batches').run()
+      db.prepare('DELETE FROM goods').run()
+      for (const m of movements) db.prepare('INSERT INTO movements (id, date, json) VALUES (?,?,?)').run(m.id, m.date, JSON.stringify(m))
+      for (const x of batches) db.prepare('INSERT INTO batches (id, date, json) VALUES (?,?,?)').run(x.id, x.date, JSON.stringify(x))
+      for (const g of goods) db.prepare('INSERT INTO goods (id, date, json) VALUES (?,?,?)').run(g.id, g.date, JSON.stringify(g))
+      const cur = db.prepare('SELECT version FROM kv WHERE key = ?').get(CATALOG_KEY) as { version: number } | undefined
+      const next = (cur?.version ?? 0) + 1
+      if (cur) db.prepare('UPDATE kv SET value = ?, version = ? WHERE key = ?').run(JSON.stringify(b.catalog), next, CATALOG_KEY)
+      else db.prepare('INSERT INTO kv (key, value, version) VALUES (?,?,?)').run(CATALOG_KEY, JSON.stringify(b.catalog), next)
+      audit(user.username, 'restore', { movements: movements.length, batches: batches.length, goods: goods.length })
+      return next
+    })
+    return c.json({ version, movements: movements.length, batches: batches.length, goods: goods.length })
   })
 
   // ---- users (admin) ----
