@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { recipeUsage, stickLength, type Catalog } from '../core'
 import type { Update } from '../store'
 import { InfoTip, NumInput, Tag, TextInput } from '../ui'
+import { ListSettings } from './ListSettings'
 
 const emptyForm = {
   name: '', code: '', widthMm: null as number | null, thicknessMm: null as number | null,
@@ -126,6 +127,8 @@ export function Products({ catalog, update }: { catalog: Catalog; update: Update
         {err && <div className="alert err">{err}</div>}
         <p className="muted">محصول جدید همان لحظه در لیست قیمت می‌آید. تا وزنش را ننویسید، قیمت شاخه و متر معلوم نمی‌شود.</p>
       </div>
+
+      <ListSettings catalog={catalog} update={update} />
     </>
   )
 }

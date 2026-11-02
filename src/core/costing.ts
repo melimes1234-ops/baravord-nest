@@ -141,7 +141,7 @@ export function priceProduct(
 ): ProductPrice {
   const cost = costItems(productItems(product, colorId, catalog), catalog, product.baseRecipeId)
   const step = catalog.config.roundTo
-  const salePerKg = cost.costPerKg * (1 + tariff.marginPct / 100) * (1 + payPct / 100)
+  const salePerKg = cost.costPerKg * (1 + (product.marginPct ?? tariff.marginPct) / 100) * (1 + payPct / 100)
   const w = product.weightPer3mG
   const perStick = w == null ? null : roundTo((salePerKg * w) / 1000, step)
   const wm = widthMeters(product)

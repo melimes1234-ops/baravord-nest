@@ -101,7 +101,8 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
   const perBatchCostTotal = cfg.perBatchCosts.reduce((s, c) => s + c.amount, 0)
   const extrasPerKg = cfg.batchKg > 0 ? perBatchCostTotal / cfg.batchKg : 0
   const costPerKg = afterWastePerKg + overheadPerKg + extrasPerKg
-  const salePerKg = costPerKg * (1 + tariff.marginPct / 100) * (1 + payPct / 100)
+  const marginPct = product.marginPct ?? tariff.marginPct // a product can have its own profit
+  const salePerKg = costPerKg * (1 + marginPct / 100) * (1 + payPct / 100)
   const w = product.weightPer3mG
   const perStickRaw = w == null ? null : (salePerKg * w) / 1000
   const lengthM = stickLength(product)
@@ -143,8 +144,8 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
     cfg.wastePct >= 0 && cfg.wastePct <= 30
       ? { ok: true, level: 'ok', title: 'درصد دورریز معقول است', detail: `${cfg.wastePct}٪ از مواد دورریز می‌شود.` }
       : { ok: false, level: 'warn', title: 'درصد دورریز زیاد است', detail: `${cfg.wastePct}٪ خیلی زیاد است. مطمئن هستید؟` },
-    tariff.marginPct >= 0
-      ? { ok: true, level: 'ok', title: 'سود منفی نیست', detail: `سود این تعرفه ${tariff.marginPct}٪ است.` }
+    marginPct >= 0
+      ? { ok: true, level: 'ok', title: 'سود منفی نیست', detail: product.marginPct != null ? `سود مخصوص این محصول ${marginPct}٪ است.` : `سود این تعرفه ${marginPct}٪ است.` }
       : { ok: false, level: 'error', title: 'سود منفی است', detail: 'یعنی با ضرر می‌فروشید.' },
     engineMatches
       ? { ok: true, level: 'ok', title: 'یک بار دیگر هم حساب کردیم و جواب یکی شد', detail: 'محاسبه را جدا از لیست قیمت تکرار کردیم و همان جواب درآمد.' }
@@ -154,7 +155,7 @@ export function explainPrice(product: Product, colorId: Id | null, tariff: Tarif
   return {
     product, colorId, colorName: colorId ? catalog.colors[colorId]?.name ?? null : null, tariff, items, rows, totalKg, materialCost, materialPerKg,
     wastePct: cfg.wastePct, afterWastePerKg, wasteExtraPerKg: afterWastePerKg - materialPerKg, monthlyCostTotal, monthlyProductionKg: cfg.monthlyProductionKg,
-    overheadPerKg, monthlyPerKg, stagePerKg, payPct, perBatchCostTotal, batchKg: cfg.batchKg, extrasPerKg, costPerKg, marginPct: tariff.marginPct, profitPerKg: salePerKg - costPerKg, salePerKg,
+    overheadPerKg, monthlyPerKg, stagePerKg, payPct, perBatchCostTotal, batchKg: cfg.batchKg, extrasPerKg, costPerKg, marginPct, profitPerKg: salePerKg - costPerKg, salePerKg,
     weightG: w, lengthM, roundStep: cfg.roundTo, perMeterRaw, perStickRaw, perMeter, perStick, widthM, perSqmRaw, perSqm, missingPrices, checks,
   }
 }

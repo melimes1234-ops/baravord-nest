@@ -85,6 +85,9 @@ export function priceExportJson(x: PriceExport): string {
       stickLengthM: lengthM,
       stickWeightG: p.weightPer3mG,
       colorable: p.colorable,
+      group: p.group ?? null,
+      description: p.description ?? null,
+      marginPct: p.marginPct ?? x.tariff.marginPct,
       prices: Object.fromEntries(
         Object.entries(byColor).map(([colorId, pr]) => [
           colorId,

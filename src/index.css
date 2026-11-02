@@ -427,7 +427,10 @@ main { animation: pageIn .2s ease backwards; }
 .export-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 14px; border: 1px dashed var(--line); border-radius: 10px; background: var(--tint); }
 .print-sheet { display: none; }
 @media print {
-  @page { size: A4 landscape; margin: 8mm; }
+  @page matrix { size: A4 landscape; margin: 8mm; }
+  @page official { size: A3 portrait; margin: 0; }
+  .print-sheet { page: matrix; }
+  .official-sheet { page: official; }
   body.printing-sheet { background: #fff !important; }
   body.printing-sheet #root { display: none !important; }
   body.printing-sheet .print-sheet { display: block !important; color: #000; background: #fff; font-size: 8.5pt; line-height: 1.35; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -447,3 +450,43 @@ main { animation: pageIn .2s ease backwards; }
   .ps-sw { display: inline-block; width: 7px; height: 7px; border-radius: 50%; border: 1px solid #333; margin-inline-end: 3px; }
   .ps-foot { margin: 6px 0 0; font-size: 8pt; color: #333; }
 }
+
+/* ---- the factory's printed price list (A3, two pages) ---- */
+@media print {
+  .official-sheet { font-family: Calibri, 'Segoe UI', Arial, Tahoma, sans-serif; font-size: 10pt; line-height: 1.25; }
+  .os-page { width: 297mm; height: 419mm; box-sizing: border-box; padding: 27mm 17mm 0; break-after: page; overflow: hidden; }
+  .os-page:last-child { break-after: auto; }
+  .os-title { font-size: 12pt; font-weight: 700; direction: ltr; text-align: left; margin: 0 0 6mm 8mm; }
+  .os-warn { color: #b00; font-weight: 700; direction: rtl; }
+  .os-frame { background: #8ae313; padding: 4mm 3.5mm 5mm; }
+  .os-table { width: 100%; border-collapse: separate; border-spacing: 0 1px; table-layout: fixed; }
+  .official-sheet, .official-sheet th, .official-sheet td { color: #000; }
+  .os-table th { background: #8ae313; font-size: 10.5pt; font-weight: 700; padding: 3.2mm 1.5mm; text-align: center; white-space: normal; }
+  .os-table td { padding: 1.2mm 1.5mm; text-align: center; vertical-align: middle; height: 9.6mm; white-space: normal; border-bottom: 0; }
+  .os-table td.os-n, .os-table td.os-code, .os-table td.os-size { white-space: nowrap; }
+  .os-table tbody tr:nth-child(odd) td:not(.os-group) { background: #e2efd9; }
+  .os-table tbody tr:nth-child(even) td:not(.os-group) { background: #fff; }
+  .os-table td.os-group { background: #fff; border: 1px solid #8ae313; padding: 0; width: 4.5%; }
+  .os-vert { writing-mode: vertical-rl; transform: rotate(180deg); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; margin: 0 auto; }
+  .os-vert b { font-size: 9pt; letter-spacing: .02em; }
+  .os-vert span { font-size: 8.5pt; font-weight: 700; }
+  .os-name, .os-code, .os-n { font-weight: 700; }
+  .os-name { font-size: 10pt; }
+  .os-code { direction: ltr; }
+  .os-size { direction: ltr; font-weight: 600; }
+  .os-n { direction: ltr; font-size: 10.5pt; }
+  .os-desc { font-size: 8.5pt; }
+  .os-shapebox { display: flex; align-items: center; justify-content: center; gap: 2mm; direction: ltr; }
+  .os-shapebox b { font-size: 9pt; white-space: nowrap; }
+  .os-pic { display: block; }
+  .os-notes { list-style: none; margin: 5mm 0 0; padding: 0 3mm; font-size: 8pt; font-weight: 700; line-height: 1.55; }
+  .os-notes li::before { content: '✓'; margin-inline-end: 2mm; }
+  .os-acc th, .os-acc-head th { background: #e2efd9; font-size: 9pt; padding: 3mm 1.5mm; }
+  .os-acc { margin-top: 5mm; }
+  .os-special { font-size: 9pt; font-weight: 700; direction: rtl; }
+  .os-ltr { direction: ltr; }
+  .os-call { font-size: 8.5pt; font-weight: 700; }
+  .os-p2 .os-table td { height: 12mm; }
+}
+.own-margin { color: var(--accent); font-weight: 700; }
+.price-table td input.num { width: 84px; }

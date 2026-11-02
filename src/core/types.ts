@@ -42,6 +42,9 @@ export interface Color {
   copiedFrom?: Id
 }
 
+/** The four blocks of the printed price list: cladding, decking, boards, trims. */
+export type ProductGroup = 'cladding' | 'decking' | 'vivards' | 'trim'
+
 export interface Product {
   id: Id
   name: string
@@ -57,6 +60,18 @@ export interface Product {
   /** Length of one stick in metres. Default 3. */
   stickLengthM?: number
   baseRecipeId: Id
+  /** Block of the printed price list. */
+  group?: ProductGroup
+  /** «توضیحات بیشتر» column of the printed price list. */
+  description?: string
+  /** Profit for this product only (percent). Empty = the tariff chosen for the list. */
+  marginPct?: number
+  /** The printed list also shows a per square metre price for this product. */
+  showSqm?: boolean
+  /** Metres of this profile that cover one square metre (the number next to the drawing), when it differs from 1000 / width. */
+  coverPerM2?: number
+  /** Size as printed when it is not «width × thickness» (for example «38 mm»). */
+  sizeText?: string
   /** false for products that are sold without a colour . */
   colorable: boolean
 }
@@ -94,6 +109,33 @@ export interface Config {
   chequeSurchargePct?: number
 }
 
+export type AccessoryGroup = 'clips' | 'finishers' | 'screws' | 'tiles'
+
+/** A line of the accessories page of the printed price list. The price is typed, not calculated. */
+export interface Accessory {
+  id: Id
+  group: AccessoryGroup
+  name: string
+  code: string
+  specialFor: string
+  /** Toman. null prints «تماس بگیرید». */
+  price: number | null
+  /** Picture key (see shapes.ts), or text printed in the picture column when there is no picture. */
+  shape?: string
+  shapeText?: string
+}
+
+export interface PriceListSettings {
+  title: string
+  /** The colour whose price is printed (the printed list shows no colour). */
+  colorId: Id
+  /** Round printed prices per metre to this many Toman, and per square metre to the second number. */
+  roundTo: number
+  sqmRoundTo: number
+  notes: string[]
+  accessories: Accessory[]
+}
+
 export interface Catalog {
   materials: Record<Id, Material>
   recipes: Record<Id, Recipe>
@@ -103,4 +145,6 @@ export interface Catalog {
   config: Config
   /** Which set of starting data this catalog was made from (see seed.ts). */
   seedVersion?: number
+  /** Texts, accessories and rules of the printed price list. */
+  priceList?: PriceListSettings
 }

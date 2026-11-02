@@ -1,9 +1,10 @@
 import { PriceGaps } from './PriceGaps'
+import { OfficialSheet } from './OfficialSheet'
 import { PriceSheet } from './PriceSheet'
 import { downloadExcel, downloadJson } from '../exportFiles'
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
-  buildPriceExport, todayIso, type PriceMetric, colorSwatch, explainPrice, extrasPerKg, faNum, flatten, stickLength, formatKg, formatToman, overheadPerKg, priceProduct, productItems, toFa,
+  buildOfficialList, buildPriceExport, todayIso, type OfficialList, type PriceMetric, colorSwatch, explainPrice, extrasPerKg, faNum, flatten, stickLength, formatKg, formatToman, overheadPerKg, priceProduct, productItems, toFa,
   type Catalog, type Product, type Tariff,
 } from '../core'
 import { InfoTip, Kpi, NumInput, Swatch, Tag, Toman } from '../ui'
@@ -54,7 +55,7 @@ const SQM_TIP = (
   </>
 )
 
-export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; onEditTariffs?: () => void; go?: (tab: string) => void }) {
+export function PriceList({ catalog, onEditTariffs, go, onMargin }: { catalog: Catalog; onEditTariffs?: () => void; go?: (tab: string) => void; onMargin?: (id: string, pct: number | null) => void }) {
   const colors = Object.values(catalog.colors)
   const [tariffId, setTariffId] = useState(catalog.tariffs[0]?.id)
   const [customPct, setCustomPct] = useState<number | null>(20)
@@ -77,7 +78,7 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
   const [incl, setIncl] = useState({ waste: true, overhead: true, extras: true, profit: true })
   const [pay, setPay] = useState<'cash' | 'cheque'>('cash')
   // the PDF is the browser's «print → save as PDF» of a page made for paper; `sheet` holds what goes on it while printing
-  const [sheet, setSheet] = useState<{ metrics: PriceMetric[]; data: ReturnType<typeof buildPriceExport> } | null>(null)
+  const [sheet, setSheet] = useState<{ kind: 'matrix'; metrics: PriceMetric[]; data: ReturnType<typeof buildPriceExport> } | { kind: 'official'; data: OfficialList } | null>(null)
   const [pdfMetrics, setPdfMetrics] = useState<PriceMetric[]>(['perStick', 'perMeter'])
   const [exporting, setExporting] = useState('')
   const chequePct = catalog.config.chequeSurchargePct ?? 0
@@ -92,6 +93,8 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
   const view = useMemo<Catalog>(
     () => ({
       ...catalog,
+      // a product's own profit only counts while profit is ticked
+      products: incl.profit ? catalog.products : Object.fromEntries(Object.entries(catalog.products).map(([id, pr]) => [id, { ...pr, marginPct: undefined }])),
       // unticking the fixed costs also switches off the cost of each making step
       recipes: incl.overhead ? catalog.recipes : Object.fromEntries(Object.entries(catalog.recipes).map(([id, rc]) => [id, { ...rc, overheadPerKg: 0 }])),
       config: {
@@ -101,7 +104,7 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
         perBatchCosts: incl.extras ? catalog.config.perBatchCosts : [],
       },
     }),
-    [catalog, incl.waste, incl.overhead, incl.extras],
+    [catalog, incl.waste, incl.overhead, incl.extras, incl.profit],
   )
   const tariff: Tariff | undefined = fullTariff && (incl.profit ? fullTariff : { ...fullTariff, marginPct: 0 })
   const excluded = [
@@ -153,7 +156,8 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
   return (
     <div className="card">
       <PriceGaps catalog={catalog} go={go} />
-      {sheet && <PriceSheet data={sheet.data} metrics={sheet.metrics} />}
+      {sheet?.kind === 'matrix' && <PriceSheet data={sheet.data} metrics={sheet.metrics} />}
+      {sheet?.kind === 'official' && <OfficialSheet data={sheet.data} />}
       <div className="row">
         <div>
           <span className="field-label">تعرفه (درصد سود)</span>
@@ -194,7 +198,8 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
         <b>خروجی همین لیست</b>
         <InfoTip>
           <p>لیست کامل (همه‌ی محصولات و همه‌ی رنگ‌ها) با <b>همین تعرفه، روش پرداخت و همین انتخاب هزینه‌ها</b> که بالا می‌بینید ساخته می‌شود.</p>
-          <p><b>PDF:</b> صفحه‌ی چاپ باز می‌شود؛ «ذخیره به‌صورت PDF» را انتخاب کنید. کاغذ را «افقی» بگذارید.</p>
+          <p><b>PDF لیست قیمت:</b> همان طرح لیست رسمی شرکت (دو صفحه، A3): یک قیمت برای هر محصول (رنگ ندارد)، سطح مقطع، لوازم جانبی و تبصره‌ها. صفحه‌ی چاپ باز می‌شود؛ «ذخیره به‌صورت PDF» و اندازه‌ی کاغذ A3 را انتخاب کنید.</p>
+          <p><b>PDF همه‌ی رنگ‌ها:</b> جدول قیمت هر رنگ (A4 افقی). با دکمه‌های کنارش بخش‌ها را انتخاب کنید.</p>
           <p><b>Excel:</b> یک برگه برای هر نوع قیمت (شاخه، متر، متر مربع، کیلو)، محصول‌ها در ردیف و رنگ‌ها در ستون.</p>
           <p><b>JSON:</b> برای وارد کردن در سایت دیگر؛ قیمت‌ها به تومان و عدد صحیح‌اند.</p>
         </InfoTip>
@@ -204,7 +209,8 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
           ))}
         </div>
         <div className="row" style={{ marginBottom: 0 }}>
-          <button className="btn" disabled={pdfMetrics.length === 0 || !!sheet} onClick={() => setSheet({ metrics: pdfMetrics, data: makeExport() })}>PDF</button>
+          <button className="btn" disabled={!!sheet} onClick={() => setSheet({ kind: 'official', data: buildOfficialList(view, tariff!, payPct, excluded, todayIso()) })}>PDF لیست قیمت</button>
+          <button className="btn ghost" disabled={pdfMetrics.length === 0 || !!sheet} onClick={() => setSheet({ kind: 'matrix', metrics: pdfMetrics, data: makeExport() })}>PDF همه‌ی رنگ‌ها</button>
           <button className="btn" disabled={!!exporting} onClick={() => void runExport('excel')}>{exporting === 'excel' ? '…' : 'Excel'}</button>
           <button className="btn ghost" disabled={!!exporting} onClick={() => void runExport('json')}>JSON (برای وارد کردن در سایت)</button>
           {excluded.length > 0 && <span className="muted">توجه: لیست الان ناقص است (بدون {excluded.join('، ')}) و همین‌طور خروجی می‌گیرد.</span>}
@@ -247,15 +253,15 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
           <thead>
             <tr>
               <th>محصول</th><th className="n hide-sm">وزن شاخه</th><th className="n hide-sm">هر کیلو (تومان)</th>
-              <th className="n">هر متر (تومان)</th><th className="n hide-sm">هر متر مربع (تومان)</th><th className="n">قیمت شاخه (تومان)</th><th className="hide-sm status">وضعیت</th>
+              <th className="n">هر متر (تومان)</th><th className="n hide-sm">هر متر مربع (تومان)</th><th className="n">قیمت شاخه (تومان)</th><th className="n hide-sm">سود این محصول (٪)</th><th className="hide-sm status">وضعیت</th>
             </tr>
           </thead>
           <tbody>
-            {groups.length === 0 && <tr><td colSpan={7} className="muted">محصولی با این نام پیدا نشد.</td></tr>}
+            {groups.length === 0 && <tr><td colSpan={8} className="muted">محصولی با این نام پیدا نشد.</td></tr>}
             {groups.map(g => (
               <Fragment key={g.series}>
                 <tr className={`group ${g.series}`}>
-                  <td colSpan={7}>{seriesTitle(g.series)} · {toFa(g.rows.length)} محصول</td>
+                  <td colSpan={8}>{seriesTitle(g.series)} · {toFa(g.rows.length)} محصول</td>
                 </tr>
                 {g.rows.map(({ p, price }) => {
                   const bad = price.cost.missingPrices.length > 0
@@ -282,6 +288,13 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
                         <td className="n">{formatToman(price.perMeter)}</td>
                         <td className="n dim hide-sm">{formatToman(price.perSqm)}</td>
                         <td className="n price-main">{formatToman(price.perStick)}</td>
+                        <td className="n hide-sm" onClick={e => e.stopPropagation()}>
+                          {onMargin ? (
+                            <NumInput unit="٪" decimals={2} value={p.marginPct ?? null} placeholder={toFa(fullTariff.marginPct)} onChange={v => onMargin(p.id, v)} />
+                          ) : (
+                            <span className={p.marginPct != null ? 'own-margin' : 'dim'}>{toFa(p.marginPct ?? fullTariff.marginPct)}٪</span>
+                          )}
+                        </td>
                         <td className="hide-sm status">
                           {bad && <Tag kind="err">قیمت ناقص</Tag>}{' '}
                           {p.weightPer3mG == null && <Tag>بدون وزن</Tag>}
@@ -290,7 +303,7 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
                       </tr>
                       {mounted && (
                         <tr className="panel" id={`panel-${p.id}`}>
-                          <td colSpan={7}>
+                          <td colSpan={8}>
                             <Panel closing={closing} onClosed={() => { setOpen(null); setClosing(false) }}>
                               <Breakdown catalog={view} product={p} colorId={p.colorable ? colorId || null : null} tariff={tariff} payPct={payPct} />
                             </Panel>
@@ -305,7 +318,7 @@ export function PriceList({ catalog, onEditTariffs, go }: { catalog: Catalog; on
           </tbody>
         </table>
       </div>
-      <p className="muted">روی هر محصول بزنید تا ببینید قیمتش از چه چیزهایی ساخته شده. قیمت‌ها به تومان‌اند و به نزدیک‌ترین {toFa(catalog.config.roundTo)} تومان رسانده شده‌اند. نوار رنگی کنار هر محصول نشان می‌دهد از کدام سری است؛ نوار قرمز یعنی قیمتش ناقص است. برای دیدن اینکه هر عدد چطور درآمده، موس را روی ⓘ کنار آن ببرید.</p>
+      <p className="muted">روی هر محصول بزنید تا ببینید قیمتش از چه چیزهایی ساخته شده. ستون «سود این محصول»: خالی یعنی سود تعرفه‌ی بالا؛ اگر عددی بنویسید (مثلاً ۳۰)، فقط همان محصول با آن درصد حساب می‌شود، حتی اگر تعرفه‌ی کلی چیز دیگری باشد. قیمت‌ها به تومان‌اند و به نزدیک‌ترین {toFa(catalog.config.roundTo)} تومان رسانده شده‌اند. نوار رنگی کنار هر محصول نشان می‌دهد از کدام سری است؛ نوار قرمز یعنی قیمتش ناقص است. برای دیدن اینکه هر عدد چطور درآمده، موس را روی ⓘ کنار آن ببرید.</p>
     </div>
   )
 }

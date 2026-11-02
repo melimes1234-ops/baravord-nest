@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildPriceExport, priceExportJson, metricValue, addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
+  buildOfficialList, SHAPES, buildPriceExport, priceExportJson, metricValue, addBatchItem, batchReport, checkAvailability, consumeBatch, createBatch, costItems, flatten,
   stickLength, calcCsv, catalogChanges, todayIso, isoToJalali, jalaliToIso, jalaliMonthLength, jalaliWeekday, colorSwatch, explainPrice, formulaCost, normalizeTo, recipeUsage, setItemPercent, withReplacement, fromJalaliDate, luminance, parseNum, priceProduct, productItems, recipeMaterialPerKg, removeBatchItem,
   replaceBatchItem, itemUnitPrice, seedCatalog, setActualQty, stockLevels, toJalaliDate, validateCatalog,
   type Catalog, type Movement,
@@ -448,6 +448,91 @@ describe('price list export', () => {
     expect(j.notIncluded).toEqual(['سود'])
     expect(j.products.find((p: { id: string }) => p.id === 't-once').prices.n1.perStick).toBeNull()
     expect(metricValue(x.rows.find(r => r.product.id === 't-once')!.byColor.n1, 'perStick')).toBeNull()
+  })
+})
+
+describe('profit per product', () => {
+  it('a product with its own profit uses it, whatever the tariff says; the others follow the tariff', () => {
+    const c = cat()
+    const t = { id: 'x', name: '70', marginPct: 70 }
+    const before = priceProduct(c.products.flex, 'n9', t, c)
+    c.products.flex.marginPct = 30
+    const after = priceProduct(c.products.flex, 'n9', t, c)
+    expect(after.salePerKg).toBeCloseTo(after.costPerKg * 1.3, 9)
+    expect(before.salePerKg).toBeCloseTo(before.costPerKg * 1.7, 9)
+    expect(priceProduct(c.products.feel, 'n9', t, c).salePerKg).toBeCloseTo(priceProduct(c.products.feel, 'n9', t, c).costPerKg * 1.7, 9)
+    // the explanation page follows the same rule and still equals the engine
+    const e = explainPrice(c.products.flex, 'n9', t, c)
+    expect(e.marginPct).toBe(30)
+    expect(e.perStick).toBe(after.perStick)
+    expect(e.checks.find(k => k.title.startsWith('یک بار دیگر هم حساب کردیم'))?.ok).toBe(true)
+  })
+})
+
+describe('the printed price list (طرح رسمی)', () => {
+  const t = (c: Catalog) => c.tariffs[1]
+  it('has the factory\'s four blocks in order, one price per product, and no colour anywhere', () => {
+    const c = cat()
+    const l = buildOfficialList(c, t(c), 0, [], '2026-10-24')
+    expect(l.title).toBe('NEST – SUMMER 1405')
+    expect(l.groups.map(g => g.group)).toEqual(['cladding', 'decking', 'vivards', 'trim'])
+    expect(l.groups.map(g => g.rows.length)).toEqual([2, 10, 5, 6])
+    const feel = l.groups[0].rows[0]
+    expect(feel).toMatchObject({ name: 'FEEL', code: 'FC140', size: '140 × 21', cover: '7.1428', description: 'نماپوش 14 سانتیمتر' })
+    expect(JSON.stringify(l.groups)).not.toMatch(/N9|"n9"/) // the colour behind the price is never printed on the rows
+  })
+
+  it('prints the price of the list colour (N9), rounded to thousands; m2 only where the list shows it, rounded to 10,000', () => {
+    const c = cat()
+    const tariff = t(c)
+    const l = buildOfficialList(c, tariff, 0, [], '2026-10-24')
+    const flex = l.groups[1].rows.find(r => r.code === 'FD140')!
+    const raw = priceProduct(c.products.flex, 'n9', tariff, c).salePerKg * 7680 / 3000
+    expect(flex.perMeter).toBe(Math.round(raw / 1000) * 1000)
+    expect(flex.perSqm).toBe(Math.round(flex.perMeter! / 0.14 / 10_000) * 10_000)
+    const fame = l.groups[1].rows.find(r => r.code === 'FD72')!
+    expect(fame.perSqm).toBeNull() // the list shows no m2 price for the narrow profile
+    expect(fame.perMeter).not.toBeNull()
+    expect(l.groups[3].rows.every(r => r.perSqm === null && r.cover === null)).toBe(true)
+    c.priceList!.colorId = 'n1'
+    const n1 = buildOfficialList(c, tariff, 0, [], '2026-10-24').groups[1].rows.find(r => r.code === 'FD140')!
+    expect(n1.perMeter!).toBeGreaterThan(flex.perMeter!) // N1 has 8 kg of titanium
+  })
+
+  it('follows a product\'s own profit and the cheque surcharge, and carries the accessories and notes', () => {
+    const c = cat()
+    const tariff = { id: 'x', name: '70', marginPct: 70 }
+    const flat = buildOfficialList(c, tariff, 0, [], '2026-10-24').groups[1].rows.find(r => r.code === 'FD140')!.perMeter!
+    c.products.flex.marginPct = 30
+    const own = buildOfficialList(c, tariff, 0, [], '2026-10-24').groups[1].rows.find(r => r.code === 'FD140')!.perMeter!
+    expect(own).toBeLessThan(flat * 0.8)
+    const cheque = buildOfficialList(c, tariff, 6, [], '2026-10-24').groups[1].rows.find(r => r.code === 'FD140')!.perMeter!
+    expect(cheque).toBeGreaterThan(own)
+    const l = buildOfficialList(c, tariff, 0, ['سود'], '2026-10-24')
+    expect(l.notIncluded).toEqual(['سود'])
+    expect(l.notes).toHaveLength(9)
+    expect(l.accessories.map(g => g.group)).toEqual(['clips', 'finishers', 'screws', 'tiles'])
+    expect(l.accessories.flatMap(g => g.rows)).toHaveLength(18)
+    expect(l.accessories[0].rows[0]).toMatchObject({ code: 'HCL', price: 8500 })
+    expect(l.accessories[1].rows.every(a => a.price === null)).toBe(true)
+    expect(Object.keys(SHAPES)).toEqual(expect.arrayContaining(['FC140', 'FD92T', 'FT46', 'HCL', 'OMEGA']))
+  })
+})
+
+describe('the printed list with a catalog saved before it existed', () => {
+  it('fills the missing groups, descriptions, notes and accessories from the starting data, and never overrides what the user set', () => {
+    const c = cat()
+    delete c.priceList
+    for (const p of Object.values(c.products)) { delete p.group; delete p.description; delete p.showSqm; delete p.coverPerM2 }
+    c.products.flex.description = 'متن من'
+    c.products.feel.showSqm = false
+    const l = buildOfficialList(c, c.tariffs[0], 0, [], '2026-10-24')
+    expect(l.groups.map(g => g.rows.length)).toEqual([2, 10, 5, 6])
+    expect(l.notes).toHaveLength(9)
+    expect(l.accessories.flatMap(g => g.rows)).toHaveLength(18)
+    expect(l.groups[1].rows.find(r => r.code === 'FD140')!.description).toBe('متن من')
+    expect(l.groups[0].rows[0].perSqm).toBeNull() // the user switched the m2 price off for Feel
+    expect(l.groups[0].rows[1].perSqm).not.toBeNull()
   })
 })
 
