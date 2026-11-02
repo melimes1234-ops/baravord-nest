@@ -54,6 +54,24 @@ function nps_fetch(string $base, string $key): array {
   return [$data, null];
 }
 
+
+/** Clears the theme's own cache and the common page-cache plugins, so a new price shows at once. */
+function nps_purge_caches(): void {
+  if (function_exists('nest_flush_cache')) nest_flush_cache();
+  global $wpdb;
+  if (isset($wpdb) && is_object($wpdb)) {
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_nest\\_%' OR option_name LIKE '\\_transient\\_timeout\\_nest\\_%'");
+  }
+  if (function_exists('wp_cache_flush')) wp_cache_flush();
+  do_action('litespeed_purge_all');
+  do_action('wpfc_clear_all_cache');
+  if (function_exists('rocket_clean_domain')) rocket_clean_domain();
+  if (function_exists('w3tc_flush_all')) w3tc_flush_all();
+  if (function_exists('wp_cache_clear_cache')) wp_cache_clear_cache();
+  if (function_exists('sg_cachepress_purge_cache')) sg_cachepress_purge_cache();
+  if (function_exists('clean_post_cache')) clean_post_cache(0);
+}
+
 /** One price from the app, or null when it is missing or not a sensible whole number of Toman. */
 function nps_price($v): ?int {
   if (!is_numeric($v)) return null;
@@ -66,10 +84,10 @@ function nps_price($v): ?int {
  * A site product is found by its series name (CLAN, T-Once …) and, failing that, by its code (FD92 …).
  * When both exist but disagree, the series name wins and the product is listed in the report.
  */
-function nps_sync(): array {
+function nps_sync(bool $force = false): array {
   $o = nps_opts();
   [$data, $err] = nps_fetch($o['url'], $o['key']);
-  $report = ['time' => time(), 'ok' => false, 'message' => '', 'updated' => 0, 'same' => 0, 'notices' => [], 'unmatched_app' => [], 'unmatched_site' => []];
+  $report = ['time' => time(), 'ok' => false, 'message' => '', 'updated' => 0, 'same' => 0, 'purged' => false, 'samples' => [], 'notices' => [], 'unmatched_app' => [], 'unmatched_site' => []];
   if ($err) {
     $report['message'] = $err;
     nps_save_report($report);
@@ -136,6 +154,9 @@ function nps_sync(): array {
       if ((int) get_post_meta($id, $k, true) !== $v) { update_post_meta($id, $k, $v); $changed = true; }
     }
     $changed ? $report['updated']++ : $report['same']++;
+    if (count($report['samples']) < 4) {
+      $report['samples'][] = get_the_title($id) . ': هر متر ' . number_format((int) get_post_meta($id, '_nest_price_m', true)) . ' | هر متر مربع ' . number_format((int) get_post_meta($id, '_nest_price_m2', true)) . ' تومان' . ($changed ? ' (تازه نوشته شد)' : ' (از قبل همین بود)');
+    }
     $used[$hit['id']] = true;
   }
   foreach ($data['products'] as $p) {
@@ -143,9 +164,9 @@ function nps_sync(): array {
       $report['unmatched_app'][] = ($p['name'] ?? '?') . ' (' . ($p['code'] ?? '—') . ')';
     }
   }
-  if ($report['updated'] > 0) {
-    if (function_exists('nest_flush_cache')) nest_flush_cache();
-    clean_post_cache(0);
+  if ($report['updated'] > 0 || $force) {
+    nps_purge_caches();
+    $report['purged'] = true;
   }
   $report['ok'] = true;
   $report['message'] = 'قیمت‌ها از برنامه گرفته شد' . (!empty($data['jalaliDate']) ? ' (تاریخ لیست: ' . $data['jalaliDate'] . ')' : '') . '.';
@@ -160,7 +181,7 @@ function nps_save_report(array $r): void {
 }
 
 // ---- schedule: every hour ----
-add_action(NPS_HOOK, 'nps_sync');
+add_action(NPS_HOOK, function () { nps_sync(); });
 add_action('init', function () {
   if (!wp_next_scheduled(NPS_HOOK)) wp_schedule_event(time() + 300, 'hourly', NPS_HOOK);
 });
@@ -182,7 +203,7 @@ function nps_page(): void {
     if ($key !== '') $o['key'] = preg_replace('/[^A-Za-z0-9_\-]/', '', $key);
     update_option(NPS_OPT, $o, false);
     $msg = 'ذخیره شد.';
-    if (isset($_POST['nps_run'])) { $r = nps_sync(); $msg = ($r['ok'] ? 'همگام‌سازی انجام شد. ' : 'همگام‌سازی نشد. ') . $r['message']; }
+    if (isset($_POST['nps_run'])) { $r = nps_sync(true); $msg = ($r['ok'] ? 'همگام‌سازی انجام شد. ' : 'همگام‌سازی نشد. ') . $r['message']; }
   }
   $o = nps_opts();
   $r = $o['last'];
@@ -198,7 +219,12 @@ function nps_page(): void {
   if (is_array($r)) {
     echo '<h2>آخرین همگام‌سازی</h2><p>' . esc_html(wp_date('Y/m/d H:i', (int) $r['time'])) . ' — ' . ($r['ok'] ? '✅' : '❌') . ' ' . esc_html($r['message']) . '</p>';
     if ($r['ok']) {
-      echo '<p>قیمت عوض شد: <b>' . (int) $r['updated'] . '</b> محصول · بدون تغییر: <b>' . (int) $r['same'] . '</b></p>';
+      echo '<p>قیمت عوض شد: <b>' . (int) $r['updated'] . '</b> محصول · بدون تغییر: <b>' . (int) $r['same'] . '</b>' . (!empty($r['purged']) ? ' · کش پاک شد' : '') . '</p>';
+      if (!empty($r['samples'])) {
+        echo '<h3>نمونه‌ی قیمت‌هایی که الان در سایت ذخیره است</h3><ul style="list-style:disc;margin-right:20px">';
+        foreach ($r['samples'] as $line) echo '<li>' . esc_html($line) . '</li>';
+        echo '</ul>';
+      }
       foreach (['notices' => 'نکته‌ها', 'unmatched_site' => 'محصول‌های سایت که در برنامه جفت نداشتند (قیمتشان دست نخورد)', 'unmatched_app' => 'محصول‌های برنامه که در سایت پیدا نشدند'] as $k => $title) {
         if (!empty($r[$k])) {
           echo '<h3>' . esc_html($title) . ' (' . count($r[$k]) . ')</h3><ul style="list-style:disc;margin-right:20px">';
