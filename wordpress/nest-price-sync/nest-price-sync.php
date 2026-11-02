@@ -24,6 +24,17 @@ function nps_norm($s): string {
   return strtolower(preg_replace('/[^\p{L}\p{N}]+/u', '', (string) $s));
 }
 
+
+/** The words of a product title like "DECKING – ONCE – FD142 – N10 – BRUSH", normalised: each part between dashes, and each single word. */
+function nps_title_parts(string $title): array {
+  $out = [];
+  foreach (preg_split('/\s+[–—-]\s+|\s*[–—]\s*/u', $title) as $seg) {
+    $out[] = nps_norm($seg);
+    foreach (preg_split('/\s+/u', trim($seg)) as $w) $out[] = nps_norm($w);
+  }
+  return array_values(array_unique(array_filter($out, fn($x) => $x !== '')));
+}
+
 /** Downloads the price list from the app. Returns [data, error]. */
 function nps_fetch(string $base, string $key): array {
   $base = rtrim(trim($base), '/');
@@ -84,6 +95,15 @@ function nps_sync(): array {
 
     $hitName = ($series !== '' && isset($byName[$series]) && count($byName[$series]) === 1) ? $byName[$series][0] : null;
     $hitCode = ($code !== '' && isset($byCode[$code]) && count($byCode[$code]) === 1) ? $byCode[$code][0] : null;
+    $viaTitle = false;
+    if (!$hitName && !$hitCode) {
+      // no usable series/code fields: read the model name (and code) from the title
+      foreach (nps_title_parts(get_the_title($id)) as $part) {
+        if (!$hitName && isset($byName[$part]) && count($byName[$part]) === 1) $hitName = $byName[$part][0];
+        if (!$hitCode && isset($byCode[$part]) && count($byCode[$part]) === 1) $hitCode = $byCode[$part][0];
+      }
+      $viaTitle = (bool) ($hitName || $hitCode);
+    }
     $hit = null;
     if ($hitName && $hitCode) {
       if ($hitName['id'] === $hitCode['id']) $hit = $hitName;
@@ -98,7 +118,7 @@ function nps_sync(): array {
     } elseif ($hitCode) {
       $hit = $hitCode;
     } else {
-      $report['unmatched_site'][] = $label;
+      $report['unmatched_site'][] = $label . ' [سری: ' . (get_post_meta($id, '_nest_series', true) ?: '—') . ' | کد: ' . (get_post_meta($id, '_nest_code', true) ?: '—') . ']';
       continue;
     }
 
